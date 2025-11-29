@@ -14,7 +14,7 @@ function unwrap<T>(val: [] | [T] | undefined | null): T | null {
   if (Array.isArray(val)) {
     return val.length > 0 ? val[0] : null;
   }
-  return val; // Should not happen with generated types but safe fallback
+  return null;
 }
 
 // Tiles
@@ -36,10 +36,10 @@ export function useGetTile(id: string) {
 
   return useQuery<TileMetadata | null>({
     queryKey: ['tile', id],
-    queryFn: async () => {
+    queryFn: async (): Promise<TileMetadata | null> => {
       if (!actor) return null;
       const result = await actor.getTile(id);
-      return unwrap(result);
+      return unwrap<TileMetadata>(result);
     },
     enabled: !!actor && !isFetching && !!id,
   });
@@ -94,10 +94,10 @@ export function useGetObject(id: string) {
 
   return useQuery<ObjectMetadata | null>({
     queryKey: ['object', id],
-    queryFn: async () => {
+    queryFn: async (): Promise<ObjectMetadata | null> => {
       if (!actor) return null;
       const result = await actor.getObject(id);
-      return unwrap(result);
+      return unwrap<ObjectMetadata>(result);
     },
     enabled: !!actor && !isFetching && !!id,
   });
@@ -152,10 +152,10 @@ export function useGetTileSet(id: string) {
 
   return useQuery<TileSet | null>({
     queryKey: ['tileSet', id],
-    queryFn: async () => {
+    queryFn: async (): Promise<TileSet | null> => {
       if (!actor) return null;
       const result = await actor.getTileSet(id);
-      return unwrap(result);
+      return unwrap<TileSet>(result);
     },
     enabled: !!actor && !isFetching && !!id,
   });
@@ -210,10 +210,10 @@ export function useGetPrefab(id: string) {
 
   return useQuery<Prefab | null>({
     queryKey: ['prefab', id],
-    queryFn: async () => {
+    queryFn: async (): Promise<Prefab | null> => {
       if (!actor) return null;
       const result = await actor.getPrefab(id);
-      return unwrap(result);
+      return unwrap<Prefab>(result);
     },
     enabled: !!actor && !isFetching && !!id,
   });
@@ -268,10 +268,10 @@ export function useGetMap(id: string) {
 
   return useQuery<MapData | null>({
     queryKey: ['map', id],
-    queryFn: async () => {
+    queryFn: async (): Promise<MapData | null> => {
       if (!actor) return null;
       const result = await actor.getMap(id);
-      return unwrap(result);
+      return unwrap<MapData>(result);
     },
     enabled: !!actor && !isFetching && !!id,
   });
