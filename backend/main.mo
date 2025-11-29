@@ -266,4 +266,70 @@ persistent actor Backend {
       };
     };
   };
+
+  // Delete methods
+  public func deleteTile(id : Text) : async {
+    #ok : Text;
+    #err : ValidationError;
+  } {
+    switch (textMap.get(tiles, id)) {
+      case (null) { #err({ code = "NOT_FOUND"; message = "Tile not found"; fix_attempted = false }) };
+      case (?_) {
+        tiles := textMap.delete(tiles, id);
+        #ok(id);
+      };
+    };
+  };
+
+  public func deleteObject(id : Text) : async {
+    #ok : Text;
+    #err : ValidationError;
+  } {
+    switch (textMap.get(objects, id)) {
+      case (null) { #err({ code = "NOT_FOUND"; message = "Object not found"; fix_attempted = false }) };
+      case (?_) {
+        objects := textMap.delete(objects, id);
+        #ok(id);
+      };
+    };
+  };
+
+  public func deleteTileSet(id : Text) : async {
+    #ok : Text;
+    #err : ValidationError;
+  } {
+    switch (textMap.get(tile_sets, id)) {
+      case (null) { #err({ code = "NOT_FOUND"; message = "Tile set not found"; fix_attempted = false }) };
+      case (?_) {
+        tile_sets := textMap.delete(tile_sets, id);
+        #ok(id);
+      };
+    };
+  };
+
+  public func deletePrefab(id : Text) : async {
+    #ok : Text;
+    #err : ValidationError;
+  } {
+    switch (textMap.get(prefabs, id)) {
+      case (null) { #err({ code = "NOT_FOUND"; message = "Prefab not found"; fix_attempted = false }) };
+      case (?_) {
+        prefabs := textMap.delete(prefabs, id);
+        #ok(id);
+      };
+    };
+  };
+
+  public func deleteMap(id : Text) : async {
+    #ok : Text;
+    #err : ValidationError;
+  } {
+    switch (textMap.get(maps, id)) {
+      case (null) { #err({ code = "NOT_FOUND"; message = "Map not found"; fix_attempted = false }) };
+      case (?_) {
+        maps := textMap.delete(maps, id);
+        #ok(id);
+      };
+    };
+  };
 };
