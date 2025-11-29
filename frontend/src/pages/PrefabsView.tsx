@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Plus, Component, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -20,7 +19,6 @@ export function PrefabsView() {
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedPrefab, setSelectedPrefab] = useState<Prefab | null>(null);
   const [formData, setFormData] = useState({
     id: '',
@@ -137,21 +135,16 @@ export function PrefabsView() {
     }
   };
 
-  const handleDeleteClick = (prefab: Prefab) => {
-    setSelectedPrefab(prefab);
-    setIsDeleteDialogOpen(true);
-  };
-
-  const handleDelete = async () => {
-    if (!selectedPrefab) return;
+  const handleDeleteClick = async (prefab: Prefab) => {
+    if (!window.confirm(`Are you sure you want to delete the prefab "${prefab.name}"? This action cannot be undone.`)) {
+      return;
+    }
 
     try {
-      const result = await deletePrefab.mutateAsync(selectedPrefab.id);
+      const result = await deletePrefab.mutateAsync(prefab.id);
 
       if ("ok" in result) {
         toast.success('Prefab deleted successfully');
-        setIsDeleteDialogOpen(false);
-        setSelectedPrefab(null);
       } else {
         toast.error(`Error: ${result.err.message}`, {
           description: `Code: ${result.err.code}`,
@@ -345,24 +338,6 @@ export function PrefabsView() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete the prefab "{selectedPrefab?.name}". This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              {deletePrefab.isPending ? 'Deleting...' : 'Delete'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
       {isLoading ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {[...Array(6)].map((_, i) => (
@@ -401,6 +376,7 @@ export function PrefabsView() {
                       size="icon"
                       className="h-8 w-8 text-destructive hover:text-destructive"
                       onClick={() => handleDeleteClick(prefab)}
+                      disabled={deletePrefab.isPending}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
