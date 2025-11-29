@@ -1,2 +1,2 @@
-export * from '../declarations/backend/backend.did.d.ts';
+export * from '../declarations/backend/backend.did';
 export { backend } from '../declarations/backend';
