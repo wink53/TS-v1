@@ -1,7 +1,7 @@
 import { Actor, HttpAgent } from "@dfinity/agent";
 import { idlFactory } from "./backend.did.js";
 
-export const canisterId = "nanun-vyaaa-aaaah-qqglq-cai";
+export const canisterId = "2zbce-xyaaa-aaaam-aepbq-cai";
 
 export const createActor = (canisterId, options = {}) => {
     const agent = options.agent || new HttpAgent({
