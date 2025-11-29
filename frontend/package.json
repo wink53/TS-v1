@@ -24,7 +24,11 @@
         "lucide-react": "^0.344.0",
         "sonner": "^1.4.0",
         "tailwind-merge": "^2.2.1",
-        "tailwindcss-animate": "^1.0.7"
+        "tailwindcss-animate": "^1.0.7",
+        "@dfinity/agent": "^1.0.1",
+        "@dfinity/candid": "^1.0.1",
+        "@dfinity/principal": "^1.0.1",
+        "@dfinity/identity": "^1.0.1"
     },
     "devDependencies": {
         "@types/react": "^18.2.56",

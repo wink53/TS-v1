@@ -22,7 +22,7 @@ frontend/.vite/
 Thumbs.db
 
 # Declarations (auto-generated)
-frontend/src/declarations/
+
 
 # Logs
 *.log
