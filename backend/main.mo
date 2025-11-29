@@ -117,11 +117,11 @@ actor Backend {
     fix_attempted : Bool;
   };
 
-  var tiles : OrderedMap.Map<Text, TileMetadata> = textMap.empty<TileMetadata>();
-  var objects : OrderedMap.Map<Text, ObjectMetadata> = textMap.empty<ObjectMetadata>();
-  var tile_sets : OrderedMap.Map<Text, TileSet> = textMap.empty<TileSet>();
-  var prefabs : OrderedMap.Map<Text, Prefab> = textMap.empty<Prefab>();
-  var maps : OrderedMap.Map<Text, MapData> = textMap.empty<MapData>();
+  transient var tiles : OrderedMap.Map<Text, TileMetadata> = textMap.empty<TileMetadata>();
+  transient var objects : OrderedMap.Map<Text, ObjectMetadata> = textMap.empty<ObjectMetadata>();
+  transient var tile_sets : OrderedMap.Map<Text, TileSet> = textMap.empty<TileSet>();
+  transient var prefabs : OrderedMap.Map<Text, Prefab> = textMap.empty<Prefab>();
+  transient var maps : OrderedMap.Map<Text, MapData> = textMap.empty<MapData>();
 
   public func createTile(metadata : TileMetadata) : async {
     #ok : Text;
