@@ -8,6 +8,15 @@ import type {
   MapData,
 } from '../backend';
 
+// Helper to unwrap Candid optional type ([] | [T]) to T | null
+function unwrap<T>(val: [] | [T] | undefined | null): T | null {
+  if (!val) return null;
+  if (Array.isArray(val)) {
+    return val.length > 0 ? val[0] : null;
+  }
+  return val; // Should not happen with generated types but safe fallback
+}
+
 // Tiles
 export function useListTiles() {
   const { actor, isFetching } = useActor();
@@ -29,7 +38,8 @@ export function useGetTile(id: string) {
     queryKey: ['tile', id],
     queryFn: async () => {
       if (!actor) return null;
-      return actor.getTile(id);
+      const result = await actor.getTile(id);
+      return unwrap(result);
     },
     enabled: !!actor && !isFetching && !!id,
   });
@@ -86,7 +96,8 @@ export function useGetObject(id: string) {
     queryKey: ['object', id],
     queryFn: async () => {
       if (!actor) return null;
-      return actor.getObject(id);
+      const result = await actor.getObject(id);
+      return unwrap(result);
     },
     enabled: !!actor && !isFetching && !!id,
   });
@@ -143,7 +154,8 @@ export function useGetTileSet(id: string) {
     queryKey: ['tileSet', id],
     queryFn: async () => {
       if (!actor) return null;
-      return actor.getTileSet(id);
+      const result = await actor.getTileSet(id);
+      return unwrap(result);
     },
     enabled: !!actor && !isFetching && !!id,
   });
@@ -200,7 +212,8 @@ export function useGetPrefab(id: string) {
     queryKey: ['prefab', id],
     queryFn: async () => {
       if (!actor) return null;
-      return actor.getPrefab(id);
+      const result = await actor.getPrefab(id);
+      return unwrap(result);
     },
     enabled: !!actor && !isFetching && !!id,
   });
@@ -257,7 +270,8 @@ export function useGetMap(id: string) {
     queryKey: ['map', id],
     queryFn: async () => {
       if (!actor) return null;
-      return actor.getMap(id);
+      const result = await actor.getMap(id);
+      return unwrap(result);
     },
     enabled: !!actor && !isFetching && !!id,
   });
