@@ -6,7 +6,7 @@ import List "mo:base/List";
 // import MixinStorage "blob-storage/Mixin";
 // import Storage "blob-storage/Storage";
 
-actor Backend {
+persistent actor Backend {
   // TODO: Re-enable blob storage once configured
   // let storage = Storage.new();
   // include MixinStorage(storage);
