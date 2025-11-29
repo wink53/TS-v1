@@ -23,7 +23,7 @@ export function MapsView() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const mapData: MapData = {
       id: formData.id,
       name: formData.name,
@@ -34,15 +34,22 @@ export function MapsView() {
       updated_at: BigInt(Date.now()),
     };
 
-    const result = await createMap.mutateAsync(mapData);
-    
-    if ("ok" in result) {
-      toast.success('Map created successfully');
-      setIsDialogOpen(false);
-      setFormData({ id: '', name: '', description: '' });
-    } else {
-      toast.error(`Error: ${result.err.message}`, {
-        description: `Code: ${result.err.code}`,
+    try {
+      const result = await createMap.mutateAsync(mapData);
+
+      if ("ok" in result) {
+        toast.success('Map created successfully');
+        setIsDialogOpen(false);
+        setFormData({ id: '', name: '', description: '' });
+      } else {
+        toast.error(`Error: ${result.err.message}`, {
+          description: `Code: ${result.err.code}`,
+        });
+      }
+    } catch (error) {
+      console.error('Failed to create map:', error);
+      toast.error('Failed to create map', {
+        description: error instanceof Error ? error.message : 'Unknown error occurred',
       });
     }
   };

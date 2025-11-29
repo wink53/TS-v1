@@ -37,14 +37,14 @@ export function TilesView() {
       updated_at: BigInt(Date.now()),
     };
 
-    const result = await createTile.mutateAsync(metadata);
+    try { const result = await createTile.mutateAsync(metadata);
     
     if ("ok" in result) {
       toast.success('Tile created successfully');
       setIsDialogOpen(false);
       setFormData({ id: '', name: '', description: '', tags: '', blob_id: '' });
     } else {
-      toast.error(`Error: ${result.err.message}`, {
+      toast.error(`Error: ${result.err.message}`, { description: `Code: ${result.err.code}`, }); } } catch (error) { console.error("Failed:", error); toast.error("Failed to create tile", { description: error instanceof Error ? error.message : "Unknown error" }); } }
         description: `Code: ${result.err.code}`,
       });
     }
