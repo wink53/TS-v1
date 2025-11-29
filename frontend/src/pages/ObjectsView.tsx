@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Plus, Box, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -21,7 +20,6 @@ export function ObjectsView() {
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedObject, setSelectedObject] = useState<ObjectMetadata | null>(null);
   const [formData, setFormData] = useState({
     id: '',
@@ -110,21 +108,16 @@ export function ObjectsView() {
     }
   };
 
-  const handleDeleteClick = (obj: ObjectMetadata) => {
-    setSelectedObject(obj);
-    setIsDeleteDialogOpen(true);
-  };
-
-  const handleDelete = async () => {
-    if (!selectedObject) return;
+  const handleDeleteClick = async (obj: ObjectMetadata) => {
+    if (!window.confirm(`Are you sure you want to delete the object "${obj.name}"? This action cannot be undone.`)) {
+      return;
+    }
 
     try {
-      const result = await deleteObject.mutateAsync(selectedObject.id);
+      const result = await deleteObject.mutateAsync(obj.id);
 
       if ("ok" in result) {
         toast.success('Object deleted successfully');
-        setIsDeleteDialogOpen(false);
-        setSelectedObject(null);
       } else {
         toast.error(`Error: ${result.err.message}`, {
           description: `Code: ${result.err.code}`,
@@ -259,24 +252,6 @@ export function ObjectsView() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete the object "{selectedObject?.name}". This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              {deleteObject.isPending ? 'Deleting...' : 'Delete'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
       {isLoading ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {[...Array(6)].map((_, i) => (
@@ -315,6 +290,7 @@ export function ObjectsView() {
                       size="icon"
                       className="h-8 w-8 text-destructive hover:text-destructive"
                       onClick={() => handleDeleteClick(obj)}
+                      disabled={deleteObject.isPending}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
