@@ -27,7 +27,7 @@ export function PrefabsView() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const prefab: Prefab = {
       id: formData.id,
       name: formData.name,
@@ -42,23 +42,22 @@ export function PrefabsView() {
       updated_at: BigInt(Date.now()),
     };
 
-    const result = await createPrefab.mutateAsync(prefab);
-    
-    if ("ok" in result) {
-      toast.success('Prefab created successfully');
-      setIsDialogOpen(false);
-      setFormData({
-        id: '',
-        name: '',
-        description: '',
-        object_id: '',
-        default_state: '',
-        position_x: '0',
-        position_y: '0',
-      });
-    } else {
-      toast.error(`Error: ${result.err.message}`, {
-        description: `Code: ${result.err.code}`,
+    try {
+      const result = await createPrefab.mutateAsync(prefab);
+
+      if ("ok" in result) {
+        toast.success('Prefab created successfully');
+        setIsDialogOpen(false);
+        setFormData({ id: '', name: '', description: '', object_id: '' });
+      } else {
+        toast.error(`Error: ${result.err.message}`, {
+          description: `Code: ${result.err.code}`,
+        });
+      }
+    } catch (error) {
+      console.error('Failed to create prefab:', error);
+      toast.error('Failed to create prefab', {
+        description: error instanceof Error ? error.message : 'Unknown error occurred',
       });
     }
   };

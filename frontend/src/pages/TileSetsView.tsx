@@ -24,7 +24,7 @@ export function TileSetsView() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const tileSet: TileSet = {
       id: formData.id,
       name: formData.name,
@@ -34,15 +34,22 @@ export function TileSetsView() {
       updated_at: BigInt(Date.now()),
     };
 
-    const result = await createTileSet.mutateAsync(tileSet);
-    
-    if ("ok" in result) {
-      toast.success('Tile set created successfully');
-      setIsDialogOpen(false);
-      setFormData({ id: '', name: '', description: '', tile_ids: '' });
-    } else {
-      toast.error(`Error: ${result.err.message}`, {
-        description: `Code: ${result.err.code}`,
+    try {
+      const result = await createTileSet.mutateAsync(tileSet);
+
+      if ("ok" in result) {
+        toast.success('Tile Set created successfully');
+        setIsDialogOpen(false);
+        setFormData({ id: '', name: '', description: '' });
+      } else {
+        toast.error(`Error: ${result.err.message}`, {
+          description: `Code: ${result.err.code}`,
+        });
+      }
+    } catch (error) {
+      console.error('Failed to create tile set:', error);
+      toast.error('Failed to create tile set', {
+        description: error instanceof Error ? error.message : 'Unknown error occurred',
       });
     }
   };

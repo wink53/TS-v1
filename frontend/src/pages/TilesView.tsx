@@ -26,7 +26,7 @@ export function TilesView() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const metadata: TileMetadata = {
       id: formData.id,
       name: formData.name,
@@ -37,15 +37,22 @@ export function TilesView() {
       updated_at: BigInt(Date.now()),
     };
 
-    try { const result = await createTile.mutateAsync(metadata);
-    
-    if ("ok" in result) {
-      toast.success('Tile created successfully');
-      setIsDialogOpen(false);
-      setFormData({ id: '', name: '', description: '', tags: '', blob_id: '' });
-    } else {
-      toast.error(`Error: ${result.err.message}`, { description: `Code: ${result.err.code}`, }); } } catch (error) { console.error("Failed:", error); toast.error("Failed to create tile", { description: error instanceof Error ? error.message : "Unknown error" }); } }
-        description: `Code: ${result.err.code}`,
+    try {
+      const result = await createTile.mutateAsync(metadata);
+
+      if ("ok" in result) {
+        toast.success('Tile created successfully');
+        setIsDialogOpen(false);
+        setFormData({ id: '', name: '', description: '', tags: '', blob_id: '' });
+      } else {
+        toast.error(`Error: ${result.err.message}`, {
+          description: `Code: ${result.err.code}`,
+        });
+      }
+    } catch (error) {
+      console.error('Failed to create tile:', error);
+      toast.error('Failed to create tile', {
+        description: error instanceof Error ? error.message : 'Unknown error occurred',
       });
     }
   };

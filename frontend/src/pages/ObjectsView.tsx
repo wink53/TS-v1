@@ -25,7 +25,7 @@ export function ObjectsView() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const metadata: ObjectMetadata = {
       id: formData.id,
       name: formData.name,
@@ -39,15 +39,22 @@ export function ObjectsView() {
       updated_at: BigInt(Date.now()),
     };
 
-    const result = await createObject.mutateAsync(metadata);
-    
-    if ("ok" in result) {
-      toast.success('Object created successfully');
-      setIsDialogOpen(false);
-      setFormData({ id: '', name: '', description: '', tags: '' });
-    } else {
-      toast.error(`Error: ${result.err.message}`, {
-        description: `Code: ${result.err.code}`,
+    try {
+      const result = await createObject.mutateAsync(metadata);
+
+      if ("ok" in result) {
+        toast.success('Object created successfully');
+        setIsDialogOpen(false);
+        setFormData({ id: '', name: '', description: '', tags: '' });
+      } else {
+        toast.error(`Error: ${result.err.message}`, {
+          description: `Code: ${result.err.code}`,
+        });
+      }
+    } catch (error) {
+      console.error('Failed to create object:', error);
+      toast.error('Failed to create object', {
+        description: error instanceof Error ? error.message : 'Unknown error occurred',
       });
     }
   };
