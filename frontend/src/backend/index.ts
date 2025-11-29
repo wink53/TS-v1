@@ -105,30 +105,30 @@ export interface ValidationError {
 
 export type Result<T> = { ok: T } | { err: ValidationError };
 
-// Mock backend actor for development
+// Mock backend actor for development - returns null instead of undefined for React Query compatibility
 export const backend = {
     listTiles: async (): Promise<TileMetadata[]> => [],
-    getTile: async (id: string): Promise<TileMetadata | undefined> => undefined,
+    getTile: async (id: string): Promise<TileMetadata | null> => null,
     createTile: async (metadata: TileMetadata): Promise<Result<string>> => ({ ok: metadata.id }),
     updateTileMetadata: async (id: string, metadata: TileMetadata): Promise<Result<string>> => ({ ok: id }),
 
     listObjects: async (): Promise<ObjectMetadata[]> => [],
-    getObject: async (id: string): Promise<ObjectMetadata | undefined> => undefined,
+    getObject: async (id: string): Promise<ObjectMetadata | null> => null,
     createObject: async (metadata: ObjectMetadata): Promise<Result<string>> => ({ ok: metadata.id }),
     updateObjectMetadata: async (id: string, metadata: ObjectMetadata): Promise<Result<string>> => ({ ok: id }),
 
     listTileSets: async (): Promise<TileSet[]> => [],
-    getTileSet: async (id: string): Promise<TileSet | undefined> => undefined,
+    getTileSet: async (id: string): Promise<TileSet | null> => null,
     createTileSet: async (tileSet: TileSet): Promise<Result<string>> => ({ ok: tileSet.id }),
     updateTileSet: async (id: string, tileSet: TileSet): Promise<Result<string>> => ({ ok: id }),
 
     listPrefabs: async (): Promise<Prefab[]> => [],
-    getPrefab: async (id: string): Promise<Prefab | undefined> => undefined,
+    getPrefab: async (id: string): Promise<Prefab | null> => null,
     createPrefab: async (prefab: Prefab): Promise<Result<string>> => ({ ok: prefab.id }),
     updatePrefab: async (id: string, prefab: Prefab): Promise<Result<string>> => ({ ok: id }),
 
     listMaps: async (): Promise<MapData[]> => [],
-    getMap: async (id: string): Promise<MapData | undefined> => undefined,
+    getMap: async (id: string): Promise<MapData | null> => null,
     createMap: async (mapData: MapData): Promise<Result<string>> => ({ ok: mapData.id }),
     updateMap: async (id: string, mapData: MapData): Promise<Result<string>> => ({ ok: id }),
 };

@@ -10,6 +10,7 @@ import { Dashboard } from './pages/Dashboard';
 import { Toaster } from '@/components/ui/sonner';
 
 export type ViewType = 'dashboard' | 'tiles' | 'objects' | 'tileSets' | 'prefabs' | 'maps';
+export type PaletteTab = 'tiles' | 'objects' | 'characters' | 'npcs';
 
 function App() {
   const [currentView, setCurrentView] = useState<ViewType>('dashboard');
