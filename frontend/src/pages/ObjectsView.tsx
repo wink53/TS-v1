@@ -41,7 +41,7 @@ export function ObjectsView() {
 
     const result = await createObject.mutateAsync(metadata);
     
-    if (result.__kind__ === 'ok') {
+    if ("ok" in result) {
       toast.success('Object created successfully');
       setIsDialogOpen(false);
       setFormData({ id: '', name: '', description: '', tags: '' });

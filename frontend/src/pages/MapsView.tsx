@@ -36,7 +36,7 @@ export function MapsView() {
 
     const result = await createMap.mutateAsync(mapData);
     
-    if (result.__kind__ === 'ok') {
+    if ("ok" in result) {
       toast.success('Map created successfully');
       setIsDialogOpen(false);
       setFormData({ id: '', name: '', description: '' });

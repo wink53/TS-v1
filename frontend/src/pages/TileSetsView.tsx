@@ -36,7 +36,7 @@ export function TileSetsView() {
 
     const result = await createTileSet.mutateAsync(tileSet);
     
-    if (result.__kind__ === 'ok') {
+    if ("ok" in result) {
       toast.success('Tile set created successfully');
       setIsDialogOpen(false);
       setFormData({ id: '', name: '', description: '', tile_ids: '' });

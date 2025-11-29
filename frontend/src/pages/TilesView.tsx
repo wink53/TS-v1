@@ -39,7 +39,7 @@ export function TilesView() {
 
     const result = await createTile.mutateAsync(metadata);
     
-    if (result.__kind__ === 'ok') {
+    if ("ok" in result) {
       toast.success('Tile created successfully');
       setIsDialogOpen(false);
       setFormData({ id: '', name: '', description: '', tags: '', blob_id: '' });

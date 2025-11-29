@@ -44,7 +44,7 @@ export function PrefabsView() {
 
     const result = await createPrefab.mutateAsync(prefab);
     
-    if (result.__kind__ === 'ok') {
+    if ("ok" in result) {
       toast.success('Prefab created successfully');
       setIsDialogOpen(false);
       setFormData({
