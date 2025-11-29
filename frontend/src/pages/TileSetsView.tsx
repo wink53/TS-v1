@@ -40,7 +40,7 @@ export function TileSetsView() {
       if ("ok" in result) {
         toast.success('Tile Set created successfully');
         setIsDialogOpen(false);
-        setFormData({ id: '', name: '', description: '' });
+        setFormData({ id: '', name: '', description: '', tile_ids: '' });
       } else {
         toast.error(`Error: ${result.err.message}`, {
           description: `Code: ${result.err.code}`,

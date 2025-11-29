@@ -48,7 +48,15 @@ export function PrefabsView() {
       if ("ok" in result) {
         toast.success('Prefab created successfully');
         setIsDialogOpen(false);
-        setFormData({ id: '', name: '', description: '', object_id: '' });
+        setFormData({
+          id: '',
+          name: '',
+          description: '',
+          object_id: '',
+          default_state: '',
+          position_x: '0',
+          position_y: '0'
+        });
       } else {
         toast.error(`Error: ${result.err.message}`, {
           description: `Code: ${result.err.code}`,
