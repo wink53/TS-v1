@@ -1,7 +1,6 @@
 import OrderedMap "mo:base/OrderedMap";
 import Text "mo:base/Text";
 import Iter "mo:base/Iter";
-import List "mo:base/List";
 // TODO: Configure blob storage for ICP deployment
 // import MixinStorage "blob-storage/Mixin";
 // import Storage "blob-storage/Storage";

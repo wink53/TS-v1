@@ -5,13 +5,23 @@
       "main": "backend/main.mo",
       "declarations": {
         "output": "frontend/src/declarations/backend",
-        "bindings": ["ts"]
+        "bindings": [
+          "ts"
+        ]
       }
     },
     "frontend": {
       "type": "assets",
-      "source": ["frontend/dist"],
-      "dependencies": ["backend"]
+      "source": [
+        "frontend/dist"
+      ],
+      "dependencies": [
+        "backend"
+      ],
+      "build": [
+        "cd frontend && npm install",
+        "cd frontend && npm run build"
+      ]
     }
   },
   "defaults": {
