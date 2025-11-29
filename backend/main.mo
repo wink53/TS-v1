@@ -2,12 +2,14 @@ import OrderedMap "mo:base/OrderedMap";
 import Text "mo:base/Text";
 import Iter "mo:base/Iter";
 import List "mo:base/List";
-import MixinStorage "blob-storage/Mixin";
-import Storage "blob-storage/Storage";
+// TODO: Configure blob storage for ICP deployment
+// import MixinStorage "blob-storage/Mixin";
+// import Storage "blob-storage/Storage";
 
 actor Backend {
-  let storage = Storage.new();
-  include MixinStorage(storage);
+  // TODO: Re-enable blob storage once configured
+  // let storage = Storage.new();
+  // include MixinStorage(storage);
 
   transient let textMap = OrderedMap.Make<Text>(Text.compare);
 
