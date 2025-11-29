@@ -306,3 +306,79 @@ export function useUpdateMap() {
     },
   });
 }
+
+// Delete hooks
+export function useDeleteTile() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      if (!actor) throw new Error('Actor not initialized');
+      return actor.deleteTile(id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tiles'] });
+    },
+  });
+}
+
+export function useDeleteObject() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      if (!actor) throw new Error('Actor not initialized');
+      return actor.deleteObject(id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['objects'] });
+    },
+  });
+}
+
+export function useDeleteTileSet() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      if (!actor) throw new Error('Actor not initialized');
+      return actor.deleteTileSet(id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tileSets'] });
+    },
+  });
+}
+
+export function useDeletePrefab() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      if (!actor) throw new Error('Actor not initialized');
+      return actor.deletePrefab(id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['prefabs'] });
+    },
+  });
+}
+
+export function useDeleteMap() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      if (!actor) throw new Error('Actor not initialized');
+      return actor.deleteMap(id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['maps'] });
+    },
+  });
+}

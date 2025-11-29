@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { useListMaps, useCreateMap } from '../hooks/useQueries';
+import { useListMaps, useCreateMap, useUpdateMap, useDeleteMap } from '../hooks/useQueries';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Map } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Plus, Map, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { MapData } from '../backend';
@@ -14,14 +15,20 @@ import type { MapData } from '../backend';
 export function MapsView() {
   const { data: maps, isLoading } = useListMaps();
   const createMap = useCreateMap();
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const updateMap = useUpdateMap();
+  const deleteMap = useDeleteMap();
+
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedMap, setSelectedMap] = useState<MapData | null>(null);
   const [formData, setFormData] = useState({
     id: '',
     name: '',
     description: '',
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const mapData: MapData = {
@@ -39,7 +46,7 @@ export function MapsView() {
 
       if ("ok" in result) {
         toast.success('Map created successfully');
-        setIsDialogOpen(false);
+        setIsCreateDialogOpen(false);
         setFormData({ id: '', name: '', description: '' });
       } else {
         toast.error(`Error: ${result.err.message}`, {
@@ -54,6 +61,76 @@ export function MapsView() {
     }
   };
 
+  const handleEdit = (map: MapData) => {
+    setSelectedMap(map);
+    setFormData({
+      id: map.id,
+      name: map.name,
+      description: map.description,
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedMap) return;
+
+    const mapData: MapData = {
+      ...selectedMap,
+      name: formData.name,
+      description: formData.description,
+      updated_at: BigInt(Date.now()),
+    };
+
+    try {
+      const result = await updateMap.mutateAsync({ id: selectedMap.id, mapData });
+
+      if ("ok" in result) {
+        toast.success('Map updated successfully');
+        setIsEditDialogOpen(false);
+        setSelectedMap(null);
+        setFormData({ id: '', name: '', description: '' });
+      } else {
+        toast.error(`Error: ${result.err.message}`, {
+          description: `Code: ${result.err.code}`,
+        });
+      }
+    } catch (error) {
+      console.error('Failed to update map:', error);
+      toast.error('Failed to update map', {
+        description: error instanceof Error ? error.message : 'Unknown error occurred',
+      });
+    }
+  };
+
+  const handleDeleteClick = (map: MapData) => {
+    setSelectedMap(map);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!selectedMap) return;
+
+    try {
+      const result = await deleteMap.mutateAsync(selectedMap.id);
+
+      if ("ok" in result) {
+        toast.success('Map deleted successfully');
+        setIsDeleteDialogOpen(false);
+        setSelectedMap(null);
+      } else {
+        toast.error(`Error: ${result.err.message}`, {
+          description: `Code: ${result.err.code}`,
+        });
+      }
+    } catch (error) {
+      console.error('Failed to delete map:', error);
+      toast.error('Failed to delete map', {
+        description: error instanceof Error ? error.message : 'Unknown error occurred',
+      });
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -63,7 +140,7 @@ export function MapsView() {
             Manage game level layouts
           </p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="mr-2 h-4 w-4" />
@@ -77,11 +154,11 @@ export function MapsView() {
                 Create a new game level layout
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleCreate} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="id">ID</Label>
+                <Label htmlFor="create-id">ID</Label>
                 <Input
-                  id="id"
+                  id="create-id"
                   value={formData.id}
                   onChange={(e) => setFormData({ ...formData, id: e.target.value })}
                   placeholder="map_001"
@@ -89,9 +166,9 @@ export function MapsView() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="name">Name</Label>
+                <Label htmlFor="create-name">Name</Label>
                 <Input
-                  id="name"
+                  id="create-name"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="Forest Level"
@@ -99,9 +176,9 @@ export function MapsView() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
+                <Label htmlFor="create-description">Description</Label>
                 <Textarea
-                  id="description"
+                  id="create-description"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder="A forest-themed game level"
@@ -114,6 +191,67 @@ export function MapsView() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* Edit Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Map</DialogTitle>
+            <DialogDescription>
+              Update map details
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleUpdate} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-id">ID</Label>
+              <Input
+                id="edit-id"
+                value={formData.id}
+                disabled
+                className="bg-muted"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">Name</Label>
+              <Input
+                id="edit-name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-description">Description</Label>
+              <Textarea
+                id="edit-description"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              />
+            </div>
+            <Button type="submit" className="w-full" disabled={updateMap.isPending}>
+              {updateMap.isPending ? 'Updating...' : 'Update Map'}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the map "{selectedMap?.name}". This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {deleteMap.isPending ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {isLoading ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -139,6 +277,24 @@ export function MapsView() {
                     <Map className="h-4 w-4 text-primary" />
                     <CardTitle className="text-base">{map.name}</CardTitle>
                   </div>
+                  <div className="flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => handleEdit(map)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-destructive hover:text-destructive"
+                      onClick={() => handleDeleteClick(map)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
                 <CardDescription className="text-xs">{map.id}</CardDescription>
               </CardHeader>
@@ -160,7 +316,7 @@ export function MapsView() {
             <p className="mb-4 text-sm text-muted-foreground">
               Create your first map to get started
             </p>
-            <Button onClick={() => setIsDialogOpen(true)}>
+            <Button onClick={() => setIsCreateDialogOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
               Create Map
             </Button>
