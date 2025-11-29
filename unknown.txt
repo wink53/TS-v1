@@ -1,0 +1,119 @@
+
+### API Client Module
+- Implements wrapper functions for backend calls:
+  - Map operations: `listMaps`, `getMap`, `createMap`, `updateMap`
+  - Tile operations: `listTiles`, `getTile`
+  - Object operations: `listObjects`, `getObject`
+- Maintains type consistency with backend definitions (MapData, TileMetadata, ObjectMetadata)
+- Provides enhanced error handling and logging for createMap operation:
+  - Logs payload before sending request: `console.log("createMap payload", payload)`
+  - Logs response after receiving: `console.log("createMap response", response)`
+  - Detects Motoko-style `#err` variant responses and throws `Error(result.err.message)`
+
+### Shared Type Definitions
+- **PaletteTab**: Type definition for palette tabs with values 'tiles' | 'objects' | 'characters' | 'npcs'
+- Defined in `frontend/src/App.tsx` and exported for use across components
+
+### Editor State Management
+Global state stores:
+- `mapsList: MapData[]` - List of all available maps
+- `currentMap: MapData | null` - Currently loaded map
+- `currentTileId: string | null` - Selected tile for placement
+- `currentObjectId: string | null` - Selected object for placement
+- `selectedObjectInstanceId: string | null` - Selected object instance for inspection
+- `sampleTiles: TileMetadata[]` - DEV-ONLY frontend sample tiles for testing
+
+Functions to update map tiles, objects, and save changes to backend.
+
+### UI Components
+
+#### MapsView Page
+- Implements the main editor layout wrapped in a full-height flex container: `<div className="min-h-screen flex flex-col">`
+- TopBar spans full width at top
+- Below TopBar, horizontal flex layout with three panels: Palette, Canvas, Inspector
+- Manages state for `mapsState`, `currentMapId`, and synchronizes maps using `useListMaps`
+- Passes necessary props to components:
+  - **Canvas**: `map`, `mode` (current active tab), `onCellClick`, `selectedObjectInstanceId`
+  - **Palette**: Required props for asset selection and tab management
+  - **Inspector**: Required props for detail view and object inspection
+- Ensures Canvas displays using its `map` prop directly
+- Canvas container must have `className="flex-1 min-h-[400px]"` to expand and remain visible on mobile browsers
+- When map is selected or created, renders complete editor workspace immediately
+- Grid appears immediately upon map selection, enabling tile/object painting and inspector updates
+
+#### TopBar
+- Horizontal layout with "Tile Smith Editor" title on the left
+- Map controls aligned to the right: dropdown to select map, "New Map" button, "Save Map" button
+- "New Map" button opens modal with fields: id, name, width, height
+- "Save Map" button calls updateMap with current map data
+- Shows toast or alert notifications on save success/error with detailed error messages
+- Error messages display as "Failed to create map: " + error.message to show backend error details
+- Spans full width across all columns
+
+#### Palette
+- Styled tab interface with four sections: Tiles | Objects | Characters | NPCs
+- Active tab distinctly highlighted with visual styling
+- **Tiles tab**: 
+  - Loads from listTiles, displays tile entries as selectable cards/chips showing IDs
+  - If listTiles returns empty array, shows "No tiles available from backend." message
+  - Includes "Generate sample tiles for testing" button (DEV-ONLY)
+  - Sample tiles populate frontend state with `grass_plain`, `dirt_plain`, `water_plain` entries
+  - Selected tile highlighted visually, clicking sets currentTileId
+- **Objects tab**: Loads from listObjects, shows object entries as cards/chips with IDs and categories, clicking sets currentObjectId
+- **Characters tab**: Displays placeholder message only
+- **NPCs tab**: Displays placeholder message only
+- Fixed ~240px width on desktop, full width on mobile
+
+#### Canvas
+- Receives `map` prop from MapsView and `mode` prop for current editing mode
+- Receives `onCellClick` callback and `selectedObjectInstanceId` for interaction handling
+- Renders "No map selected" placeholder when map prop is undefined
+- When map exists, displays debug label showing "Map: {map.id} – {map.size.w} x {map.size.h}"
+- Creates interactive grid using map.size.w and map.size.h dimensions
+- Grid loops through rows (y) and columns (x) to render cells showing tile_id and object_id at coordinates
+- Grid styling includes light background, border, padding with 1px cell borders and 24-32px square cells
+- Hover highlighting on grid cells with good contrast for readability
+- Minimum height of 300px on mobile to prevent collapse
+- Click handling:
+  - When Tiles tab active: place or replace TileInstance at clicked position
+  - When Objects tab active: add ObjectInstance with unique instance_id at clicked position
+- Clicking object overlay selects it for Inspector view
+- Flexible width in center column on desktop, full width on mobile
+
+#### Inspector
+- Styled as card container with clear visual sections
+- Collapsible on mobile with "Show Inspector / Hide Inspector" toggle
+- Context-sensitive detail view:
+  - **No object selected**: Shows map information (id, name, size, tile count, object count)
+  - **Object selected**: Shows structured instance details (instance_id, object_id, x, y coordinates, state dropdown)
+- State dropdown options: "default", "alive", "chopped", "open", "closed"
+- Changing state updates the currentMap.objects array
+- Fixed ~280px width on desktop, full width on mobile when expanded
+
+### Canvas Interaction Flow
+- Clicking cells updates in-memory currentMap.tiles or currentMap.objects arrays
+- Save button triggers updateMap with updated MapData
+- Map rendering refreshes on each state change using React re-render hooks
+- All changes are maintained in frontend state until explicitly saved to backend
+
+### Responsive Design
+- Desktop: Three-column flex layout with fixed sidebar widths
+- Mobile/Narrow screens: Vertical stack layout with collapsible Inspector
+- Breakpoint-based layout switching using Tailwind responsive classes
+- Touch-friendly interaction on mobile devices
+- Canvas maintains visibility with minimum height on mobile layouts and proper flex expansion
+
+### Development Features
+- Sample tile generation (DEV-ONLY, frontend-only, not persisted to backend)
+- Clearly marked development-only code sections in comments
+- Sample tiles include basic terrain types for testing map editing functionality
+- Enhanced console logging for debugging createMap operations
+
+### File Structure
+- `src/api.ts` - Backend API wrapper functions with enhanced logging and error handling
+- `src/App.tsx` - Main application with shared type definitions including PaletteTab export
+- `src/pages/MapsView.tsx` - Main editor layout with state management and component coordination
+- `src/components/TopBar.tsx` - Header with title and map controls including detailed error display
+- `src/components/Palette.tsx` - Styled asset selection with tabs and cards
+- `src/components/Canvas.tsx` - Interactive map grid receiving map prop and interaction callbacks
+- `src/components/Inspector.tsx` - Collapsible detail view component
