@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Plus, Map, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -20,7 +19,6 @@ export function MapsView() {
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedMap, setSelectedMap] = useState<MapData | null>(null);
   const [formData, setFormData] = useState({
     id: '',
@@ -103,21 +101,16 @@ export function MapsView() {
     }
   };
 
-  const handleDeleteClick = (map: MapData) => {
-    setSelectedMap(map);
-    setIsDeleteDialogOpen(true);
-  };
-
-  const handleDelete = async () => {
-    if (!selectedMap) return;
+  const handleDeleteClick = async (map: MapData) => {
+    if (!window.confirm(`Are you sure you want to delete the map "${map.name}"? This action cannot be undone.`)) {
+      return;
+    }
 
     try {
-      const result = await deleteMap.mutateAsync(selectedMap.id);
+      const result = await deleteMap.mutateAsync(map.id);
 
       if ("ok" in result) {
         toast.success('Map deleted successfully');
-        setIsDeleteDialogOpen(false);
-        setSelectedMap(null);
       } else {
         toast.error(`Error: ${result.err.message}`, {
           description: `Code: ${result.err.code}`,
@@ -235,24 +228,6 @@ export function MapsView() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete the map "{selectedMap?.name}". This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              {deleteMap.isPending ? 'Deleting...' : 'Delete'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
       {isLoading ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {[...Array(6)].map((_, i) => (
@@ -291,6 +266,7 @@ export function MapsView() {
                       size="icon"
                       className="h-8 w-8 text-destructive hover:text-destructive"
                       onClick={() => handleDeleteClick(map)}
+                      disabled={deleteMap.isPending}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

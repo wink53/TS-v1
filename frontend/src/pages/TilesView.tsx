@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Plus, Square, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -21,7 +20,6 @@ export function TilesView() {
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedTile, setSelectedTile] = useState<TileMetadata | null>(null);
   const [formData, setFormData] = useState({
     id: '',
@@ -110,21 +108,16 @@ export function TilesView() {
     }
   };
 
-  const handleDeleteClick = (tile: TileMetadata) => {
-    setSelectedTile(tile);
-    setIsDeleteDialogOpen(true);
-  };
-
-  const handleDelete = async () => {
-    if (!selectedTile) return;
+  const handleDeleteClick = async (tile: TileMetadata) => {
+    if (!window.confirm(`Are you sure you want to delete the tile "${tile.name}"? This action cannot be undone.`)) {
+      return;
+    }
 
     try {
-      const result = await deleteTile.mutateAsync(selectedTile.id);
+      const result = await deleteTile.mutateAsync(tile.id);
 
       if ("ok" in result) {
         toast.success('Tile deleted successfully');
-        setIsDeleteDialogOpen(false);
-        setSelectedTile(null);
       } else {
         toast.error(`Error: ${result.err.message}`, {
           description: `Code: ${result.err.code}`,
@@ -281,24 +274,6 @@ export function TilesView() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete the tile "{selectedTile?.name}". This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              {deleteTile.isPending ? 'Deleting...' : 'Delete'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
       {isLoading ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {[...Array(6)].map((_, i) => (
@@ -337,6 +312,7 @@ export function TilesView() {
                       size="icon"
                       className="h-8 w-8 text-destructive hover:text-destructive"
                       onClick={() => handleDeleteClick(tile)}
+                      disabled={deleteTile.isPending}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

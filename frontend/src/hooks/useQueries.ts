@@ -315,7 +315,7 @@ export function useDeleteTile() {
   return useMutation({
     mutationFn: async (id: string) => {
       if (!actor) throw new Error('Actor not initialized');
-      return actor.deleteTile(id);
+      return (actor as any).deleteTile(id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tiles'] });
@@ -330,7 +330,7 @@ export function useDeleteObject() {
   return useMutation({
     mutationFn: async (id: string) => {
       if (!actor) throw new Error('Actor not initialized');
-      return actor.deleteObject(id);
+      return (actor as any).deleteObject(id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['objects'] });
@@ -345,7 +345,7 @@ export function useDeleteTileSet() {
   return useMutation({
     mutationFn: async (id: string) => {
       if (!actor) throw new Error('Actor not initialized');
-      return actor.deleteTileSet(id);
+      return (actor as any).deleteTileSet(id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tileSets'] });
@@ -360,7 +360,7 @@ export function useDeletePrefab() {
   return useMutation({
     mutationFn: async (id: string) => {
       if (!actor) throw new Error('Actor not initialized');
-      return actor.deletePrefab(id);
+      return (actor as any).deletePrefab(id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['prefabs'] });
@@ -375,7 +375,7 @@ export function useDeleteMap() {
   return useMutation({
     mutationFn: async (id: string) => {
       if (!actor) throw new Error('Actor not initialized');
-      return actor.deleteMap(id);
+      return (actor as any).deleteMap(id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['maps'] });
