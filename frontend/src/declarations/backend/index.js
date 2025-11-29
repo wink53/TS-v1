@@ -4,7 +4,10 @@ import { idlFactory } from "./backend.did.js";
 export const canisterId = "nanun-vyaaa-aaaah-qqglq-cai";
 
 export const createActor = (canisterId, options = {}) => {
-    const agent = options.agent || new HttpAgent({ ...options.agentOptions });
+    const agent = options.agent || new HttpAgent({
+        host: "https://ic0.app",
+        ...options.agentOptions
+    });
 
     if (options.agent && options.agentOptions) {
         console.warn(
@@ -13,7 +16,9 @@ export const createActor = (canisterId, options = {}) => {
     }
 
     // Fetch root key for certificate validation during development
-    if (process.env.DFX_NETWORK !== "ic") {
+    // Only fetch root key if we're running locally (localhost)
+    const isLocal = window.location.host.includes("localhost") || window.location.host.includes("127.0.0.1");
+    if (isLocal) {
         agent.fetchRootKey().catch((err) => {
             console.warn(
                 "Unable to fetch root key. Check to ensure that your local replica is running"
