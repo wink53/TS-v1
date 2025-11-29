@@ -12,7 +12,7 @@ import type {
 function unwrap<T>(val: [] | [T] | undefined | null): T | null {
   if (!val) return null;
   if (Array.isArray(val)) {
-    return val.length > 0 ? val[0] : null;
+    return val[0] ?? null;
   }
   return null;
 }
