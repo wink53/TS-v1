@@ -452,6 +452,10 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
                         width={window.innerWidth - 320} // Subtract sidebar width
                         height={window.innerHeight - 56} // Subtract toolbar height
                         className="block touch-none"
+                        onMouseDown={handleMouseDown}
+                        onMouseMove={handleMouseMove}
+                        onMouseUp={handleMouseUp}
+                        onMouseLeave={handleMouseUp}
                     />
                 </div>
 
