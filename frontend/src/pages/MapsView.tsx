@@ -6,12 +6,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Map, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Map, Pencil, Trash2, Edit3 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { MapData } from '../backend';
 
-export function MapsView() {
+interface MapsViewProps {
+  onOpenEditor?: (mapId: string) => void;
+}
+
+export function MapsView({ onOpenEditor }: MapsViewProps) {
   const { data: maps, isLoading } = useListMaps();
   const createMap = useCreateMap();
   const updateMap = useUpdateMap();
@@ -25,6 +29,8 @@ export function MapsView() {
     name: '',
     description: '',
   });
+
+  // ... (handlers remain the same)
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -126,6 +132,7 @@ export function MapsView() {
 
   return (
     <div className="space-y-6">
+      {/* ... (Header and Create Dialog remain the same) */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Maps</h2>
@@ -253,11 +260,23 @@ export function MapsView() {
                     <CardTitle className="text-base">{map.name}</CardTitle>
                   </div>
                   <div className="flex gap-1">
+                    {onOpenEditor && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => onOpenEditor(map.id)}
+                        title="Open Editor"
+                      >
+                        <Edit3 className="h-4 w-4" />
+                      </Button>
+                    )}
                     <Button
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8"
                       onClick={() => handleEdit(map)}
+                      title="Edit Details"
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
@@ -267,6 +286,7 @@ export function MapsView() {
                       className="h-8 w-8 text-destructive hover:text-destructive"
                       onClick={() => handleDeleteClick(map)}
                       disabled={deleteMap.isPending}
+                      title="Delete Map"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

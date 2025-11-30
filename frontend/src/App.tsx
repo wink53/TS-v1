@@ -6,14 +6,26 @@ import { ObjectsView } from './pages/ObjectsView';
 import { TileSetsView } from './pages/TileSetsView';
 import { PrefabsView } from './pages/PrefabsView';
 import { MapsView } from './pages/MapsView';
+import { EditorView } from './pages/EditorView';
 import { Dashboard } from './pages/Dashboard';
 import { Toaster } from '@/components/ui/sonner';
 
-export type ViewType = 'dashboard' | 'tiles' | 'objects' | 'tileSets' | 'prefabs' | 'maps';
+export type ViewType = 'dashboard' | 'tiles' | 'objects' | 'tileSets' | 'prefabs' | 'maps' | 'editor';
 export type PaletteTab = 'tiles' | 'objects' | 'characters' | 'npcs';
 
 function App() {
   const [currentView, setCurrentView] = useState<ViewType>('dashboard');
+  const [selectedMapId, setSelectedMapId] = useState<string | null>(null);
+
+  const handleOpenEditor = (mapId: string) => {
+    setSelectedMapId(mapId);
+    setCurrentView('editor');
+  };
+
+  const handleBackFromEditor = () => {
+    setSelectedMapId(null);
+    setCurrentView('maps');
+  };
 
   const renderView = () => {
     switch (currentView) {
@@ -28,7 +40,10 @@ function App() {
       case 'prefabs':
         return <PrefabsView />;
       case 'maps':
-        return <MapsView />;
+        return <MapsView onOpenEditor={handleOpenEditor} />;
+      case 'editor':
+        if (!selectedMapId) return <MapsView onOpenEditor={handleOpenEditor} />;
+        return <EditorView mapId={selectedMapId} onBack={handleBackFromEditor} />;
       default:
         return <Dashboard onNavigate={setCurrentView} />;
     }
@@ -36,10 +51,10 @@ function App() {
 
   return (
     <div className="flex h-screen flex-col bg-background">
-      <Header />
+      {currentView !== 'editor' && <Header />}
       <div className="flex flex-1 overflow-hidden">
-        <Sidebar currentView={currentView} onNavigate={setCurrentView} />
-        <main className="flex-1 overflow-y-auto p-6">
+        {currentView !== 'editor' && <Sidebar currentView={currentView} onNavigate={setCurrentView} />}
+        <main className={`flex-1 overflow-y-auto ${currentView !== 'editor' ? 'p-6' : ''}`}>
           {renderView()}
         </main>
       </div>
