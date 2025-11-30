@@ -24,6 +24,8 @@ export interface MapData {
     'id': string,
     'name': string,
     'description': string,
+    'width': bigint,
+    'height': bigint,
     'tile_instances': Array<TileInstance>,
     'object_instances': Array<ObjectInstance>,
     'created_at': bigint,

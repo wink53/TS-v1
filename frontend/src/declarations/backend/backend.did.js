@@ -76,6 +76,8 @@ export const idlFactory = ({ IDL }) => {
         'id': IDL.Text,
         'name': IDL.Text,
         'description': IDL.Text,
+        'width': IDL.Nat,
+        'height': IDL.Nat,
         'tile_instances': IDL.Vec(TileInstance),
         'object_instances': IDL.Vec(ObjectInstance),
         'created_at': IDL.Int,

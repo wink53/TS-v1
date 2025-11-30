@@ -75,6 +75,8 @@ export function MapsView({ onOpenEditor }: MapsViewProps) {
       id: map.id,
       name: map.name,
       description: map.description,
+      width: Number(map.width),
+      height: Number(map.height),
     });
     setIsEditDialogOpen(true);
   };
@@ -97,7 +99,7 @@ export function MapsView({ onOpenEditor }: MapsViewProps) {
         toast.success('Map updated successfully');
         setIsEditDialogOpen(false);
         setSelectedMap(null);
-        setFormData({ id: '', name: '', description: '' });
+        setFormData({ id: '', name: '', description: '', width: 32, height: 24 });
       } else {
         toast.error(`Error: ${result.err.message}`, {
           description: `Code: ${result.err.code}`,
