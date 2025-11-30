@@ -102,22 +102,27 @@ export function MapsView() {
   };
 
   const handleDeleteClick = async (map: MapData) => {
+    console.log('Delete clicked for map:', map);
     if (!window.confirm(`Are you sure you want to delete the map "${map.name}"? This action cannot be undone.`)) {
+      console.log('Delete cancelled by user');
       return;
     }
 
+    console.log('Attempting to delete map with ID:', map.id);
     try {
       const result = await deleteMap.mutateAsync(map.id);
+      console.log('Delete result:', result);
 
       if ("ok" in result) {
         toast.success('Map deleted successfully');
       } else {
+        console.error('Delete failed with error:', result.err);
         toast.error(`Error: ${result.err.message}`, {
           description: `Code: ${result.err.code}`,
         });
       }
     } catch (error) {
-      console.error('Failed to delete map:', error);
+      console.error('Failed to delete map (exception):', error);
       toast.error('Failed to delete map', {
         description: error instanceof Error ? error.message : 'Unknown error occurred',
       });

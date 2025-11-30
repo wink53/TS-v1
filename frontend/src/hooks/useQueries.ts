@@ -314,8 +314,16 @@ export function useDeleteTile() {
 
   return useMutation({
     mutationFn: async (id: string) => {
+      console.log('useDeleteTile: calling actor.deleteTile with id:', id);
       if (!actor) throw new Error('Actor not initialized');
-      return (actor as any).deleteTile(id);
+      try {
+        const result = await (actor as any).deleteTile(id);
+        console.log('useDeleteTile: actor returned:', result);
+        return result;
+      } catch (e) {
+        console.error('useDeleteTile: actor call failed:', e);
+        throw e;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tiles'] });
@@ -329,8 +337,16 @@ export function useDeleteObject() {
 
   return useMutation({
     mutationFn: async (id: string) => {
+      console.log('useDeleteObject: calling actor.deleteObject with id:', id);
       if (!actor) throw new Error('Actor not initialized');
-      return (actor as any).deleteObject(id);
+      try {
+        const result = await (actor as any).deleteObject(id);
+        console.log('useDeleteObject: actor returned:', result);
+        return result;
+      } catch (e) {
+        console.error('useDeleteObject: actor call failed:', e);
+        throw e;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['objects'] });
@@ -344,8 +360,16 @@ export function useDeleteTileSet() {
 
   return useMutation({
     mutationFn: async (id: string) => {
+      console.log('useDeleteTileSet: calling actor.deleteTileSet with id:', id);
       if (!actor) throw new Error('Actor not initialized');
-      return (actor as any).deleteTileSet(id);
+      try {
+        const result = await (actor as any).deleteTileSet(id);
+        console.log('useDeleteTileSet: actor returned:', result);
+        return result;
+      } catch (e) {
+        console.error('useDeleteTileSet: actor call failed:', e);
+        throw e;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tileSets'] });
@@ -359,8 +383,16 @@ export function useDeletePrefab() {
 
   return useMutation({
     mutationFn: async (id: string) => {
+      console.log('useDeletePrefab: calling actor.deletePrefab with id:', id);
       if (!actor) throw new Error('Actor not initialized');
-      return (actor as any).deletePrefab(id);
+      try {
+        const result = await (actor as any).deletePrefab(id);
+        console.log('useDeletePrefab: actor returned:', result);
+        return result;
+      } catch (e) {
+        console.error('useDeletePrefab: actor call failed:', e);
+        throw e;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['prefabs'] });
@@ -374,8 +406,16 @@ export function useDeleteMap() {
 
   return useMutation({
     mutationFn: async (id: string) => {
+      console.log('useDeleteMap: calling actor.deleteMap with id:', id);
       if (!actor) throw new Error('Actor not initialized');
-      return (actor as any).deleteMap(id);
+      try {
+        const result = await (actor as any).deleteMap(id);
+        console.log('useDeleteMap: actor returned:', result);
+        return result;
+      } catch (e) {
+        console.error('useDeleteMap: actor call failed:', e);
+        throw e;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['maps'] });
