@@ -101,7 +101,15 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
     // Sync local state with fetched data
     useEffect(() => {
         if (mapData && !isDirty) {
-            setLocalMapData(JSON.parse(JSON.stringify(mapData)));
+            // Convert BigInt fields to Numbers for local state
+            const localData = {
+                ...mapData,
+                width: Number(mapData.width),
+                height: Number(mapData.height),
+                created_at: Number(mapData.created_at),
+                updated_at: Number(mapData.updated_at),
+            };
+            setLocalMapData(localData);
         }
     }, [mapData, isDirty]);
 
