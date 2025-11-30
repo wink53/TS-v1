@@ -16,7 +16,9 @@ import {
     Move,
     ZoomIn,
     ZoomOut,
-    Grid3X3
+    Grid3X3,
+    Undo,
+    Redo
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -121,8 +123,64 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
                 }))
             };
             setLocalMapData(localData);
+            // Initialize history
+            setHistory([localData]);
+            setHistoryIndex(0);
         }
     }, [mapData, isDirty]);
+
+    // Undo/Redo State
+    const [history, setHistory] = useState<any[]>([]);
+    const [historyIndex, setHistoryIndex] = useState(0);
+
+    const addToHistory = (newState: any) => {
+        const newHistory = history.slice(0, historyIndex + 1);
+        newHistory.push(newState);
+        // Limit history size
+        if (newHistory.length > 50) {
+            newHistory.shift();
+        }
+        setHistory(newHistory);
+        setHistoryIndex(newHistory.length - 1);
+    };
+
+    const undo = () => {
+        if (historyIndex > 0) {
+            const newIndex = historyIndex - 1;
+            setHistoryIndex(newIndex);
+            setLocalMapData(history[newIndex]);
+            setIsDirty(true); // Assuming undo implies unsaved changes unless we track save state in history
+        }
+    };
+
+    const redo = () => {
+        if (historyIndex < history.length - 1) {
+            const newIndex = historyIndex + 1;
+            setHistoryIndex(newIndex);
+            setLocalMapData(history[newIndex]);
+            setIsDirty(true);
+        }
+    };
+
+    // Keyboard Shortcuts
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'z') {
+                e.preventDefault();
+                if (e.shiftKey) {
+                    redo();
+                } else {
+                    undo();
+                }
+            } else if ((e.metaKey || e.ctrlKey) && e.key === 'y') {
+                e.preventDefault();
+                redo();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [history, historyIndex]);
 
     // Helper to get tile color (placeholder for image)
     const getTileColor = (tileId: string) => {
@@ -307,6 +365,7 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
 
         if (changed) {
             setLocalMapData(newMapData);
+            addToHistory(newMapData);
             setIsDirty(true);
         }
     };
@@ -491,6 +550,29 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
                         <Separator orientation="vertical" className="h-6 mx-2" />
 
                         <div className="flex items-center gap-1">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={undo}
+                                disabled={historyIndex <= 0}
+                                title="Undo (Ctrl+Z)"
+                            >
+                                <Undo className="h-4 w-4" />
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={redo}
+                                disabled={historyIndex >= history.length - 1}
+                                title="Redo (Ctrl+Y)"
+                            >
+                                <Redo className="h-4 w-4" />
+                            </Button>
+                        </div>
+
+                        <Separator orientation="vertical" className="h-6 mx-2" />
+
+                        <div className="flex items-center gap-1">
                             <Button variant="ghost" size="icon" onClick={() => setZoom(z => Math.max(0.1, z - 0.1))}>
                                 <ZoomOut className="h-4 w-4" />
                             </Button>
@@ -542,6 +624,6 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
                     <span>Zoom: {Math.round(zoom * 100)}%</span>
                 </div>
             </div>
-        </div>
+        </div >
     );
 }
