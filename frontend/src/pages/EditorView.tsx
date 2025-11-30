@@ -316,7 +316,11 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
         const mapHeight = localMapData.height ? Number(localMapData.height) : 24;
         if (pos.x < 0 || pos.x >= mapWidth || pos.y < 0 || pos.y >= mapHeight) return;
 
-        const newMapData = { ...localMapData };
+        const newMapData = {
+            ...localMapData,
+            tile_instances: [...localMapData.tile_instances],
+            object_instances: [...localMapData.object_instances]
+        };
         let changed = false;
 
         if (activeTool === 'paint') {
