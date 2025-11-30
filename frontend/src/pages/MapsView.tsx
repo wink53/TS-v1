@@ -28,6 +28,8 @@ export function MapsView({ onOpenEditor }: MapsViewProps) {
     id: '',
     name: '',
     description: '',
+    width: 32,
+    height: 24,
   });
 
   // ... (handlers remain the same)
@@ -39,6 +41,8 @@ export function MapsView({ onOpenEditor }: MapsViewProps) {
       id: formData.id,
       name: formData.name,
       description: formData.description,
+      width: formData.width,
+      height: formData.height,
       tile_instances: [],
       object_instances: [],
       created_at: BigInt(Date.now()),
@@ -51,7 +55,7 @@ export function MapsView({ onOpenEditor }: MapsViewProps) {
       if ("ok" in result) {
         toast.success('Map created successfully');
         setIsCreateDialogOpen(false);
-        setFormData({ id: '', name: '', description: '' });
+        setFormData({ id: '', name: '', description: '', width: 32, height: 24 });
       } else {
         toast.error(`Error: ${result.err.message}`, {
           description: `Code: ${result.err.code}`,
@@ -183,6 +187,32 @@ export function MapsView({ onOpenEditor }: MapsViewProps) {
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder="A forest-themed game level"
                 />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="create-width">Width (tiles)</Label>
+                  <Input
+                    id="create-width"
+                    type="number"
+                    min="1"
+                    max="256"
+                    value={formData.width}
+                    onChange={(e) => setFormData({ ...formData, width: parseInt(e.target.value) || 32 })}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="create-height">Height (tiles)</Label>
+                  <Input
+                    id="create-height"
+                    type="number"
+                    min="1"
+                    max="256"
+                    value={formData.height}
+                    onChange={(e) => setFormData({ ...formData, height: parseInt(e.target.value) || 24 })}
+                    required
+                  />
+                </div>
               </div>
               <Button type="submit" className="w-full" disabled={createMap.isPending}>
                 {createMap.isPending ? 'Creating...' : 'Create Map'}

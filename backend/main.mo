@@ -76,6 +76,8 @@ persistent actor Backend {
     id : Text;
     name : Text;
     description : Text;
+    width : Nat;
+    height : Nat;
     tile_instances : [TileInstance];
     object_instances : [ObjectInstance];
     created_at : Int;
