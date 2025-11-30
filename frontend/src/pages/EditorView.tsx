@@ -101,13 +101,24 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
     // Sync local state with fetched data
     useEffect(() => {
         if (mapData && !isDirty) {
-            // Convert BigInt fields to Numbers for local state
+            // Transform backend data to local format
             const localData = {
                 ...mapData,
                 width: Number(mapData.width),
                 height: Number(mapData.height),
                 created_at: Number(mapData.created_at),
                 updated_at: Number(mapData.updated_at),
+                tile_instances: mapData.tile_instances.map((t: any) => ({
+                    tileId: t.tile_id,
+                    x: Number(t.position.x),
+                    y: Number(t.position.y)
+                })),
+                object_instances: mapData.object_instances.map((o: any) => ({
+                    objectId: o.object_id,
+                    state: o.state,
+                    x: Number(o.position.x),
+                    y: Number(o.position.y)
+                }))
             };
             setLocalMapData(localData);
         }
@@ -298,13 +309,22 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
     const handleSave = () => {
         if (!localMapData) return;
 
-        // Convert Numbers back to BigInt for backend
+        // Transform local data back to backend format
         const mapDataForBackend = {
             ...localMapData,
             width: BigInt(localMapData.width),
             height: BigInt(localMapData.height),
             created_at: BigInt(localMapData.created_at),
-            updated_at: BigInt(Date.now()), // Update timestamp
+            updated_at: BigInt(Date.now()),
+            tile_instances: localMapData.tile_instances.map((t: any) => ({
+                tile_id: t.tileId,
+                position: { x: BigInt(t.x), y: BigInt(t.y) }
+            })),
+            object_instances: localMapData.object_instances.map((o: any) => ({
+                object_id: o.objectId,
+                state: o.state || 'default',
+                position: { x: BigInt(o.x), y: BigInt(o.y) }
+            }))
         };
 
         updateMap.mutate({ id: mapId, mapData: mapDataForBackend });
@@ -448,9 +468,12 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
                         </Button>
                     </div>
 
-                    <Button onClick={() => toast.success('Map saved!')}>
+                    <Button
+                        onClick={handleSave}
+                        disabled={!isDirty || updateMap.isPending}
+                    >
                         <Save className="h-4 w-4 mr-2" />
-                        Save Map
+                        {updateMap.isPending ? 'Saving...' : 'Save Map'}
                     </Button>
                 </div>
 
@@ -465,6 +488,7 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
                         onMouseMove={handleMouseMove}
                         onMouseUp={handleMouseUp}
                         onMouseLeave={handleMouseUp}
+                        onWheel={handleWheel}
                     />
                 </div>
 
