@@ -54,8 +54,10 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
         queryFn: async () => {
             if (!actor || !mapId) return null;
             const result = await (actor as any).getMap(mapId);
-            if ("ok" in result) return result.ok;
-            throw new Error(result.err.message);
+            if (Array.isArray(result) && result.length > 0) {
+                return result[0];
+            }
+            throw new Error("Map not found");
         },
         enabled: !!actor && !!mapId,
     });
