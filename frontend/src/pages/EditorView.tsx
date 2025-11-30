@@ -86,7 +86,7 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
     const updateMap = useMutation({
         mutationFn: async (data: any) => {
             if (!actor) throw new Error('Actor not initialized');
-            return (actor as any).updateMap(data.id, data);
+            return (actor as any).updateMap(data.id, data.mapData);
         },
         onSuccess: () => {
             toast.success('Map saved successfully');
@@ -217,88 +217,40 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
         };
     };
 
-    const handleMouseDown = (e: React.MouseEvent) => {
-        setIsDragging(true);
-        if (activeTool === 'pan') return;
-        handlePaint(e);
-    };
-
-    const handleMouseMove = (e: React.MouseEvent) => {
-        if (!isDragging) return;
-
-        if (activeTool === 'pan') {
-            setPan(prev => ({
-                x: prev.x + e.movementX,
-                y: prev.y + e.movementY
-            }));
-            return;
-        }
-
-        handlePaint(e);
-    };
-
-    const handleMouseUp = () => {
-        setIsDragging(false);
-    };
-
     const handlePaint = (e: React.MouseEvent) => {
         if (!localMapData) return;
         const pos = getGridPos(e);
         if (!pos) return;
 
-        // Bounds check
-        if (pos.x < 0 || pos.x >= localMapData.width || pos.y < 0 || pos.y >= localMapData.height) return;
+        // Bounds check with fallback dimensions
+        const mapWidth = localMapData.width ? Number(localMapData.width) : 32;
+        const mapHeight = localMapData.height ? Number(localMapData.height) : 24;
+        if (pos.x < 0 || pos.x >= mapWidth || pos.y < 0 || pos.y >= mapHeight) return;
 
         const newMapData = { ...localMapData };
         let changed = false;
 
-        if (activeTool === 'paint') {
-            if (selectedTileId) {
-                // Remove existing tile at this position
-                const existingIndex = newMapData.tile_instances.findIndex((t: any) => t.x === pos.x && t.y === pos.y);
-                if (existingIndex >= 0) {
-                    if (newMapData.tile_instances[existingIndex].tileId !== selectedTileId) {
-                        newMapData.tile_instances[existingIndex].tileId = selectedTileId;
-                        changed = true;
-                    }
-                } else {
-                    newMapData.tile_instances.push({
-                        id: `${pos.x}_${pos.y}_${Date.now()}`,
-                        tileId: selectedTileId,
-                        x: pos.x,
-                        y: pos.y,
-                        rotation: 0
-                    });
-                    changed = true;
-                }
-            } else if (selectedObjectId) {
-                // Object placement logic (allow multiple objects per tile? for now, one)
-                const existingIndex = newMapData.object_instances.findIndex((o: any) => o.x === pos.x && o.y === pos.y);
-                if (existingIndex === -1) {
-                    newMapData.object_instances.push({
-                        id: `${pos.x}_${pos.y}_${Date.now()}`,
-                        objectId: selectedObjectId,
-                        x: pos.x,
-                        y: pos.y,
-                        rotation: 0,
-                        state: 'default' // Default state
-                    });
-                    changed = true;
-                }
-            }
+        if (activeTool === 'paint' && selectedTileId) {
+            // Remove any existing tile at this position
+            newMapData.tile_instances = newMapData.tile_instances.filter(
+                (t: any) => !(t.x === pos.x && t.y === pos.y)
+            );
+
+            // Add new tile instance
+            newMapData.tile_instances.push({
+                tileId: selectedTileId,
+                x: pos.x,
+                y: pos.y,
+                z: 0,
+            });
+            changed = true;
         } else if (activeTool === 'erase') {
-            // Erase tile
-            const tileIndex = newMapData.tile_instances.findIndex((t: any) => t.x === pos.x && t.y === pos.y);
-            if (tileIndex >= 0) {
-                newMapData.tile_instances.splice(tileIndex, 1);
-                changed = true;
-            }
-            // Erase object
-            const objIndex = newMapData.object_instances.findIndex((o: any) => o.x === pos.x && o.y === pos.y);
-            if (objIndex >= 0) {
-                newMapData.object_instances.splice(objIndex, 1);
-                changed = true;
-            }
+            // Remove tile at this position
+            const beforeLength = newMapData.tile_instances.length;
+            newMapData.tile_instances = newMapData.tile_instances.filter(
+                (t: any) => !(t.x === pos.x && t.y === pos.y)
+            );
+            changed = beforeLength !== newMapData.tile_instances.length;
         }
 
         if (changed) {
@@ -307,9 +259,55 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
         }
     };
 
+    // Mouse Handlers
+    const [isPanning, setIsPanning] = useState(false);
+    const [lastPanPos, setLastPanPos] = useState({ x: 0, y: 0 });
+
+    const handleMouseDown = (e: React.MouseEvent) => {
+        if (e.button === 0) { // Left mouse button
+            setIsDragging(true);
+        } else if (e.button === 1) { // Middle mouse button
+            e.preventDefault();
+            setIsPanning(true);
+            setLastPanPos({ x: e.clientX, y: e.clientY });
+        }
+    };
+
+    const handleMouseMove = (e: React.MouseEvent) => {
+        if (isPanning) {
+            const dx = e.clientX - lastPanPos.x;
+            const dy = e.clientY - lastPanPos.y;
+            setPan((prev: any) => ({ x: prev.x + dx, y: prev.y + dy }));
+            setLastPanPos({ x: e.clientX, y: e.clientY });
+        } else if (isDragging) {
+            handlePaint(e);
+        }
+    };
+
+    const handleMouseUp = () => {
+        setIsDragging(false);
+        setIsPanning(false);
+    };
+
+    const handleWheel = (e: React.WheelEvent) => {
+        e.preventDefault();
+        const delta = -e.deltaY / 1000;
+        setZoom(prev => Math.max(0.1, Math.min(5, prev + delta)));
+    };
+
     const handleSave = () => {
         if (!localMapData) return;
-        updateMap.mutate(localMapData);
+
+        // Convert Numbers back to BigInt for backend
+        const mapDataForBackend = {
+            ...localMapData,
+            width: BigInt(localMapData.width),
+            height: BigInt(localMapData.height),
+            created_at: BigInt(localMapData.created_at),
+            updated_at: BigInt(Date.now()), // Update timestamp
+        };
+
+        updateMap.mutate({ id: mapId, mapData: mapDataForBackend });
     };
 
     console.log('[EditorView] Render - mapId:', mapId, 'isMapLoading:', isMapLoading, 'mapData:', mapData);
