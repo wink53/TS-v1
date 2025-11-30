@@ -304,12 +304,15 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
         updateMap.mutate(localMapData);
     };
 
+    console.log('[EditorView] Render - mapId:', mapId, 'isMapLoading:', isMapLoading, 'mapData:', mapData);
+
     if (isMapLoading) {
         return <div className="flex items-center justify-center h-screen">Loading map...</div>;
     }
 
     if (!mapData) {
-        return <div className="flex items-center justify-center h-screen">Map not found</div>;
+        console.error('[EditorView] No mapData available after loading!');
+        return <div className="flex items-center justify-center h-screen text-destructive"><div className="text-center"><p className="text-2xl font-bold mb-2">Map not found</p><p className="text-sm">Map ID: {mapId}</p></div></div>;
     }
 
     return (
