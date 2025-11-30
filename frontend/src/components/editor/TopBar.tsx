@@ -59,6 +59,8 @@ export function TopBar({ mapsList, currentMap, onMapSelect, onNewMap, onSave }: 
       id: newMapId,
       name: newMapName,
       description: '',
+      width: BigInt(width),
+      height: BigInt(height),
       tile_instances: [],
       object_instances: [],
       created_at: BigInt(Date.now()),
