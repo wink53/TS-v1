@@ -168,6 +168,16 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
         localMapData.tile_instances.forEach((instance: any) => {
             ctx.fillStyle = getTileColor(instance.tileId);
             ctx.fillRect(instance.x * 32, instance.y * 32, 32, 32);
+
+            // Draw Tile Label
+            const tile = tiles.find((t: any) => t.id === instance.tileId);
+            if (tile) {
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                ctx.font = '10px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(tile.name.substring(0, 2).toUpperCase(), instance.x * 32 + 16, instance.y * 32 + 16);
+            }
         });
 
         // Draw Grid
@@ -195,13 +205,23 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
 
         // Draw Objects
         localMapData.object_instances.forEach((instance: any) => {
+            const obj = objects.find((o: any) => o.id === instance.objectId);
             ctx.fillStyle = getObjectColor(instance.objectId);
             ctx.beginPath();
-            ctx.arc(instance.x * 32 + 16, instance.y * 32 + 16, 10, 0, Math.PI * 2);
+            ctx.arc(instance.x * 32 + 16, instance.y * 32 + 16, 12, 0, Math.PI * 2);
             ctx.fill();
             ctx.strokeStyle = '#000';
             ctx.lineWidth = 2;
             ctx.stroke();
+
+            // Draw Object Label
+            if (obj) {
+                ctx.fillStyle = '#000';
+                ctx.font = 'bold 12px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(obj.name.substring(0, 1).toUpperCase(), instance.x * 32 + 16, instance.y * 32 + 16);
+            }
         });
 
         // Draw Map Border
