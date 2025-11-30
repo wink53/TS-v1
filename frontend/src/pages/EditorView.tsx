@@ -298,6 +298,7 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
     const handleMouseDown = (e: React.MouseEvent) => {
         if (e.button === 0) { // Left mouse button
             setIsDragging(true);
+            handlePaint(e); // Paint immediately on click
         } else if (e.button === 1) { // Middle mouse button
             e.preventDefault();
             setIsPanning(true);
