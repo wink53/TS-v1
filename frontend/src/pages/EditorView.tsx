@@ -241,27 +241,48 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
         const newMapData = { ...localMapData };
         let changed = false;
 
-        if (activeTool === 'paint' && selectedTileId) {
-            // Remove any existing tile at this position
+        if (activeTool === 'paint') {
+            if (selectedTileId) {
+                // Remove any existing tile at this position
+                newMapData.tile_instances = newMapData.tile_instances.filter(
+                    (t: any) => !(t.x === pos.x && t.y === pos.y)
+                );
+
+                // Add new tile instance
+                newMapData.tile_instances.push({
+                    tileId: selectedTileId,
+                    x: pos.x,
+                    y: pos.y,
+                    z: 0,
+                });
+                changed = true;
+            } else if (selectedObjectId) {
+                // Check if object already exists at this position (optional, depending on game logic)
+                // For now, allow multiple objects or just add it
+                newMapData.object_instances.push({
+                    objectId: selectedObjectId,
+                    x: pos.x,
+                    y: pos.y,
+                    state: 'default'
+                });
+                changed = true;
+            }
+        } else if (activeTool === 'erase') {
+            // Remove tile at this position
+            const beforeTileLength = newMapData.tile_instances.length;
             newMapData.tile_instances = newMapData.tile_instances.filter(
                 (t: any) => !(t.x === pos.x && t.y === pos.y)
             );
 
-            // Add new tile instance
-            newMapData.tile_instances.push({
-                tileId: selectedTileId,
-                x: pos.x,
-                y: pos.y,
-                z: 0,
-            });
-            changed = true;
-        } else if (activeTool === 'erase') {
-            // Remove tile at this position
-            const beforeLength = newMapData.tile_instances.length;
-            newMapData.tile_instances = newMapData.tile_instances.filter(
-                (t: any) => !(t.x === pos.x && t.y === pos.y)
+            // Remove object at this position
+            const beforeObjectLength = newMapData.object_instances.length;
+            newMapData.object_instances = newMapData.object_instances.filter(
+                (o: any) => !(Math.abs(o.x - pos.x) < 0.5 && Math.abs(o.y - pos.y) < 0.5) // Simple proximity check for objects
             );
-            changed = beforeLength !== newMapData.tile_instances.length;
+
+            if (beforeTileLength !== newMapData.tile_instances.length || beforeObjectLength !== newMapData.object_instances.length) {
+                changed = true;
+            }
         }
 
         if (changed) {
@@ -366,6 +387,7 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
                                         key={tile.id}
                                         onClick={() => {
                                             setSelectedTileId(tile.id);
+                                            setSelectedObjectId(null); // Clear object selection
                                             setActiveTool('paint');
                                         }}
                                         className={`aspect-square border rounded-md p-1 hover:bg-accent transition-colors ${selectedTileId === tile.id ? 'ring-2 ring-primary border-primary' : ''
@@ -389,6 +411,7 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
                                         key={obj.id}
                                         onClick={() => {
                                             setSelectedObjectId(obj.id);
+                                            setSelectedTileId(null); // Clear tile selection
                                             setActiveTool('paint');
                                         }}
                                         className={`aspect-square border rounded-md p-2 hover:bg-accent transition-colors flex flex-col items-center justify-center gap-2 ${selectedObjectId === obj.id ? 'ring-2 ring-primary border-primary' : ''
