@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { useListTiles, useCreateTile, useUpdateTile, useDeleteTile } from '../hooks/useQueries';
+import { useListTiles, useCreateTile, useUpdateTile, useDeleteTile, useUploadTileImage } from '../hooks/useQueries';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Square, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Square, Pencil, Trash2, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -17,6 +17,7 @@ export function TilesView() {
   const createTile = useCreateTile();
   const updateTile = useUpdateTile();
   const deleteTile = useDeleteTile();
+  const uploadTileImage = useUploadTileImage();
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -28,6 +29,13 @@ export function TilesView() {
     tags: '',
     blob_id: '',
   });
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedFile(e.target.files[0]);
+    }
+  };
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,7 +45,7 @@ export function TilesView() {
       name: formData.name,
       description: formData.description,
       tags: formData.tags.split(',').map(t => t.trim()).filter(Boolean),
-      blob_id: formData.blob_id,
+      blob_id: formData.blob_id || (selectedFile ? `blob_${formData.id}` : ''),
       created_at: BigInt(Date.now()),
       updated_at: BigInt(Date.now()),
     };
@@ -46,9 +54,20 @@ export function TilesView() {
       const result = await createTile.mutateAsync(metadata);
 
       if ("ok" in result) {
+        // Upload image if selected
+        if (selectedFile) {
+          const buffer = await selectedFile.arrayBuffer();
+          const uint8Array = new Uint8Array(buffer);
+          await uploadTileImage.mutateAsync({
+            id: metadata.id,
+            data: uint8Array
+          });
+        }
+
         toast.success('Tile created successfully');
         setIsCreateDialogOpen(false);
         setFormData({ id: '', name: '', description: '', tags: '', blob_id: '' });
+        setSelectedFile(null);
       } else {
         toast.error(`Error: ${result.err.message}`, {
           description: `Code: ${result.err.code}`,
@@ -71,6 +90,7 @@ export function TilesView() {
       tags: tile.tags.join(', '),
       blob_id: tile.blob_id,
     });
+    setSelectedFile(null);
     setIsEditDialogOpen(true);
   };
 
@@ -91,10 +111,21 @@ export function TilesView() {
       const result = await updateTile.mutateAsync({ id: selectedTile.id, metadata });
 
       if ("ok" in result) {
+        // Upload image if selected
+        if (selectedFile) {
+          const buffer = await selectedFile.arrayBuffer();
+          const uint8Array = new Uint8Array(buffer);
+          await uploadTileImage.mutateAsync({
+            id: selectedTile.id,
+            data: uint8Array
+          });
+        }
+
         toast.success('Tile updated successfully');
         setIsEditDialogOpen(false);
         setSelectedTile(null);
         setFormData({ id: '', name: '', description: '', tags: '', blob_id: '' });
+        setSelectedFile(null);
       } else {
         toast.error(`Error: ${result.err.message}`, {
           description: `Code: ${result.err.code}`,
@@ -194,20 +225,19 @@ export function TilesView() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="create-blob_id">Blob ID</Label>
+                <Label htmlFor="create-image">Tile Image (PNG)</Label>
                 <Input
-                  id="create-blob_id"
-                  value={formData.blob_id}
-                  onChange={(e) => setFormData({ ...formData, blob_id: e.target.value })}
-                  placeholder="blob_abc123"
-                  required
+                  id="create-image"
+                  type="file"
+                  accept="image/png"
+                  onChange={handleFileChange}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Reference to the stored PNG asset
+                  Recommended size: 32x32 pixels
                 </p>
               </div>
-              <Button type="submit" className="w-full" disabled={createTile.isPending}>
-                {createTile.isPending ? 'Creating...' : 'Create Tile'}
+              <Button type="submit" className="w-full" disabled={createTile.isPending || uploadTileImage.isPending}>
+                {createTile.isPending || uploadTileImage.isPending ? 'Creating...' : 'Create Tile'}
               </Button>
             </form>
           </DialogContent>
@@ -259,16 +289,16 @@ export function TilesView() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-blob_id">Blob ID</Label>
+              <Label htmlFor="edit-image">Update Image (Optional)</Label>
               <Input
-                id="edit-blob_id"
-                value={formData.blob_id}
-                onChange={(e) => setFormData({ ...formData, blob_id: e.target.value })}
-                required
+                id="edit-image"
+                type="file"
+                accept="image/png"
+                onChange={handleFileChange}
               />
             </div>
-            <Button type="submit" className="w-full" disabled={updateTile.isPending}>
-              {updateTile.isPending ? 'Updating...' : 'Update Tile'}
+            <Button type="submit" className="w-full" disabled={updateTile.isPending || uploadTileImage.isPending}>
+              {updateTile.isPending || uploadTileImage.isPending ? 'Updating...' : 'Update Tile'}
             </Button>
           </form>
         </DialogContent>
@@ -332,7 +362,7 @@ export function TilesView() {
                   </div>
                 )}
                 <div className="text-xs text-muted-foreground">
-                  Blob: {tile.blob_id}
+                  Blob: {tile.blob_id || 'None'}
                 </div>
               </CardContent>
             </Card>

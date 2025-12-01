@@ -115,4 +115,8 @@ export interface _SERVICE {
     'updatePrefab': ActorMethod<[string, Prefab], Result>,
     'updateTileMetadata': ActorMethod<[string, TileMetadata], Result>,
     'updateTileSet': ActorMethod<[string, TileSet], Result>,
+    'uploadTileImage': ActorMethod<[string, Uint8Array | number[]], Result>,
+    'getTileImage': ActorMethod<[string], [] | [Uint8Array | number[]]>,
+    'uploadObjectImage': ActorMethod<[string, Uint8Array | number[]], Result>,
+    'getObjectImage': ActorMethod<[string], [] | [Uint8Array | number[]]>,
 }

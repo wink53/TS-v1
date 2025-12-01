@@ -382,3 +382,61 @@ export function useDeleteMap() {
     },
   });
 }
+// Image Hooks
+export function useUploadTileImage() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Uint8Array | number[] }) => {
+      if (!actor) throw new Error('Actor not initialized');
+      return actor.uploadTileImage(id, data);
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['tileImage', variables.id] });
+    },
+  });
+}
+
+export function useGetTileImage(id: string) {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<Uint8Array | number[] | null>({
+    queryKey: ['tileImage', id],
+    queryFn: async () => {
+      if (!actor) return null;
+      const result = await actor.getTileImage(id);
+      return unwrap(result);
+    },
+    enabled: !!actor && !isFetching && !!id,
+  });
+}
+
+export function useUploadObjectImage() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Uint8Array | number[] }) => {
+      if (!actor) throw new Error('Actor not initialized');
+      return actor.uploadObjectImage(id, data);
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['objectImage', variables.id] });
+    },
+  });
+}
+
+export function useGetObjectImage(id: string) {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<Uint8Array | number[] | null>({
+    queryKey: ['objectImage', id],
+    queryFn: async () => {
+      if (!actor) return null;
+      const result = await actor.getObjectImage(id);
+      return unwrap(result);
+    },
+    enabled: !!actor && !isFetching && !!id,
+  });
+}

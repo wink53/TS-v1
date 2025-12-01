@@ -119,6 +119,10 @@ export const idlFactory = ({ IDL }) => {
         'updatePrefab': IDL.Func([IDL.Text, Prefab], [Result], []),
         'updateTileMetadata': IDL.Func([IDL.Text, TileMetadata], [Result], []),
         'updateTileSet': IDL.Func([IDL.Text, TileSet], [Result], []),
+        'uploadTileImage': IDL.Func([IDL.Text, IDL.Vec(IDL.Nat8)], [Result], []),
+        'getTileImage': IDL.Func([IDL.Text], [IDL.Opt(IDL.Vec(IDL.Nat8))], ['query']),
+        'uploadObjectImage': IDL.Func([IDL.Text, IDL.Vec(IDL.Nat8)], [Result], []),
+        'getObjectImage': IDL.Func([IDL.Text], [IDL.Opt(IDL.Vec(IDL.Nat8))], ['query']),
     });
 };
 export const init = ({ IDL }) => { return []; };

@@ -334,4 +334,42 @@ persistent actor Backend {
       };
     };
   };
+  // Image Storage
+  transient var tile_images : OrderedMap.Map<Text, Blob> = textMap.empty<Blob>();
+  transient var object_images : OrderedMap.Map<Text, Blob> = textMap.empty<Blob>();
+
+  // Image Methods
+  public func uploadTileImage(id : Text, data : Blob) : async {
+    #ok : Text;
+    #err : ValidationError;
+  } {
+    switch (textMap.get(tiles, id)) {
+      case (null) { #err({ code = "NOT_FOUND"; message = "Tile not found"; fix_attempted = false }) };
+      case (?_) {
+        tile_images := textMap.put(tile_images, id, data);
+        #ok(id);
+      };
+    };
+  };
+
+  public query func getTileImage(id : Text) : async ?Blob {
+    textMap.get(tile_images, id);
+  };
+
+  public func uploadObjectImage(id : Text, data : Blob) : async {
+    #ok : Text;
+    #err : ValidationError;
+  } {
+    switch (textMap.get(objects, id)) {
+      case (null) { #err({ code = "NOT_FOUND"; message = "Object not found"; fix_attempted = false }) };
+      case (?_) {
+        object_images := textMap.put(object_images, id, data);
+        #ok(id);
+      };
+    };
+  };
+
+  public query func getObjectImage(id : Text) : async ?Blob {
+    textMap.get(object_images, id);
+  };
 };

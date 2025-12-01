@@ -207,6 +207,48 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
         return '#fff'; // Objects are white circles for now
     };
 
+    // Image Cache
+    const [tileImages, setTileImages] = useState<Record<string, HTMLImageElement>>({});
+
+    // Fetch Tile Images
+    useEffect(() => {
+        if (!actor || tiles.length === 0) return;
+
+        const loadImages = async () => {
+            const newImages: Record<string, HTMLImageElement> = {};
+            let changed = false;
+
+            for (const tile of tiles) {
+                // Skip if already loaded or no blob_id
+                if (tileImages[tile.id] || !tile.blob_id) continue;
+
+                try {
+                    const result = await (actor as any).getTileImage(tile.id);
+                    if (Array.isArray(result) && result.length > 0) {
+                        const blobData = result[0];
+                        const blob = new Blob([new Uint8Array(blobData)], { type: 'image/png' });
+                        const url = URL.createObjectURL(blob);
+                        const img = new Image();
+                        img.src = url;
+                        await new Promise((resolve) => {
+                            img.onload = resolve;
+                        });
+                        newImages[tile.id] = img;
+                        changed = true;
+                    }
+                } catch (err) {
+                    console.error(`Failed to load image for tile ${tile.id}:`, err);
+                }
+            }
+
+            if (changed) {
+                setTileImages(prev => ({ ...prev, ...newImages }));
+            }
+        };
+
+        loadImages();
+    }, [tiles, actor]); // Intentionally not including tileImages to avoid loops, logic handles checks
+
     // Render Canvas
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -229,17 +271,22 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
 
         // Draw Tiles
         localMapData.tile_instances.forEach((instance: any) => {
-            ctx.fillStyle = getTileColor(instance.tileId);
-            ctx.fillRect(instance.x * 32, instance.y * 32, 32, 32);
+            const img = tileImages[instance.tileId];
+            if (img) {
+                ctx.drawImage(img, instance.x * 32, instance.y * 32, 32, 32);
+            } else {
+                ctx.fillStyle = getTileColor(instance.tileId);
+                ctx.fillRect(instance.x * 32, instance.y * 32, 32, 32);
 
-            // Draw Tile Label
-            const tile = tiles.find((t: any) => t.id === instance.tileId);
-            if (tile) {
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-                ctx.font = '10px sans-serif';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(tile.name.substring(0, 2).toUpperCase(), instance.x * 32 + 16, instance.y * 32 + 16);
+                // Draw Tile Label (fallback)
+                const tile = tiles.find((t: any) => t.id === instance.tileId);
+                if (tile) {
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                    ctx.font = '10px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(tile.name.substring(0, 2).toUpperCase(), instance.x * 32 + 16, instance.y * 32 + 16);
+                }
             }
         });
 
@@ -323,7 +370,7 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
 
         ctx.restore();
 
-    }, [localMapData, zoom, pan, showGrid, tiles, objects, isDraggingShape, dragStart, currentMousePos, activeTool]);
+    }, [localMapData, zoom, pan, showGrid, tiles, objects, isDraggingShape, dragStart, currentMousePos, activeTool, tileImages]);
 
     // Interaction Handlers
     const getGridPos = (e: React.MouseEvent) => {
@@ -599,9 +646,13 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
                                         className={`aspect-square border rounded-md p-1 hover:bg-accent transition-colors ${selectedTileId === tile.id ? 'ring-2 ring-primary border-primary' : ''
                                             }`}
                                     >
-                                        <div className="w-full h-full bg-muted rounded flex items-center justify-center text-xs text-muted-foreground">
-                                            {/* Placeholder for tile image */}
-                                            {tile.name.substring(0, 2)}
+                                        <div className="w-full h-full bg-muted rounded flex items-center justify-center text-xs text-muted-foreground overflow-hidden">
+                                            {/* Tile Image or Placeholder */}
+                                            {tileImages[tile.id] ? (
+                                                <img src={tileImages[tile.id].src} alt={tile.name} className="w-full h-full object-cover pixelated" />
+                                            ) : (
+                                                tile.name.substring(0, 2)
+                                            )}
                                         </div>
                                     </button>
                                 ))}
