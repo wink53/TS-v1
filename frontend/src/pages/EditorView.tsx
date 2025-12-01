@@ -18,12 +18,14 @@ import {
     ZoomOut,
     Grid3X3,
     Undo,
-    Redo
+    Redo,
+    Square,
+    Circle
 } from 'lucide-react';
 import { toast } from 'sonner';
 
 // Types
-type Tool = 'select' | 'paint' | 'erase' | 'pan';
+type Tool = 'select' | 'paint' | 'erase' | 'pan' | 'rectangle' | 'circle';
 
 interface EditorViewProps {
     mapId: string;
@@ -46,6 +48,9 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
     const [localMapData, setLocalMapData] = useState<any>(null);
     const [isDirty, setIsDirty] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
+    const [dragStart, setDragStart] = useState<{ x: number, y: number } | null>(null);
+    const [currentMousePos, setCurrentMousePos] = useState<{ x: number, y: number } | null>(null);
+    const [isDraggingShape, setIsDraggingShape] = useState(false);
 
     // Canvas Ref
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -287,9 +292,38 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
         ctx.lineWidth = 2 / zoom;
         ctx.strokeRect(0, 0, localMapData.width * 32, localMapData.height * 32);
 
+        // Draw Shape Preview
+        if (isDraggingShape && dragStart && currentMousePos) {
+            const startX = dragStart.x * 32;
+            const startY = dragStart.y * 32;
+            const endX = currentMousePos.x * 32;
+            const endY = currentMousePos.y * 32;
+            const width = endX - startX + (endX >= startX ? 32 : -32); // Include the last cell
+            const height = endY - startY + (endY >= startY ? 32 : -32);
+
+            ctx.fillStyle = 'rgba(59, 130, 246, 0.3)'; // Blue semi-transparent
+            ctx.strokeStyle = 'rgba(59, 130, 246, 0.8)';
+            ctx.lineWidth = 2;
+
+            if (activeTool === 'rectangle') {
+                ctx.fillRect(startX, startY, width, height);
+                ctx.strokeRect(startX, startY, width, height);
+            } else if (activeTool === 'circle') {
+                const centerX = startX + width / 2;
+                const centerY = startY + height / 2;
+                const radiusX = Math.abs(width / 2);
+                const radiusY = Math.abs(height / 2);
+
+                ctx.beginPath();
+                ctx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, 2 * Math.PI);
+                ctx.fill();
+                ctx.stroke();
+            }
+        }
+
         ctx.restore();
 
-    }, [localMapData, zoom, pan, showGrid, tiles, objects]);
+    }, [localMapData, zoom, pan, showGrid, tiles, objects, isDraggingShape, dragStart, currentMousePos, activeTool]);
 
     // Interaction Handlers
     const getGridPos = (e: React.MouseEvent) => {
@@ -380,8 +414,20 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
 
     const handleMouseDown = (e: React.MouseEvent) => {
         if (e.button === 0) { // Left mouse button
-            setIsDragging(true);
-            handlePaint(e); // Paint immediately on click
+            if (activeTool === 'pan') {
+                setIsPanning(true);
+                setLastPanPos({ x: e.clientX, y: e.clientY });
+            } else if (activeTool === 'rectangle' || activeTool === 'circle') {
+                const pos = getGridPos(e);
+                if (pos) {
+                    setDragStart(pos);
+                    setCurrentMousePos(pos);
+                    setIsDraggingShape(true);
+                }
+            } else {
+                setIsDragging(true);
+                handlePaint(e); // Paint immediately on click
+            }
         } else if (e.button === 1) { // Middle mouse button
             e.preventDefault();
             setIsPanning(true);
@@ -390,12 +436,22 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
     };
 
     const handleMouseMove = (e: React.MouseEvent) => {
-        if (isPanning) {
+        if (isPanning && lastPanPos) {
             const dx = e.clientX - lastPanPos.x;
             const dy = e.clientY - lastPanPos.y;
-            setPan((prev: any) => ({ x: prev.x + dx, y: prev.y + dy }));
+            setPan((prev: { x: number, y: number }) => ({ x: prev.x + dx, y: prev.y + dy }));
             setLastPanPos({ x: e.clientX, y: e.clientY });
-        } else if (isDragging) {
+            return;
+        }
+
+        if (isDraggingShape) {
+            const pos = getGridPos(e);
+            if (pos) {
+                setCurrentMousePos(pos);
+            }
+        }
+
+        if (isDragging) {
             handlePaint(e);
         }
     };
@@ -403,6 +459,72 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
     const handleMouseUp = () => {
         setIsDragging(false);
         setIsPanning(false);
+
+        if (isDraggingShape && dragStart && currentMousePos && localMapData) {
+            // Commit shape
+            const startX = Math.min(dragStart.x, currentMousePos.x);
+            const endX = Math.max(dragStart.x, currentMousePos.x);
+            const startY = Math.min(dragStart.y, currentMousePos.y);
+            const endY = Math.max(dragStart.y, currentMousePos.y);
+
+            const newMapData = {
+                ...localMapData,
+                tile_instances: [...localMapData.tile_instances],
+                object_instances: [...localMapData.object_instances]
+            };
+            let changed = false;
+
+            if (selectedTileId) {
+                for (let x = startX; x <= endX; x++) {
+                    for (let y = startY; y <= endY; y++) {
+                        // Check if point is inside shape
+                        let inside = false;
+                        if (activeTool === 'rectangle') {
+                            inside = true;
+                        } else if (activeTool === 'circle') {
+                            // Ellipse check
+                            const centerX = (startX + endX) / 2;
+                            const centerY = (startY + endY) / 2;
+                            const radiusX = (endX - startX) / 2 + 0.5; // +0.5 to include edges better
+                            const radiusY = (endY - startY) / 2 + 0.5;
+                            const normalizedX = (x - centerX) / radiusX;
+                            const normalizedY = (y - centerY) / radiusY;
+                            if (normalizedX * normalizedX + normalizedY * normalizedY <= 1) {
+                                inside = true;
+                            }
+                        }
+
+                        if (inside) {
+                            // Bounds check
+                            if (x >= 0 && x < localMapData.width && y >= 0 && y < localMapData.height) {
+                                // Remove existing
+                                newMapData.tile_instances = newMapData.tile_instances.filter(
+                                    (t: any) => !(t.x === x && t.y === y)
+                                );
+                                // Add new
+                                newMapData.tile_instances.push({
+                                    tileId: selectedTileId,
+                                    x,
+                                    y,
+                                    z: 0
+                                });
+                                changed = true;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (changed) {
+                setLocalMapData(newMapData);
+                addToHistory(newMapData);
+                setIsDirty(true);
+            }
+
+            setIsDraggingShape(false);
+            setDragStart(null);
+            setCurrentMousePos(null);
+        }
     };
 
     const handleWheel = (e: React.WheelEvent) => {
@@ -540,6 +662,22 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
                                 title="Erase (E)"
                             >
                                 <Eraser className="h-4 w-4" />
+                            </Button>
+                            <Button
+                                variant={activeTool === 'rectangle' ? 'secondary' : 'ghost'}
+                                size="sm"
+                                onClick={() => setActiveTool('rectangle')}
+                                title="Rectangle (R)"
+                            >
+                                <Square className="h-4 w-4" />
+                            </Button>
+                            <Button
+                                variant={activeTool === 'circle' ? 'secondary' : 'ghost'}
+                                size="sm"
+                                onClick={() => setActiveTool('circle')}
+                                title="Circle (C)"
+                            >
+                                <Circle className="h-4 w-4" />
                             </Button>
                             <Button
                                 variant={activeTool === 'pan' ? 'secondary' : 'ghost'}
