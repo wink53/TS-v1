@@ -209,6 +209,7 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
 
     // Image Cache
     const [tileImages, setTileImages] = useState<Record<string, HTMLImageElement>>({});
+    const [objectImages, setObjectImages] = useState<Record<string, HTMLImageElement>>({});
 
     // Fetch Tile Images
     useEffect(() => {
@@ -248,6 +249,49 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
 
         loadImages();
     }, [tiles, actor]); // Intentionally not including tileImages to avoid loops, logic handles checks
+
+    // Fetch Object Images
+    useEffect(() => {
+        if (!actor || objects.length === 0) return;
+
+        const loadImages = async () => {
+            const newImages: Record<string, HTMLImageElement> = {};
+            let changed = false;
+
+            for (const obj of objects) {
+                // Skip if already loaded
+                if (objectImages[obj.id]) continue;
+
+                // Check if object has any states with blob_id
+                const hasImage = obj.states.some((state: any) => state.blob_id);
+                if (!hasImage) continue;
+
+                try {
+                    const result = await (actor as any).getObjectImage(obj.id);
+                    if (Array.isArray(result) && result.length > 0) {
+                        const blobData = result[0];
+                        const blob = new Blob([new Uint8Array(blobData)], { type: 'image/png' });
+                        const url = URL.createObjectURL(blob);
+                        const img = new Image();
+                        img.src = url;
+                        await new Promise((resolve) => {
+                            img.onload = resolve;
+                        });
+                        newImages[obj.id] = img;
+                        changed = true;
+                    }
+                } catch (err) {
+                    console.error(`Failed to load image for object ${obj.id}:`, err);
+                }
+            }
+
+            if (changed) {
+                setObjectImages(prev => ({ ...prev, ...newImages }));
+            }
+        };
+
+        loadImages();
+    }, [objects, actor]); // Intentionally not including objectImages to avoid loops
 
     // Render Canvas
     useEffect(() => {
@@ -316,21 +360,31 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
         // Draw Objects
         localMapData.object_instances.forEach((instance: any) => {
             const obj = objects.find((o: any) => o.id === instance.objectId);
-            ctx.fillStyle = getObjectColor(instance.objectId);
-            ctx.beginPath();
-            ctx.arc(instance.x * 32 + 16, instance.y * 32 + 16, 12, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.strokeStyle = '#000';
-            ctx.lineWidth = 2;
-            ctx.stroke();
+            const img = objectImages[instance.objectId];
 
-            // Draw Object Label
-            if (obj) {
-                ctx.fillStyle = '#000';
-                ctx.font = 'bold 12px sans-serif';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(obj.name.substring(0, 1).toUpperCase(), instance.x * 32 + 16, instance.y * 32 + 16);
+            if (img) {
+                // Draw image centered on the grid cell (supports transparency)
+                const drawX = instance.x * 32;
+                const drawY = instance.y * 32;
+                ctx.drawImage(img, drawX, drawY, 32, 32);
+            } else {
+                // Fallback to circle rendering
+                ctx.fillStyle = getObjectColor(instance.objectId);
+                ctx.beginPath();
+                ctx.arc(instance.x * 32 + 16, instance.y * 32 + 16, 12, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Draw Object Label (fallback)
+                if (obj) {
+                    ctx.fillStyle = '#000';
+                    ctx.font = 'bold 12px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(obj.name.substring(0, 1).toUpperCase(), instance.x * 32 + 16, instance.y * 32 + 16);
+                }
             }
         });
 
@@ -370,7 +424,7 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
 
         ctx.restore();
 
-    }, [localMapData, zoom, pan, showGrid, tiles, objects, isDraggingShape, dragStart, currentMousePos, activeTool, tileImages]);
+    }, [localMapData, zoom, pan, showGrid, tiles, objects, isDraggingShape, dragStart, currentMousePos, activeTool, tileImages, objectImages]);
 
     // Interaction Handlers
     const getGridPos = (e: React.MouseEvent) => {

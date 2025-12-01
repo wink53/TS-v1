@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useListObjects, useCreateObject, useUpdateObject, useDeleteObject } from '../hooks/useQueries';
+import { useListObjects, useCreateObject, useUpdateObject, useDeleteObject, useUploadObjectImage } from '../hooks/useQueries';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,6 +17,7 @@ export function ObjectsView() {
   const createObject = useCreateObject();
   const updateObject = useUpdateObject();
   const deleteObject = useDeleteObject();
+  const uploadObjectImage = useUploadObjectImage();
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -27,6 +28,13 @@ export function ObjectsView() {
     description: '',
     tags: '',
   });
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedFile(e.target.files[0]);
+    }
+  };
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,9 +56,20 @@ export function ObjectsView() {
       const result = await createObject.mutateAsync(metadata);
 
       if ("ok" in result) {
+        // Upload image if selected
+        if (selectedFile) {
+          const buffer = await selectedFile.arrayBuffer();
+          const uint8Array = new Uint8Array(buffer);
+          await uploadObjectImage.mutateAsync({
+            id: metadata.id,
+            data: uint8Array
+          });
+        }
+
         toast.success('Object created successfully');
         setIsCreateDialogOpen(false);
         setFormData({ id: '', name: '', description: '', tags: '' });
+        setSelectedFile(null);
       } else {
         toast.error(`Error: ${result.err.message}`, {
           description: `Code: ${result.err.code}`,
@@ -72,6 +91,7 @@ export function ObjectsView() {
       description: obj.description,
       tags: obj.tags.join(', '),
     });
+    setSelectedFile(null);
     setIsEditDialogOpen(true);
   };
 
@@ -91,10 +111,21 @@ export function ObjectsView() {
       const result = await updateObject.mutateAsync({ id: selectedObject.id, metadata });
 
       if ("ok" in result) {
+        // Upload image if selected
+        if (selectedFile) {
+          const buffer = await selectedFile.arrayBuffer();
+          const uint8Array = new Uint8Array(buffer);
+          await uploadObjectImage.mutateAsync({
+            id: selectedObject.id,
+            data: uint8Array
+          });
+        }
+
         toast.success('Object updated successfully');
         setIsEditDialogOpen(false);
         setSelectedObject(null);
         setFormData({ id: '', name: '', description: '', tags: '' });
+        setSelectedFile(null);
       } else {
         toast.error(`Error: ${result.err.message}`, {
           description: `Code: ${result.err.code}`,
@@ -193,8 +224,20 @@ export function ObjectsView() {
                   placeholder="interactive, loot, container"
                 />
               </div>
-              <Button type="submit" className="w-full" disabled={createObject.isPending}>
-                {createObject.isPending ? 'Creating...' : 'Create Object'}
+              <div className="space-y-2">
+                <Label htmlFor="create-image">Object Image (PNG with transparency)</Label>
+                <Input
+                  id="create-image"
+                  type="file"
+                  accept="image/png"
+                  onChange={handleFileChange}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Upload a PNG with transparent background
+                </p>
+              </div>
+              <Button type="submit" className="w-full" disabled={createObject.isPending || uploadObjectImage.isPending}>
+                {createObject.isPending || uploadObjectImage.isPending ? 'Creating...' : 'Create Object'}
               </Button>
             </form>
           </DialogContent>
@@ -245,8 +288,17 @@ export function ObjectsView() {
                 onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
               />
             </div>
-            <Button type="submit" className="w-full" disabled={updateObject.isPending}>
-              {updateObject.isPending ? 'Updating...' : 'Update Object'}
+            <div className="space-y-2">
+              <Label htmlFor="edit-image">Update Image (Optional)</Label>
+              <Input
+                id="edit-image"
+                type="file"
+                accept="image/png"
+                onChange={handleFileChange}
+              />
+            </div>
+            <Button type="submit" className="w-full" disabled={updateObject.isPending || uploadObjectImage.isPending}>
+              {updateObject.isPending || uploadObjectImage.isPending ? 'Updating...' : 'Update Object'}
             </Button>
           </form>
         </DialogContent>
