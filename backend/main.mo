@@ -12,6 +12,15 @@ persistent actor Backend {
 
   transient let textMap = OrderedMap.Make<Text>(Text.compare);
 
+  // Stable storage for upgrade persistence
+  stable var stable_tiles : [(Text, TileMetadata)] = [];
+  stable var stable_objects : [(Text, ObjectMetadata)] = [];
+  stable var stable_tile_sets : [(Text, TileSet)] = [];
+  stable var stable_prefabs : [(Text, Prefab)] = [];
+  stable var stable_maps : [(Text, MapData)] = [];
+  stable var stable_tile_images : [(Text, Blob)] = [];
+  stable var stable_object_images : [(Text, Blob)] = [];
+
   type TileMetadata = {
     id : Text;
     name : Text;
@@ -371,5 +380,37 @@ persistent actor Backend {
 
   public query func getObjectImage(id : Text) : async ?Blob {
     textMap.get(object_images, id);
+  };
+
+  // System upgrade hooks for stable memory persistence
+  system func preupgrade() {
+    // Save all data to stable variables before upgrade
+    stable_tiles := Iter.toArray(textMap.entries(tiles));
+    stable_objects := Iter.toArray(textMap.entries(objects));
+    stable_tile_sets := Iter.toArray(textMap.entries(tile_sets));
+    stable_prefabs := Iter.toArray(textMap.entries(prefabs));
+    stable_maps := Iter.toArray(textMap.entries(maps));
+    stable_tile_images := Iter.toArray(textMap.entries(tile_images));
+    stable_object_images := Iter.toArray(textMap.entries(object_images));
+  };
+
+  system func postupgrade() {
+    // Restore all data from stable variables after upgrade
+    tiles := textMap.fromIter<TileMetadata>(stable_tiles.vals());
+    objects := textMap.fromIter<ObjectMetadata>(stable_objects.vals());
+    tile_sets := textMap.fromIter<TileSet>(stable_tile_sets.vals());
+    prefabs := textMap.fromIter<Prefab>(stable_prefabs.vals());
+    maps := textMap.fromIter<MapData>(stable_maps.vals());
+    tile_images := textMap.fromIter<Blob>(stable_tile_images.vals());
+    object_images := textMap.fromIter<Blob>(stable_object_images.vals());
+
+    // Clear stable variables to free memory (optional but recommended)
+    stable_tiles := [];
+    stable_objects := [];
+    stable_tile_sets := [];
+    stable_prefabs := [];
+    stable_maps := [];
+    stable_tile_images := [];
+    stable_object_images := [];
   };
 };
