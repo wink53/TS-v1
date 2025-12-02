@@ -28,6 +28,7 @@ export interface MapData {
     'height': bigint,
     'tile_instances': Array<TileInstance>,
     'object_instances': Array<ObjectInstance>,
+    'spawn_points': Array<SpawnPoint>,
     'created_at': bigint,
     'updated_at': bigint,
 }
