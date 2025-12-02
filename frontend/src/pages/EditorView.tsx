@@ -724,7 +724,15 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
                                         className={`aspect-square border rounded-md p-2 hover:bg-accent transition-colors flex flex-col items-center justify-center gap-2 ${selectedObjectId === obj.id ? 'ring-2 ring-primary border-primary' : ''
                                             }`}
                                     >
-                                        <div className="w-8 h-8 bg-muted rounded-full" />
+                                        {objectImages[obj.id] ? (
+                                            <img
+                                                src={objectImages[obj.id].src}
+                                                alt={obj.name}
+                                                className="w-8 h-8 object-contain"
+                                            />
+                                        ) : (
+                                            <div className="w-8 h-8 bg-muted rounded-full" />
+                                        )}
                                         <span className="text-xs truncate w-full text-center">{obj.name}</span>
                                     </button>
                                 ))}
