@@ -80,6 +80,7 @@ export const idlFactory = ({ IDL }) => {
         'height': IDL.Nat,
         'tile_instances': IDL.Vec(TileInstance),
         'object_instances': IDL.Vec(ObjectInstance),
+        'spawn_points': IDL.Vec(SpawnPoint),
         'created_at': IDL.Int,
         'updated_at': IDL.Int,
     });
