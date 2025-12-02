@@ -13,7 +13,7 @@ persistent actor Backend {
   transient let textMap = OrderedMap.Make<Text>(Text.compare);
 
   // Stable storage for upgrade persistence
-  var stable_tiles : [(Text, Tile)] = [];
+  var stable_tiles : [(Text, TileMetadata)] = [];
   var stable_objects : [(Text, Object)] = [];
   var stable_tile_sets : [(Text, TileSet)] = [];
   var stable_prefabs : [(Text, Prefab)] = [];

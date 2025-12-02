@@ -88,6 +88,43 @@ export const idlFactory = ({ IDL }) => {
         'message': IDL.Text,
         'fix_attempted': IDL.Bool,
     });
+    const CharacterStats = IDL.Record({
+        'health': IDL.Opt(IDL.Int),
+        'speed': IDL.Opt(IDL.Int),
+        'strength': IDL.Opt(IDL.Int),
+        'mana': IDL.Opt(IDL.Int),
+        'overshield': IDL.Opt(IDL.Int),
+    });
+    const AnimationState = IDL.Variant({
+        'idle': IDL.Null,
+        'walk': IDL.Null,
+        'run': IDL.Null,
+        'attack': IDL.Null,
+    });
+    const Direction = IDL.Variant({
+        'up': IDL.Null,
+        'down': IDL.Null,
+        'left': IDL.Null,
+        'right': IDL.Null,
+    });
+    const SpriteSheet = IDL.Record({
+        'state': AnimationState,
+        'direction': Direction,
+        'blob_id': IDL.Text,
+        'frame_count': IDL.Nat,
+        'frame_width': IDL.Nat,
+        'frame_height': IDL.Nat,
+    });
+    const PlayableCharacter = IDL.Record({
+        'id': IDL.Text,
+        'name': IDL.Text,
+        'description': IDL.Text,
+        'tags': IDL.Vec(IDL.Text),
+        'stats': CharacterStats,
+        'sprite_sheets': IDL.Vec(SpriteSheet),
+        'created_at': IDL.Int,
+        'updated_at': IDL.Int,
+    });
     const Result = IDL.Variant({ 'ok': IDL.Text, 'err': ValidationError });
     return IDL.Service({
         'createMap': IDL.Func([MapData], [Result], []),
@@ -123,6 +160,13 @@ export const idlFactory = ({ IDL }) => {
         'getTileImage': IDL.Func([IDL.Text], [IDL.Opt(IDL.Vec(IDL.Nat8))], ['query']),
         'uploadObjectImage': IDL.Func([IDL.Text, IDL.Vec(IDL.Nat8)], [Result], []),
         'getObjectImage': IDL.Func([IDL.Text], [IDL.Opt(IDL.Vec(IDL.Nat8))], ['query']),
+        'listPlayableCharacters': IDL.Func([], [IDL.Vec(PlayableCharacter)], ['query']),
+        'getPlayableCharacter': IDL.Func([IDL.Text], [IDL.Opt(PlayableCharacter)], ['query']),
+        'createPlayableCharacter': IDL.Func([PlayableCharacter], [Result], []),
+        'updatePlayableCharacter': IDL.Func([IDL.Text, PlayableCharacter], [Result], []),
+        'deletePlayableCharacter': IDL.Func([IDL.Text], [Result], []),
+        'uploadCharacterSpriteSheet': IDL.Func([IDL.Text, IDL.Vec(IDL.Nat8)], [Result], []),
+        'getCharacterSpriteSheet': IDL.Func([IDL.Text], [IDL.Opt(IDL.Vec(IDL.Nat8))], ['query']),
     });
 };
 export const init = ({ IDL }) => { return []; };

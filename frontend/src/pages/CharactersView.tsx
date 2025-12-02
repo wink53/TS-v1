@@ -373,7 +373,7 @@ export function CharactersView() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {characters?.map((char) => (
+                {characters?.map((char: PlayableCharacter) => (
                     <Card key={char.id} className="overflow-hidden">
                         <CardHeader className="pb-3">
                             <div className="flex justify-between items-start">
@@ -395,7 +395,7 @@ export function CharactersView() {
                             <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{char.description}</p>
 
                             <div className="flex flex-wrap gap-1 mb-4">
-                                {char.tags.map(tag => (
+                                {char.tags.map((tag: string) => (
                                     <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>
                                 ))}
                             </div>
@@ -610,7 +610,7 @@ export function CharactersView() {
                                 <div className="space-y-4">
                                     <h3 className="font-medium">Configured Sprite Sheets</h3>
                                     <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
-                                        {selectedCharacter?.sprite_sheets.map((sheet, idx) => {
+                                        {selectedCharacter?.sprite_sheets.map((sheet: any, idx: number) => {
                                             const state = Object.keys(sheet.state)[0];
                                             const direction = Object.keys(sheet.direction)[0];
                                             return (
