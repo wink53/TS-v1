@@ -6,6 +6,7 @@ import type {
   TileSet,
   Prefab,
   MapData,
+  PlayableCharacter,
 } from '../backend';
 
 // Helper to unwrap Candid optional type ([] | [T]) to T | null
@@ -440,3 +441,110 @@ export function useGetObjectImage(id: string) {
     enabled: !!actor && !isFetching && !!id,
   });
 }
+
+// Playable Character Hooks
+
+export function useListPlayableCharacters() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery({
+    queryKey: ['playableCharacters'],
+    queryFn: async () => {
+      if (!actor) return [];
+      const result = await actor.listPlayableCharacters();
+      return result;
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useGetPlayableCharacter(id: string) {
+  const { actor, isFetching } = useActor();
+
+  return useQuery({
+    queryKey: ['playableCharacter', id],
+    queryFn: async () => {
+      if (!actor) return null;
+      const result = await actor.getPlayableCharacter(id);
+      return unwrap(result);
+    },
+    enabled: !!actor && !isFetching && !!id,
+  });
+}
+
+export function useCreatePlayableCharacter() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (character: PlayableCharacter) => {
+      if (!actor) throw new Error('Actor not initialized');
+      return actor.createPlayableCharacter(character);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['playableCharacters'] });
+    },
+  });
+}
+
+export function useUpdatePlayableCharacter() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, character }: { id: string; character: PlayableCharacter }) => {
+      if (!actor) throw new Error('Actor not initialized');
+      return actor.updatePlayableCharacter(id, character);
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['playableCharacters'] });
+      queryClient.invalidateQueries({ queryKey: ['playableCharacter', variables.id] });
+    },
+  });
+}
+
+export function useDeletePlayableCharacter() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      if (!actor) throw new Error('Actor not initialized');
+      return actor.deletePlayableCharacter(id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['playableCharacters'] });
+    },
+  });
+}
+
+export function useUploadCharacterSpriteSheet() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ blob_id, data }: { blob_id: string; data: Uint8Array | number[] }) => {
+      if (!actor) throw new Error('Actor not initialized');
+      return actor.uploadCharacterSpriteSheet(blob_id, data);
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['characterSpriteSheet', variables.blob_id] });
+    },
+  });
+}
+
+export function useGetCharacterSpriteSheet(blob_id: string) {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<Uint8Array | number[] | null>({
+    queryKey: ['characterSpriteSheet', blob_id],
+    queryFn: async () => {
+      if (!actor) return null;
+      const result = await actor.getCharacterSpriteSheet(blob_id);
+      return unwrap(result);
+    },
+    enabled: !!actor && !isFetching && !!blob_id,
+  });
+}
+
+

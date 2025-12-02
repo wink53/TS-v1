@@ -396,6 +396,45 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
             }
         });
 
+        // Draw Spawn Points
+        if (localMapData.spawn_points) {
+            for (const spawn of localMapData.spawn_points) {
+                const x = (spawn.x * 32 * zoom) + pan.x;
+                const y = (spawn.y * 32 * zoom) + pan.y;
+                const size = 32 * zoom;
+
+                // Check if visible
+                if (x + size < 0 || x > canvas.width || y + size < 0 || y > canvas.height) continue;
+
+                // Draw spawn point marker
+                ctx.fillStyle = 'rgba(0, 255, 0, 0.6)';
+                ctx.beginPath();
+                ctx.arc(x + size / 2, y + size / 2, size / 3, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2 * zoom;
+                ctx.stroke();
+
+                // Draw "S" label
+                ctx.fillStyle = '#fff';
+                ctx.font = `bold ${14 * zoom}px sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('S', x + size / 2, y + size / 2);
+
+                // Draw Character Name if zoomed in enough
+                if (zoom > 0.8) {
+                    const charName = characters.find((c: any) => c.id === spawn.characterId)?.name || 'Unknown';
+                    ctx.fillStyle = '#fff';
+                    ctx.font = `${10 * zoom}px sans-serif`;
+                    ctx.strokeStyle = '#000';
+                    ctx.lineWidth = 2;
+                    ctx.strokeText(charName, x + size / 2, y - 5);
+                    ctx.fillText(charName, x + size / 2, y - 5);
+                }
+            }
+        }
+
         // Draw Map Border
         ctx.strokeStyle = '#666';
         ctx.lineWidth = 2 / zoom;
@@ -432,7 +471,7 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
 
         ctx.restore();
 
-    }, [localMapData, zoom, pan, showGrid, tiles, objects, isDraggingShape, dragStart, currentMousePos, activeTool, tileImages, objectImages]);
+    }, [localMapData, zoom, pan, showGrid, tiles, objects, characters, isDraggingShape, dragStart, currentMousePos, activeTool, tileImages, objectImages]);
 
     // Interaction Handlers
     const getGridPos = (e: React.MouseEvent) => {
@@ -500,7 +539,7 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
             // Add new spawn point
             newMapData.spawn_points.push({
                 id: crypto.randomUUID(),
-                name: `Spawn ${characters.find(c => c.id === selectedCharacterId)?.name || 'Point'}`,
+                name: `Spawn ${characters.find((c: any) => c.id === selectedCharacterId)?.name || 'Point'}`,
                 characterId: selectedCharacterId,
                 x: pos.x,
                 y: pos.y
@@ -650,66 +689,8 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
                 }
             }
 
-            // Draw Objects
-            if (localMapData.object_instances) {
-                for (const obj of localMapData.object_instances) {
-                    const x = (obj.x * 32 * zoom) + pan.x;
-                    const y = (obj.y * 32 * zoom) + pan.y;
-                    const size = 32 * zoom;
-
-                    // Check if visible
-                    if (x + size < 0 || x > canvas.width || y + size < 0 || y > canvas.height) continue;
-
-                    if (objectImages[obj.objectId]) {
-                        ctx.drawImage(objectImages[obj.objectId], x, y, size, size);
-                    } else {
-                        ctx.fillStyle = 'rgba(0, 0, 255, 0.5)';
-                        ctx.fillRect(x, y, size, size);
-                        ctx.fillStyle = '#fff';
-                        ctx.font = `${10 * zoom}px sans-serif`;
-                        ctx.fillText('OBJ', x + 2, y + size / 2);
-                    }
-                }
-            }
-
-            // Draw Spawn Points
-            if (localMapData.spawn_points) {
-                for (const spawn of localMapData.spawn_points) {
-                    const x = (spawn.x * 32 * zoom) + pan.x;
-                    const y = (spawn.y * 32 * zoom) + pan.y;
-                    const size = 32 * zoom;
-
-                    // Check if visible
-                    if (x + size < 0 || x > canvas.width || y + size < 0 || y > canvas.height) continue;
-
-                    // Draw spawn point marker
-                    ctx.fillStyle = 'rgba(0, 255, 0, 0.6)';
-                    ctx.beginPath();
-                    ctx.arc(x + size / 2, y + size / 2, size / 3, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.strokeStyle = '#fff';
-                    ctx.lineWidth = 2 * zoom;
-                    ctx.stroke();
-
-                    // Draw "S" label
-                    ctx.fillStyle = '#fff';
-                    ctx.font = `bold ${14 * zoom}px sans-serif`;
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    ctx.fillText('S', x + size / 2, y + size / 2);
-
-                    // Draw Character Name if zoomed in enough
-                    if (zoom > 0.8) {
-                        const charName = characters.find((c: any) => c.id === spawn.characterId)?.name || 'Unknown';
-                        ctx.fillStyle = '#fff';
-                        ctx.font = `${10 * zoom}px sans-serif`;
-                        ctx.strokeStyle = '#000';
-                        ctx.lineWidth = 2;
-                        ctx.strokeText(charName, x + size / 2, y - 5);
-                        ctx.fillText(charName, x + size / 2, y - 5);
-                    }
-                }
-            }
+            // Draw Objects (Removed misplaced code)
+            // Draw Spawn Points (Removed misplaced code)
 
             if (changed) {
                 setLocalMapData(newMapData);
