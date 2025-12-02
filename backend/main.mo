@@ -14,7 +14,7 @@ persistent actor Backend {
 
   // Stable storage for upgrade persistence
   var stable_tiles : [(Text, TileMetadata)] = [];
-  var stable_objects : [(Text, Object)] = [];
+  var stable_objects : [(Text, ObjectMetadata)] = [];
   var stable_tile_sets : [(Text, TileSet)] = [];
   var stable_prefabs : [(Text, Prefab)] = [];
   var stable_map_data : [(Text, MapData)] = [];

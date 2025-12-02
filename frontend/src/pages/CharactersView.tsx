@@ -180,7 +180,7 @@ export function CharactersView() {
             const buffer = await spriteUploadState.file.arrayBuffer();
             const uint8Array = new Uint8Array(buffer);
             await uploadSpriteSheet.mutateAsync({
-                id: blobId,
+                blob_id: blobId,
                 data: uint8Array
             });
 
@@ -198,7 +198,7 @@ export function CharactersView() {
             };
 
             // Filter out existing sprite sheet for this state/direction if it exists
-            const existingSheets = selectedCharacter.sprite_sheets.filter(sheet => {
+            const updatedSpriteSheets = selectedCharacter.sprite_sheets.filter((sheet: any) => {
                 const sheetState = Object.keys(sheet.state)[0];
                 const sheetDir = Object.keys(sheet.direction)[0];
                 return !(sheetState === spriteUploadState.state && sheetDir === spriteUploadState.direction);

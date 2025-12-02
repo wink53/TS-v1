@@ -68,7 +68,7 @@ export function useUpdateTile() {
   return useMutation({
     mutationFn: async ({ id, metadata }: { id: string; metadata: TileMetadata }) => {
       if (!actor) throw new Error('Actor not initialized');
-      return actor.updateTileMetadata(id, metadata);
+      return actor.updateTile(id, metadata);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tiles'] });
@@ -126,7 +126,7 @@ export function useUpdateObject() {
   return useMutation({
     mutationFn: async ({ id, metadata }: { id: string; metadata: ObjectMetadata }) => {
       if (!actor) throw new Error('Actor not initialized');
-      return actor.updateObjectMetadata(id, metadata);
+      return actor.updateObject(id, metadata);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['objects'] });
