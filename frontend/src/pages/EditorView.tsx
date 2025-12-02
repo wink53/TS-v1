@@ -262,10 +262,6 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
                 // Skip if already loaded
                 if (objectImages[obj.id]) continue;
 
-                // Check if object has any states with blob_id
-                const hasImage = obj.states.some((state: any) => state.blob_id);
-                if (!hasImage) continue;
-
                 try {
                     const result = await (actor as any).getObjectImage(obj.id);
                     if (Array.isArray(result) && result.length > 0) {
