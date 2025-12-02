@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 // Fix import path
 import { useActor } from '../hooks/useActor';
+import { useListPlayableCharacters } from '../hooks/useQueries';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -20,12 +21,13 @@ import {
     Undo,
     Redo,
     Square,
-    Circle
+    Circle,
+    User
 } from 'lucide-react';
 import { toast } from 'sonner';
 
 // Types
-type Tool = 'select' | 'paint' | 'erase' | 'pan' | 'rectangle' | 'circle';
+type Tool = 'select' | 'paint' | 'erase' | 'pan' | 'rectangle' | 'circle' | 'spawn';
 
 interface EditorViewProps {
     mapId: string;
@@ -40,6 +42,7 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
     const [activeTool, setActiveTool] = useState<Tool>('paint');
     const [selectedTileId, setSelectedTileId] = useState<string | null>(null);
     const [selectedObjectId, setSelectedObjectId] = useState<string | null>(null);
+    const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
     const [zoom, setZoom] = useState(1);
     const [pan, setPan] = useState({ x: 0, y: 0 });
     const [showGrid, setShowGrid] = useState(true);
@@ -89,6 +92,8 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
         enabled: !!actor,
     });
 
+    const { data: characters = [] } = useListPlayableCharacters();
+
     // Mutations
     const updateMap = useMutation({
         mutationFn: async (data: any) => {
@@ -125,6 +130,13 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
                     state: o.state,
                     x: Number(o.position.x),
                     y: Number(o.position.y)
+                })),
+                spawn_points: (mapData.spawn_points || []).map((s: any) => ({
+                    id: s.id,
+                    name: s.name,
+                    characterId: s.character_id,
+                    x: Number(s.x),
+                    y: Number(s.y)
                 }))
             };
             setLocalMapData(localData);
@@ -480,20 +492,45 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
                 });
                 changed = true;
             }
+        } else if (activeTool === 'spawn' && selectedCharacterId) {
+            // Remove any existing spawn point for this character at this position
+            newMapData.spawn_points = newMapData.spawn_points.filter(
+                (s: any) => !(s.x === pos.x && s.y === pos.y)
+            );
+            // Add new spawn point
+            newMapData.spawn_points.push({
+                id: crypto.randomUUID(),
+                name: `Spawn ${characters.find(c => c.id === selectedCharacterId)?.name || 'Point'}`,
+                characterId: selectedCharacterId,
+                x: pos.x,
+                y: pos.y
+            });
+            changed = true;
         } else if (activeTool === 'erase') {
-            // Remove tile at this position
             const beforeTileLength = newMapData.tile_instances.length;
+            const beforeObjectLength = newMapData.object_instances.length;
+            const beforeSpawnLength = newMapData.spawn_points.length;
+
+            // Remove tile at this position
             newMapData.tile_instances = newMapData.tile_instances.filter(
                 (t: any) => !(t.x === pos.x && t.y === pos.y)
             );
 
             // Remove object at this position
-            const beforeObjectLength = newMapData.object_instances.length;
             newMapData.object_instances = newMapData.object_instances.filter(
                 (o: any) => !(Math.abs(o.x - pos.x) < 0.5 && Math.abs(o.y - pos.y) < 0.5) // Simple proximity check for objects
             );
 
-            if (beforeTileLength !== newMapData.tile_instances.length || beforeObjectLength !== newMapData.object_instances.length) {
+            // Remove spawn point at this position
+            newMapData.spawn_points = newMapData.spawn_points.filter(
+                (s: any) => !(s.x === pos.x && s.y === pos.y)
+            );
+
+            if (
+                beforeTileLength !== newMapData.tile_instances.length ||
+                beforeObjectLength !== newMapData.object_instances.length ||
+                beforeSpawnLength !== newMapData.spawn_points.length
+            ) {
                 changed = true;
             }
         }
@@ -567,7 +604,8 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
             const newMapData = {
                 ...localMapData,
                 tile_instances: [...localMapData.tile_instances],
-                object_instances: [...localMapData.object_instances]
+                object_instances: [...localMapData.object_instances],
+                spawn_points: [...(localMapData.spawn_points || [])]
             };
             let changed = false;
 
@@ -612,6 +650,67 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
                 }
             }
 
+            // Draw Objects
+            if (localMapData.object_instances) {
+                for (const obj of localMapData.object_instances) {
+                    const x = (obj.x * 32 * zoom) + pan.x;
+                    const y = (obj.y * 32 * zoom) + pan.y;
+                    const size = 32 * zoom;
+
+                    // Check if visible
+                    if (x + size < 0 || x > canvas.width || y + size < 0 || y > canvas.height) continue;
+
+                    if (objectImages[obj.objectId]) {
+                        ctx.drawImage(objectImages[obj.objectId], x, y, size, size);
+                    } else {
+                        ctx.fillStyle = 'rgba(0, 0, 255, 0.5)';
+                        ctx.fillRect(x, y, size, size);
+                        ctx.fillStyle = '#fff';
+                        ctx.font = `${10 * zoom}px sans-serif`;
+                        ctx.fillText('OBJ', x + 2, y + size / 2);
+                    }
+                }
+            }
+
+            // Draw Spawn Points
+            if (localMapData.spawn_points) {
+                for (const spawn of localMapData.spawn_points) {
+                    const x = (spawn.x * 32 * zoom) + pan.x;
+                    const y = (spawn.y * 32 * zoom) + pan.y;
+                    const size = 32 * zoom;
+
+                    // Check if visible
+                    if (x + size < 0 || x > canvas.width || y + size < 0 || y > canvas.height) continue;
+
+                    // Draw spawn point marker
+                    ctx.fillStyle = 'rgba(0, 255, 0, 0.6)';
+                    ctx.beginPath();
+                    ctx.arc(x + size / 2, y + size / 2, size / 3, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = '#fff';
+                    ctx.lineWidth = 2 * zoom;
+                    ctx.stroke();
+
+                    // Draw "S" label
+                    ctx.fillStyle = '#fff';
+                    ctx.font = `bold ${14 * zoom}px sans-serif`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('S', x + size / 2, y + size / 2);
+
+                    // Draw Character Name if zoomed in enough
+                    if (zoom > 0.8) {
+                        const charName = characters.find((c: any) => c.id === spawn.characterId)?.name || 'Unknown';
+                        ctx.fillStyle = '#fff';
+                        ctx.font = `${10 * zoom}px sans-serif`;
+                        ctx.strokeStyle = '#000';
+                        ctx.lineWidth = 2;
+                        ctx.strokeText(charName, x + size / 2, y - 5);
+                        ctx.fillText(charName, x + size / 2, y - 5);
+                    }
+                }
+            }
+
             if (changed) {
                 setLocalMapData(newMapData);
                 addToHistory(newMapData);
@@ -648,6 +747,12 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
                 object_id: o.objectId,
                 state: o.state || 'default',
                 position: { x: BigInt(o.x), y: BigInt(o.y) }
+            })),
+            spawn_points: (localMapData.spawn_points || []).map((s: any) => ({
+                id: s.id,
+                name: s.name,
+                character_id: s.characterId,
+                position: { x: BigInt(s.x), y: BigInt(s.y) }
             }))
         };
 
@@ -677,9 +782,25 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
                 </div>
 
                 <Tabs defaultValue="tiles" className="flex-1 flex flex-col">
-                    <TabsList className="w-full justify-start rounded-none border-b px-4 h-12">
-                        <TabsTrigger value="tiles">Tiles</TabsTrigger>
-                        <TabsTrigger value="objects">Objects</TabsTrigger>
+                    <TabsList className="w-full justify-start rounded-none border-b bg-transparent p-0">
+                        <TabsTrigger
+                            value="tiles"
+                            className="relative h-9 rounded-none border-b-2 border-b-transparent bg-transparent px-4 pb-3 pt-2 font-semibold text-muted-foreground shadow-none transition-none data-[state=active]:border-b-primary data-[state=active]:text-foreground data-[state=active]:shadow-none"
+                        >
+                            Tiles
+                        </TabsTrigger>
+                        <TabsTrigger
+                            value="objects"
+                            className="relative h-9 rounded-none border-b-2 border-b-transparent bg-transparent px-4 pb-3 pt-2 font-semibold text-muted-foreground shadow-none transition-none data-[state=active]:border-b-primary data-[state=active]:text-foreground data-[state=active]:shadow-none"
+                        >
+                            Objects
+                        </TabsTrigger>
+                        <TabsTrigger
+                            value="characters"
+                            className="relative h-9 rounded-none border-b-2 border-b-transparent bg-transparent px-4 pb-3 pt-2 font-semibold text-muted-foreground shadow-none transition-none data-[state=active]:border-b-primary data-[state=active]:text-foreground data-[state=active]:shadow-none"
+                        >
+                            Characters
+                        </TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="tiles" className="flex-1 p-0 m-0">
@@ -691,6 +812,7 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
                                         onClick={() => {
                                             setSelectedTileId(tile.id);
                                             setSelectedObjectId(null); // Clear object selection
+                                            setSelectedCharacterId(null); // Clear character selection
                                             setActiveTool('paint');
                                         }}
                                         className={`aspect-square border rounded-md p-1 hover:bg-accent transition-colors ${selectedTileId === tile.id ? 'ring-2 ring-primary border-primary' : ''
@@ -710,15 +832,16 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
                         </ScrollArea>
                     </TabsContent>
 
-                    <TabsContent value="objects" className="flex-1 p-0 m-0">
+                    <TabsContent value="objects" className="mt-0 h-full">
                         <ScrollArea className="h-full">
-                            <div className="p-4 grid grid-cols-2 gap-2">
+                            <div className="grid grid-cols-4 gap-2 p-4">
                                 {objects.map((obj: any) => (
                                     <button
                                         key={obj.id}
                                         onClick={() => {
                                             setSelectedObjectId(obj.id);
                                             setSelectedTileId(null); // Clear tile selection
+                                            setSelectedCharacterId(null);
                                             setActiveTool('paint');
                                         }}
                                         className={`aspect-square border rounded-md p-2 hover:bg-accent transition-colors flex flex-col items-center justify-center gap-2 ${selectedObjectId === obj.id ? 'ring-2 ring-primary border-primary' : ''
@@ -734,6 +857,29 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
                                             <div className="w-8 h-8 bg-muted rounded-full" />
                                         )}
                                         <span className="text-xs truncate w-full text-center">{obj.name}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </ScrollArea>
+                    </TabsContent>
+
+                    <TabsContent value="characters" className="mt-0 h-full">
+                        <ScrollArea className="h-full">
+                            <div className="grid grid-cols-4 gap-2 p-4">
+                                {characters.map((char: any) => (
+                                    <button
+                                        key={char.id}
+                                        onClick={() => {
+                                            setSelectedCharacterId(char.id);
+                                            setSelectedTileId(null);
+                                            setSelectedObjectId(null);
+                                            setActiveTool('spawn');
+                                        }}
+                                        className={`aspect-square border rounded-md p-2 hover:bg-accent transition-colors flex flex-col items-center justify-center gap-2 ${selectedCharacterId === char.id ? 'ring-2 ring-primary border-primary' : ''
+                                            }`}
+                                    >
+                                        <User className="w-8 h-8 text-muted-foreground" />
+                                        <span className="text-xs truncate w-full text-center">{char.name}</span>
                                     </button>
                                 ))}
                             </div>
