@@ -206,7 +206,7 @@ export function CharactersView() {
 
             const updatedChar: PlayableCharacter = {
                 ...selectedCharacter,
-                sprite_sheets: [...existingSheets, newSpriteSheet],
+                sprite_sheets: [...updatedSpriteSheets, newSpriteSheet],
                 updated_at: BigInt(Date.now()),
             };
 

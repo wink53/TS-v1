@@ -84,6 +84,46 @@ export interface TileSet {
     'created_at': bigint,
     'updated_at': bigint,
 }
+export interface CharacterStats {
+    'health': [] | [bigint],
+    'speed': [] | [bigint],
+    'strength': [] | [bigint],
+    'mana': [] | [bigint],
+    'overshield': [] | [bigint],
+}
+export type AnimationState = { 'idle': null } |
+{ 'walk': null } |
+{ 'run': null } |
+{ 'attack': null };
+export type Direction = { 'up': null } |
+{ 'down': null } |
+{ 'left': null } |
+{ 'right': null };
+export interface SpriteSheet {
+    'state': AnimationState,
+    'direction': Direction,
+    'blob_id': string,
+    'frame_count': bigint,
+    'frame_width': bigint,
+    'frame_height': bigint,
+}
+export interface PlayableCharacter {
+    'id': string,
+    'name': string,
+    'description': string,
+    'tags': Array<string>,
+    'stats': CharacterStats,
+    'sprite_sheets': Array<SpriteSheet>,
+    'created_at': bigint,
+    'updated_at': bigint,
+}
+export interface SpawnPoint {
+    'id': string,
+    'name': string,
+    'character_id': string,
+    'x': bigint,
+    'y': bigint,
+}
 export interface ValidationError {
     'code': string,
     'message': string,

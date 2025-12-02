@@ -17,7 +17,7 @@ persistent actor Backend {
   var stable_objects : [(Text, ObjectMetadata)] = [];
   var stable_tile_sets : [(Text, TileSet)] = [];
   var stable_prefabs : [(Text, Prefab)] = [];
-  var stable_map_data : [(Text, MapData)] = [];
+  var stable_maps : [(Text, MapData)] = [];
   var stable_tile_images : [(Text, Blob)] = [];
   var stable_object_images : [(Text, Blob)] = [];
   var stable_playable_characters : [(Text, PlayableCharacter)] = [];
