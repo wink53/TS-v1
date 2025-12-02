@@ -63,6 +63,7 @@ export function TopBar({ mapsList, currentMap, onMapSelect, onNewMap, onSave }: 
       height: BigInt(height),
       tile_instances: [],
       object_instances: [],
+      spawn_points: [],
       created_at: BigInt(Date.now()),
       updated_at: BigInt(Date.now()),
     };

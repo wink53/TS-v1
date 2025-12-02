@@ -45,6 +45,7 @@ export function MapsView({ onOpenEditor }: MapsViewProps) {
       height: BigInt(formData.height),
       tile_instances: [],
       object_instances: [],
+      spawn_points: [],
       created_at: BigInt(Date.now()),
       updated_at: BigInt(Date.now()),
     };
