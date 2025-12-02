@@ -20,6 +20,8 @@ persistent actor Backend {
   stable var stable_maps : [(Text, MapData)] = [];
   stable var stable_tile_images : [(Text, Blob)] = [];
   stable var stable_object_images : [(Text, Blob)] = [];
+  stable var stable_playable_characters : [(Text, PlayableCharacter)] = [];
+  stable var stable_character_sprite_sheets : [(Text, Blob)] = [];
 
   type TileMetadata = {
     id : Text;
@@ -89,6 +91,7 @@ persistent actor Backend {
     height : Nat;
     tile_instances : [TileInstance];
     object_instances : [ObjectInstance];
+    spawn_points : [SpawnPoint];
     created_at : Int;
     updated_at : Int;
   };
@@ -127,11 +130,66 @@ persistent actor Backend {
     fix_attempted : Bool;
   };
 
+  // Playable Character Types
+  type CharacterStats = {
+    health : ?Nat;
+    speed : ?Nat;
+    strength : ?Nat;
+    mana : ?Nat;
+    overshield : ?Nat;
+  };
+
+  type AnimationState = {
+    #idle;
+    #walk;
+    #run;
+    #attack;
+  };
+
+  type Direction = {
+    #up;
+    #down;
+    #left;
+    #right;
+  };
+
+  type SpriteSheet = {
+    state : AnimationState;
+    direction : Direction;
+    blob_id : Text;
+    frame_count : Nat;
+    frame_width : Nat;
+    frame_height : Nat;
+  };
+
+  type PlayableCharacter = {
+    id : Text;
+    name : Text;
+    description : Text;
+    tags : [Text];
+    stats : CharacterStats;
+    sprite_sheets : [SpriteSheet];
+    created_at : Int;
+    updated_at : Int;
+  };
+
+  type SpawnPoint = {
+    id : Text;
+    name : Text;
+    x : Nat;
+    y : Nat;
+    character_id : Text;
+  };
+
+
   transient var tiles : OrderedMap.Map<Text, TileMetadata> = textMap.empty<TileMetadata>();
   transient var objects : OrderedMap.Map<Text, ObjectMetadata> = textMap.empty<ObjectMetadata>();
   transient var tile_sets : OrderedMap.Map<Text, TileSet> = textMap.empty<TileSet>();
   transient var prefabs : OrderedMap.Map<Text, Prefab> = textMap.empty<Prefab>();
   transient var maps : OrderedMap.Map<Text, MapData> = textMap.empty<MapData>();
+  transient var playable_characters : OrderedMap.Map<Text, PlayableCharacter> = textMap.empty<PlayableCharacter>();
+  transient var character_sprite_sheets : OrderedMap.Map<Text, Blob> = textMap.empty<Blob>();
+
 
   public func createTile(metadata : TileMetadata) : async {
     #ok : Text;
@@ -382,6 +440,76 @@ persistent actor Backend {
     textMap.get(object_images, id);
   };
 
+  // Playable Character CRUD Operations
+  public func createPlayableCharacter(character : PlayableCharacter) : async {
+    #ok : Text;
+    #err : ValidationError;
+  } {
+    switch (textMap.get(playable_characters, character.id)) {
+      case (?_) {
+        #err({ code = "409"; message = "Character already exists"; fix_attempted = false })
+      };
+      case null {
+        playable_characters := textMap.put(playable_characters, character.id, character);
+        #ok(character.id)
+      };
+    };
+  };
+
+  public query func getPlayableCharacter(id : Text) : async {
+    #ok : PlayableCharacter;
+    #err : ValidationError;
+  } {
+    switch (textMap.get(playable_characters, id)) {
+      case (?character) { #ok(character) };
+      case null { #err({ code = "404"; message = "Character not found"; fix_attempted = false }) };
+    };
+  };
+
+  public query func listPlayableCharacters() : async [PlayableCharacter] {
+    Iter.toArray(textMap.vals(playable_characters))
+  };
+
+  public func updatePlayableCharacter(id : Text, character : PlayableCharacter) : async {
+    #ok : Text;
+    #err : ValidationError;
+  } {
+    switch (textMap.get(playable_characters, id)) {
+      case null { #err({ code = "404"; message = "Character not found"; fix_attempted = false }) };
+      case (?_) {
+        playable_characters := textMap.put(playable_characters, id, character);
+        #ok(id)
+      };
+    };
+  };
+
+  public func deletePlayableCharacter(id : Text) : async {
+    #ok : Text;
+    #err : ValidationError;
+  } {
+    switch (textMap.get(playable_characters, id)) {
+      case null { #err({ code = "404"; message = "Character not found"; fix_attempted = false }) };
+      case (?_) {
+        playable_characters := textMap.delete(playable_characters, id);
+        #ok(id)
+      };
+    };
+  };
+
+  // Character Sprite Sheet Management
+  public func uploadCharacterSpriteSheet(blob_id : Text, data : Blob) : async {
+    #ok : Text;
+    #err : ValidationError;
+  } {
+    character_sprite_sheets := textMap.put(character_sprite_sheets, blob_id, data);
+    #ok(blob_id)
+  };
+
+  public query func getCharacterSpriteSheet(blob_id : Text) : async ?Blob {
+    textMap.get(character_sprite_sheets, blob_id)
+  };
+
+
   // System upgrade hooks for stable memory persistence
   system func preupgrade() {
     // Save all data to stable variables before upgrade
@@ -392,6 +520,8 @@ persistent actor Backend {
     stable_maps := Iter.toArray(textMap.entries(maps));
     stable_tile_images := Iter.toArray(textMap.entries(tile_images));
     stable_object_images := Iter.toArray(textMap.entries(object_images));
+    stable_playable_characters := Iter.toArray(textMap.entries(playable_characters));
+    stable_character_sprite_sheets := Iter.toArray(textMap.entries(character_sprite_sheets));
   };
 
   system func postupgrade() {
@@ -403,6 +533,8 @@ persistent actor Backend {
     maps := textMap.fromIter<MapData>(stable_maps.vals());
     tile_images := textMap.fromIter<Blob>(stable_tile_images.vals());
     object_images := textMap.fromIter<Blob>(stable_object_images.vals());
+    playable_characters := textMap.fromIter<PlayableCharacter>(stable_playable_characters.vals());
+    character_sprite_sheets := textMap.fromIter<Blob>(stable_character_sprite_sheets.vals());
 
     // Clear stable variables to free memory (optional but recommended)
     stable_tiles := [];
@@ -412,5 +544,7 @@ persistent actor Backend {
     stable_maps := [];
     stable_tile_images := [];
     stable_object_images := [];
+    stable_playable_characters := [];
+    stable_character_sprite_sheets := [];
   };
 };
