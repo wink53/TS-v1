@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useListPlayableCharacters, useCreatePlayableCharacter, useUpdatePlayableCharacter, useDeletePlayableCharacter, useUploadCharacterSpriteSheet } from '../hooks/useQueries';
+import { useListPlayableCharacters, useCreatePlayableCharacter, useUpdatePlayableCharacter, useDeletePlayableCharacter, useUploadCharacterSpriteSheet, useGetCharacterSpriteSheet } from '../hooks/useQueries';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,34 +23,79 @@ interface AnimatedSpritePreviewProps {
 
 function AnimatedSpritePreview({ blob_id, frameCount, frameWidth, frameHeight }: AnimatedSpritePreviewProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const imageRef = useRef<HTMLImageElement | null>(null);
     const [currentFrame, setCurrentFrame] = useState(0);
+    const [imageLoaded, setImageLoaded] = useState(false);
 
+    // Fetch the sprite sheet blob from backend
+    const { data: blobData } = useGetCharacterSpriteSheet(blob_id);
+
+    // Load the sprite sheet image when blob data is available
     useEffect(() => {
-        // Animate through frames
+        if (!blobData) return;
+
+        const img = new Image();
+        img.onload = () => {
+            imageRef.current = img;
+            setImageLoaded(true);
+        };
+        img.onerror = () => {
+            console.error('Failed to load sprite sheet:', blob_id);
+        };
+
+        // Convert blob data (Uint8Array or number[]) to base64 data URL
+        const uint8Array = blobData instanceof Uint8Array ? blobData : new Uint8Array(blobData);
+        const base64 = btoa(String.fromCharCode(...uint8Array));
+        img.src = `data:image/png;base64,${base64}`;
+
+        return () => {
+            imageRef.current = null;
+            setImageLoaded(false);
+        };
+    }, [blobData, blob_id]);
+
+    // Animate through frames
+    useEffect(() => {
+        if (!imageLoaded) return;
+
         const interval = setInterval(() => {
-            setCurrentFrame((prev) => (prev + 1) % frameCount);
+            setCurrentFrame((prev: number) => (prev + 1) % frameCount);
         }, 150); // Change frame every 150ms
 
         return () => clearInterval(interval);
-    }, [frameCount]);
+    }, [frameCount, imageLoaded]);
 
+    // Draw the current frame
     useEffect(() => {
         const canvas = canvasRef.current;
-        if (!canvas) return;
+        if (!canvas || !imageLoaded || !imageRef.current) return;
 
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        // For now, draw a placeholder since we'd need to fetch the blob
-        // In a real implementation, you'd fetch the blob and draw the sprite
-        ctx.fillStyle = '#1a1a1a';
-        ctx.fillRect(0, 0, frameWidth, frameHeight);
+        // Clear canvas
+        ctx.clearRect(0, 0, frameWidth, frameHeight);
 
-        // Draw frame indicator
-        ctx.fillStyle = '#ffffff';
-        ctx.font = '12px monospace';
-        ctx.fillText(`Frame ${currentFrame + 1}/${frameCount}`, 10, frameHeight / 2);
-    }, [currentFrame, frameWidth, frameHeight, blob_id]);
+        // Draw the current frame from the sprite sheet
+        // Assuming horizontal sprite sheet layout
+        const sourceX = currentFrame * frameWidth;
+        const sourceY = 0;
+
+        try {
+            ctx.drawImage(
+                imageRef.current,
+                sourceX, sourceY, frameWidth, frameHeight,  // source rectangle
+                0, 0, frameWidth, frameHeight               // destination rectangle
+            );
+        } catch (error) {
+            // If image fails to draw, show placeholder
+            ctx.fillStyle = '#1a1a1a';
+            ctx.fillRect(0, 0, frameWidth, frameHeight);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '12px monospace';
+            ctx.fillText(`Frame ${currentFrame + 1}/${frameCount}`, 10, frameHeight / 2);
+        }
+    }, [currentFrame, frameWidth, frameHeight, imageLoaded]);
 
     return (
         <canvas
