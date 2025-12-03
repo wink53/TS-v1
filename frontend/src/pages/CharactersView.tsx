@@ -44,8 +44,17 @@ function AnimatedSpritePreview({ blob_id, frameCount, frameWidth, frameHeight }:
         };
 
         // Convert blob data (Uint8Array or number[]) to base64 data URL
+        // Use a more efficient method to avoid stack overflow with large arrays
         const uint8Array = blobData instanceof Uint8Array ? blobData : new Uint8Array(blobData);
-        const base64 = btoa(String.fromCharCode(...uint8Array));
+
+        // Convert to base64 in chunks to avoid stack overflow
+        let binary = '';
+        const chunkSize = 0x8000; // 32KB chunks
+        for (let i = 0; i < uint8Array.length; i += chunkSize) {
+            const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
+            binary += String.fromCharCode.apply(null, Array.from(chunk));
+        }
+        const base64 = btoa(binary);
         img.src = `data:image/png;base64,${base64}`;
 
         return () => {
