@@ -93,8 +93,9 @@ function AnimatedSpritePreview({ blob_id, frameCount, frameWidth, frameHeight }:
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        // Clear canvas
-        ctx.clearRect(0, 0, frameWidth, frameHeight);
+        // Clear canvas and add white background
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, frameWidth, frameHeight);
 
         // Draw the current frame from the sprite sheet
         // Assuming horizontal sprite sheet layout
