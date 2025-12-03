@@ -93,6 +93,9 @@ function AnimatedSpritePreview({ blob_id, frameCount, frameWidth, frameHeight }:
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
+        console.log('Drawing frame:', currentFrame, 'Image dimensions:', imageRef.current.width, 'x', imageRef.current.height);
+        console.log('Frame dimensions:', frameWidth, 'x', frameHeight, 'Frame count:', frameCount);
+
         // Clear canvas and add white background
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, frameWidth, frameHeight);
@@ -102,13 +105,17 @@ function AnimatedSpritePreview({ blob_id, frameCount, frameWidth, frameHeight }:
         const sourceX = currentFrame * frameWidth;
         const sourceY = 0;
 
+        console.log('Drawing from source:', sourceX, sourceY, frameWidth, frameHeight);
+
         try {
             ctx.drawImage(
                 imageRef.current,
                 sourceX, sourceY, frameWidth, frameHeight,  // source rectangle
                 0, 0, frameWidth, frameHeight               // destination rectangle
             );
+            console.log('Frame drawn successfully');
         } catch (error) {
+            console.error('Error drawing frame:', error);
             // If image fails to draw, show placeholder
             ctx.fillStyle = '#1a1a1a';
             ctx.fillRect(0, 0, frameWidth, frameHeight);
@@ -116,7 +123,7 @@ function AnimatedSpritePreview({ blob_id, frameCount, frameWidth, frameHeight }:
             ctx.font = '12px monospace';
             ctx.fillText(`Frame ${currentFrame + 1}/${frameCount}`, 10, frameHeight / 2);
         }
-    }, [currentFrame, frameWidth, frameHeight, imageLoaded]);
+    }, [currentFrame, frameWidth, frameHeight, imageLoaded, frameCount]);
 
     return (
         <canvas
