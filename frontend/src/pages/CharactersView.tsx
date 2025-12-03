@@ -36,6 +36,13 @@ export function CharactersView() {
             strength: 10,
             mana: 50,
             overshield: 0,
+        },
+        statsEnabled: {
+            health: true,
+            speed: true,
+            strength: true,
+            mana: true,
+            overshield: false,
         }
     });
 
@@ -60,11 +67,11 @@ export function CharactersView() {
         e.preventDefault();
 
         const stats: CharacterStats = {
-            health: formData.stats.health ? [BigInt(formData.stats.health)] : [],
-            speed: formData.stats.speed ? [BigInt(formData.stats.speed)] : [],
-            strength: formData.stats.strength ? [BigInt(formData.stats.strength)] : [],
-            mana: formData.stats.mana ? [BigInt(formData.stats.mana)] : [],
-            overshield: formData.stats.overshield ? [BigInt(formData.stats.overshield)] : [],
+            health: formData.statsEnabled.health ? [BigInt(formData.stats.health)] : [],
+            speed: formData.statsEnabled.speed ? [BigInt(formData.stats.speed)] : [],
+            strength: formData.statsEnabled.strength ? [BigInt(formData.stats.strength)] : [],
+            mana: formData.statsEnabled.mana ? [BigInt(formData.stats.mana)] : [],
+            overshield: formData.statsEnabled.overshield ? [BigInt(formData.stats.overshield)] : [],
         };
 
         const character: PlayableCharacter = {
@@ -316,48 +323,98 @@ export function CharactersView() {
                                 <Label>Base Stats</Label>
                                 <div className="grid grid-cols-3 gap-4">
                                     <div>
-                                        <Label htmlFor="health" className="text-xs">Health</Label>
+                                        <div className="flex items-center justify-between mb-1">
+                                            <Label htmlFor="health" className="text-xs">Health</Label>
+                                            <input
+                                                type="checkbox"
+                                                checked={formData.statsEnabled.health}
+                                                onChange={(e) => setFormData({ ...formData, statsEnabled: { ...formData.statsEnabled, health: e.target.checked } })}
+                                                className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-primary"
+                                            />
+                                        </div>
                                         <Input
                                             id="health"
                                             type="number"
                                             value={formData.stats.health}
                                             onChange={(e) => setFormData({ ...formData, stats: { ...formData.stats, health: parseInt(e.target.value) } })}
+                                            disabled={!formData.statsEnabled.health}
+                                            className={!formData.statsEnabled.health ? 'opacity-50' : ''}
                                         />
                                     </div>
                                     <div>
-                                        <Label htmlFor="speed" className="text-xs">Speed</Label>
+                                        <div className="flex items-center justify-between mb-1">
+                                            <Label htmlFor="speed" className="text-xs">Speed</Label>
+                                            <input
+                                                type="checkbox"
+                                                checked={formData.statsEnabled.speed}
+                                                onChange={(e) => setFormData({ ...formData, statsEnabled: { ...formData.statsEnabled, speed: e.target.checked } })}
+                                                className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-primary"
+                                            />
+                                        </div>
                                         <Input
                                             id="speed"
                                             type="number"
                                             value={formData.stats.speed}
                                             onChange={(e) => setFormData({ ...formData, stats: { ...formData.stats, speed: parseInt(e.target.value) } })}
+                                            disabled={!formData.statsEnabled.speed}
+                                            className={!formData.statsEnabled.speed ? 'opacity-50' : ''}
                                         />
                                     </div>
                                     <div>
-                                        <Label htmlFor="strength" className="text-xs">Strength</Label>
+                                        <div className="flex items-center justify-between mb-1">
+                                            <Label htmlFor="strength" className="text-xs">Strength</Label>
+                                            <input
+                                                type="checkbox"
+                                                checked={formData.statsEnabled.strength}
+                                                onChange={(e) => setFormData({ ...formData, statsEnabled: { ...formData.statsEnabled, strength: e.target.checked } })}
+                                                className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-primary"
+                                            />
+                                        </div>
                                         <Input
                                             id="strength"
                                             type="number"
                                             value={formData.stats.strength}
                                             onChange={(e) => setFormData({ ...formData, stats: { ...formData.stats, strength: parseInt(e.target.value) } })}
+                                            disabled={!formData.statsEnabled.strength}
+                                            className={!formData.statsEnabled.strength ? 'opacity-50' : ''}
                                         />
                                     </div>
                                     <div>
-                                        <Label htmlFor="mana" className="text-xs">Mana</Label>
+                                        <div className="flex items-center justify-between mb-1">
+                                            <Label htmlFor="mana" className="text-xs">Mana</Label>
+                                            <input
+                                                type="checkbox"
+                                                checked={formData.statsEnabled.mana}
+                                                onChange={(e) => setFormData({ ...formData, statsEnabled: { ...formData.statsEnabled, mana: e.target.checked } })}
+                                                className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-primary"
+                                            />
+                                        </div>
                                         <Input
                                             id="mana"
                                             type="number"
                                             value={formData.stats.mana}
                                             onChange={(e) => setFormData({ ...formData, stats: { ...formData.stats, mana: parseInt(e.target.value) } })}
+                                            disabled={!formData.statsEnabled.mana}
+                                            className={!formData.statsEnabled.mana ? 'opacity-50' : ''}
                                         />
                                     </div>
                                     <div>
-                                        <Label htmlFor="overshield" className="text-xs">Overshield</Label>
+                                        <div className="flex items-center justify-between mb-1">
+                                            <Label htmlFor="overshield" className="text-xs">Overshield</Label>
+                                            <input
+                                                type="checkbox"
+                                                checked={formData.statsEnabled.overshield}
+                                                onChange={(e) => setFormData({ ...formData, statsEnabled: { ...formData.statsEnabled, overshield: e.target.checked } })}
+                                                className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-primary"
+                                            />
+                                        </div>
                                         <Input
                                             id="overshield"
                                             type="number"
                                             value={formData.stats.overshield}
                                             onChange={(e) => setFormData({ ...formData, stats: { ...formData.stats, overshield: parseInt(e.target.value) } })}
+                                            disabled={!formData.statsEnabled.overshield}
+                                            className={!formData.statsEnabled.overshield ? 'opacity-50' : ''}
                                         />
                                     </div>
                                 </div>
