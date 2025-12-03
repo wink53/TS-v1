@@ -131,7 +131,13 @@ function AnimatedSpritePreview({ blob_id, frameCount, frameWidth, frameHeight }:
             width={frameWidth}
             height={frameHeight}
             className="border rounded bg-muted"
-            style={{ imageRendering: 'pixelated' }}
+            style={{
+                imageRendering: 'pixelated',
+                transform: 'scale(4)',
+                transformOrigin: 'top left',
+                width: frameWidth,
+                height: frameHeight
+            }}
         />
     );
 }
