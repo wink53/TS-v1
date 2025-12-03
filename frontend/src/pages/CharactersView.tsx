@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useListPlayableCharacters, useCreatePlayableCharacter, useUpdatePlayableCharacter, useDeletePlayableCharacter, useUploadCharacterSpriteSheet } from '../hooks/useQueries';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,56 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { PlayableCharacter, CharacterStats, AnimationState, Direction } from '../backend';
+
+// Animated Sprite Preview Component
+interface AnimatedSpritePreviewProps {
+    blob_id: string;
+    frameCount: number;
+    frameWidth: number;
+    frameHeight: number;
+}
+
+function AnimatedSpritePreview({ blob_id, frameCount, frameWidth, frameHeight }: AnimatedSpritePreviewProps) {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const [currentFrame, setCurrentFrame] = useState(0);
+
+    useEffect(() => {
+        // Animate through frames
+        const interval = setInterval(() => {
+            setCurrentFrame((prev) => (prev + 1) % frameCount);
+        }, 150); // Change frame every 150ms
+
+        return () => clearInterval(interval);
+    }, [frameCount]);
+
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        // For now, draw a placeholder since we'd need to fetch the blob
+        // In a real implementation, you'd fetch the blob and draw the sprite
+        ctx.fillStyle = '#1a1a1a';
+        ctx.fillRect(0, 0, frameWidth, frameHeight);
+
+        // Draw frame indicator
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '12px monospace';
+        ctx.fillText(`Frame ${currentFrame + 1}/${frameCount}`, 10, frameHeight / 2);
+    }, [currentFrame, frameWidth, frameHeight, blob_id]);
+
+    return (
+        <canvas
+            ref={canvasRef}
+            width={frameWidth}
+            height={frameHeight}
+            className="border rounded bg-muted"
+            style={{ imageRendering: 'pixelated' }}
+        />
+    );
+}
 
 export function CharactersView() {
     const { data: characters, isLoading } = useListPlayableCharacters();
@@ -685,16 +735,22 @@ export function CharactersView() {
                                             const state = Object.keys(sheet.state)[0];
                                             const direction = Object.keys(sheet.direction)[0];
                                             return (
-                                                <div key={idx} className="flex items-center justify-between p-3 border rounded-md bg-muted/50">
-                                                    <div>
+                                                <div key={idx} className="flex items-start gap-3 p-3 border rounded-md bg-muted/50">
+                                                    <AnimatedSpritePreview
+                                                        blob_id={sheet.blob_id}
+                                                        frameCount={Number(sheet.frame_count)}
+                                                        frameWidth={Number(sheet.frame_width)}
+                                                        frameHeight={Number(sheet.frame_height)}
+                                                    />
+                                                    <div className="flex-1">
                                                         <div className="font-medium capitalize">{state} - {direction}</div>
                                                         <div className="text-xs text-muted-foreground">
                                                             {String(sheet.frame_count)} frames • {String(sheet.frame_width)}x{String(sheet.frame_height)}px
                                                         </div>
+                                                        <Badge variant="outline" className="font-mono text-[10px] mt-1">
+                                                            {sheet.blob_id.substring(0, 8)}...
+                                                        </Badge>
                                                     </div>
-                                                    <Badge variant="outline" className="font-mono text-[10px]">
-                                                        {sheet.blob_id.substring(0, 8)}...
-                                                    </Badge>
                                                 </div>
                                             );
                                         })}
