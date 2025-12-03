@@ -72,6 +72,13 @@ export const idlFactory = ({ IDL }) => {
         'state': IDL.Text,
         'position': Anchor,
     });
+    const SpawnPoint = IDL.Record({
+        'id': IDL.Text,
+        'name': IDL.Text,
+        'character_id': IDL.Text,
+        'x': IDL.Nat,
+        'y': IDL.Nat,
+    });
     const MapData = IDL.Record({
         'id': IDL.Text,
         'name': IDL.Text,
