@@ -28,40 +28,51 @@ function AnimatedSpritePreview({ blob_id, frameCount, frameWidth, frameHeight }:
     const [imageLoaded, setImageLoaded] = useState(false);
 
     // Fetch the sprite sheet blob from backend
-    const { data: blobData } = useGetCharacterSpriteSheet(blob_id);
+    const { data: blobData, isLoading: isBlobLoading, error: blobError } = useGetCharacterSpriteSheet(blob_id);
 
     // Load the sprite sheet image when blob data is available
     useEffect(() => {
-        if (!blobData) return;
+        if (!blobData) {
+            console.log('No blob data yet for:', blob_id, 'Loading:', isBlobLoading, 'Error:', blobError);
+            return;
+        }
+
+        console.log('Loading sprite sheet:', blob_id, 'Data length:', blobData.length);
 
         const img = new Image();
         img.onload = () => {
+            console.log('Sprite sheet loaded successfully:', blob_id);
             imageRef.current = img;
             setImageLoaded(true);
         };
-        img.onerror = () => {
-            console.error('Failed to load sprite sheet:', blob_id);
+        img.onerror = (e) => {
+            console.error('Failed to load sprite sheet image:', blob_id, e);
         };
 
-        // Convert blob data (Uint8Array or number[]) to base64 data URL
-        // Use a more efficient method to avoid stack overflow with large arrays
-        const uint8Array = blobData instanceof Uint8Array ? blobData : new Uint8Array(blobData);
+        try {
+            // Convert blob data (Uint8Array or number[]) to base64 data URL
+            // Use a more efficient method to avoid stack overflow with large arrays
+            const uint8Array = blobData instanceof Uint8Array ? blobData : new Uint8Array(blobData);
 
-        // Convert to base64 in chunks to avoid stack overflow
-        let binary = '';
-        const chunkSize = 0x8000; // 32KB chunks
-        for (let i = 0; i < uint8Array.length; i += chunkSize) {
-            const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
-            binary += String.fromCharCode.apply(null, Array.from(chunk));
+            // Convert to base64 in chunks to avoid stack overflow
+            let binary = '';
+            const chunkSize = 0x8000; // 32KB chunks
+            for (let i = 0; i < uint8Array.length; i += chunkSize) {
+                const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
+                binary += String.fromCharCode.apply(null, Array.from(chunk));
+            }
+            const base64 = btoa(binary);
+            console.log('Base64 conversion complete, length:', base64.length);
+            img.src = `data:image/png;base64,${base64}`;
+        } catch (error) {
+            console.error('Error converting blob to base64:', error);
         }
-        const base64 = btoa(binary);
-        img.src = `data:image/png;base64,${base64}`;
 
         return () => {
             imageRef.current = null;
             setImageLoaded(false);
         };
-    }, [blobData, blob_id]);
+    }, [blobData, blob_id, isBlobLoading, blobError]);
 
     // Animate through frames
     useEffect(() => {
