@@ -22,10 +22,7 @@ interface AnimatedSpritePreviewProps {
 }
 
 function AnimatedSpritePreview({ blob_id, frameCount, frameWidth, frameHeight }: AnimatedSpritePreviewProps) {
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    const imageRef = useRef<HTMLImageElement | null>(null);
-    const [currentFrame, setCurrentFrame] = useState(0);
-    const [imageLoaded, setImageLoaded] = useState(false);
+    const [imageSrc, setImageSrc] = useState<string>('');
 
     // Fetch the sprite sheet blob from backend
     const { data: blobData, isLoading: isBlobLoading, error: blobError } = useGetCharacterSpriteSheet(blob_id);
@@ -39,19 +36,8 @@ function AnimatedSpritePreview({ blob_id, frameCount, frameWidth, frameHeight }:
 
         console.log('Loading sprite sheet:', blob_id, 'Data length:', blobData.length);
 
-        const img = new Image();
-        img.onload = () => {
-            console.log('Sprite sheet loaded successfully:', blob_id);
-            imageRef.current = img;
-            setImageLoaded(true);
-        };
-        img.onerror = (e) => {
-            console.error('Failed to load sprite sheet image:', blob_id, e);
-        };
-
         try {
             // Convert blob data (Uint8Array or number[]) to base64 data URL
-            // Use a more efficient method to avoid stack overflow with large arrays
             const uint8Array = blobData instanceof Uint8Array ? blobData : new Uint8Array(blobData);
 
             // Convert to base64 in chunks to avoid stack overflow
@@ -63,82 +49,35 @@ function AnimatedSpritePreview({ blob_id, frameCount, frameWidth, frameHeight }:
             }
             const base64 = btoa(binary);
             console.log('Base64 conversion complete, length:', base64.length);
-            img.src = `data:image/png;base64,${base64}`;
+            const dataUrl = `data:image/png;base64,${base64}`;
+            setImageSrc(dataUrl);
+            console.log('Image src set successfully');
         } catch (error) {
             console.error('Error converting blob to base64:', error);
         }
-
-        return () => {
-            imageRef.current = null;
-            setImageLoaded(false);
-        };
     }, [blobData, blob_id, isBlobLoading, blobError]);
 
-    // Animate through frames
-    useEffect(() => {
-        if (!imageLoaded) return;
-
-        const interval = setInterval(() => {
-            setCurrentFrame((prev: number) => (prev + 1) % frameCount);
-        }, 150); // Change frame every 150ms
-
-        return () => clearInterval(interval);
-    }, [frameCount, imageLoaded]);
-
-    // Draw the current frame
-    useEffect(() => {
-        const canvas = canvasRef.current;
-        if (!canvas || !imageLoaded || !imageRef.current) return;
-
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-
-        console.log('Drawing frame:', currentFrame, 'Image dimensions:', imageRef.current.width, 'x', imageRef.current.height);
-        console.log('Frame dimensions:', frameWidth, 'x', frameHeight, 'Frame count:', frameCount);
-
-        // Clear canvas and add white background
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, frameWidth, frameHeight);
-
-        // Draw the current frame from the sprite sheet
-        // Assuming horizontal sprite sheet layout
-        const sourceX = currentFrame * frameWidth;
-        const sourceY = 0;
-
-        console.log('Drawing from source:', sourceX, sourceY, frameWidth, frameHeight);
-
-        try {
-            ctx.drawImage(
-                imageRef.current,
-                sourceX, sourceY, frameWidth, frameHeight,  // source rectangle
-                0, 0, frameWidth, frameHeight               // destination rectangle
-            );
-            console.log('Frame drawn successfully');
-        } catch (error) {
-            console.error('Error drawing frame:', error);
-            // If image fails to draw, show placeholder
-            ctx.fillStyle = '#1a1a1a';
-            ctx.fillRect(0, 0, frameWidth, frameHeight);
-            ctx.fillStyle = '#ffffff';
-            ctx.font = '12px monospace';
-            ctx.fillText(`Frame ${currentFrame + 1}/${frameCount}`, 10, frameHeight / 2);
-        }
-    }, [currentFrame, frameWidth, frameHeight, imageLoaded, frameCount]);
+    if (!imageSrc) {
+        return <div className="text-sm text-muted-foreground">Loading sprite...</div>;
+    }
 
     return (
-        <canvas
-            ref={canvasRef}
-            width={frameWidth}
-            height={frameHeight}
-            className="border rounded bg-muted"
-            style={{
-                imageRendering: 'pixelated',
-                transform: 'scale(4)',
-                transformOrigin: 'top left',
-                width: frameWidth,
-                height: frameHeight
-            }}
-        />
+        <div className="border rounded p-2 bg-white">
+            <div className="text-xs text-muted-foreground mb-2">
+                Full sprite sheet ({frameCount} frames, {frameWidth}x{frameHeight} each)
+            </div>
+            <img
+                src={imageSrc}
+                alt="Sprite sheet"
+                className="border-2 border-red-500"
+                style={{
+                    maxWidth: '200px',
+                    imageRendering: 'pixelated'
+                }}
+                onLoad={() => console.log('IMG element loaded successfully')}
+                onError={(e) => console.error('IMG element failed to load:', e)}
+            />
+        </div>
     );
 }
 
