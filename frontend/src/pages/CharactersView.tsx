@@ -75,11 +75,13 @@ function AnimatedSpritePreview({ blob_id, frameCount, frameWidth, frameHeight }:
                 console.log('📐 Layout:', analysis.layout, `(${analysis.rows}x${analysis.columns})`);
                 console.log('📏 Suggested frame size:', analysis.suggestedFrameSize);
 
-                if (analysis.frames.length > 0) {
-                    console.log('✨ Using detected frames');
+                // Use detected frames only if they match expected count
+                // Otherwise the sprites might be connected without transparent gaps
+                if (analysis.frames.length === frameCount) {
+                    console.log('✨ Using detected frames (count matches)');
                     setDetectedFrames(analysis.frames);
                 } else {
-                    console.warn('⚠️ No frames detected, using fallback');
+                    console.warn(`⚠️ Detected ${analysis.frames.length} frames but expected ${frameCount}. Using fallback coordinates.`);
                     setDetectedFrames(fallbackFrames);
                 }
             } catch (error) {
