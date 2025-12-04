@@ -20,7 +20,7 @@ export interface SpriteSheetAnalysis {
 
 /**
  * Analyzes a sprite sheet image and detects individual sprite frames
- * Uses grid-based detection when expected dimensions are provided
+ * Scans the ENTIRE image to find sprites anywhere (not just top-left)
  */
 export async function analyzeSpriteSheet(
     image: HTMLImageElement,
@@ -61,29 +61,29 @@ export async function analyzeSpriteSheet(
     const isOpaque = (x: number, y: number): boolean => {
         if (x < 0 || x >= canvas.width || y < 0 || y >= canvas.height) return false;
         const index = (y * canvas.width + x) * 4;
-        return pixels[index + 3] > alphaThreshold; // Check alpha channel
+        return pixels[index + 3] > alphaThreshold;
     };
 
     let frames: SpriteFrame[] = [];
 
-    // Use grid-based detection if expected dimensions are provided
     if (expectedFrameWidth && expectedFrameHeight && expectedFrameCount) {
-        console.log('🔍 Using grid-based detection:', expectedFrameWidth, 'x', expectedFrameHeight);
+        console.log('🔍 Scanning entire image for sprites...');
 
-        const cols = Math.floor(canvas.width / expectedFrameWidth);
-        const rows = Math.ceil(expectedFrameCount / cols);
+        // Scan ALL grid cells in the entire image, not just from top-left
+        const totalCols = Math.floor(canvas.width / expectedFrameWidth);
+        const totalRows = Math.floor(canvas.height / expectedFrameHeight);
 
-        console.log('📐 Grid:', rows, 'rows x', cols, 'columns');
+        console.log('📐 Total grid cells:', totalRows, 'rows x', totalCols, 'columns');
 
-        for (let row = 0; row < rows; row++) {
-            for (let col = 0; col < cols; col++) {
-                const frameIndex = row * cols + col;
-                if (frameIndex >= expectedFrameCount) break;
+        // Find all cells that contain sprites
+        const spriteCells: SpriteFrame[] = [];
 
+        for (let row = 0; row < totalRows; row++) {
+            for (let col = 0; col < totalCols; col++) {
                 const cellX = col * expectedFrameWidth;
                 const cellY = row * expectedFrameHeight;
 
-                // Find actual sprite bounds within this cell
+                // Check if this cell has any opaque pixels
                 const bounds = findSpriteInCell(
                     cellX, cellY,
                     expectedFrameWidth, expectedFrameHeight,
@@ -91,18 +91,31 @@ export async function analyzeSpriteSheet(
                 );
 
                 if (bounds) {
-                    frames.push(bounds);
-                    console.log(`✓ Frame ${frameIndex}: (${bounds.x}, ${bounds.y}) ${bounds.width}x${bounds.height}`);
-                } else {
-                    console.warn(`⚠ Frame ${frameIndex}: no sprite in cell, using full cell`);
-                    frames.push({
-                        x: cellX,
-                        y: cellY,
-                        width: expectedFrameWidth,
-                        height: expectedFrameHeight
-                    });
+                    spriteCells.push(bounds);
                 }
             }
+        }
+
+        console.log('📊 Found', spriteCells.length, 'cells with sprites');
+
+        // Sort by position (top to bottom, left to right)
+        spriteCells.sort((a, b) => {
+            if (Math.abs(a.y - b.y) < expectedFrameHeight / 2) {
+                return a.x - b.x;
+            }
+            return a.y - b.y;
+        });
+
+        // Take the first N frames based on expectedFrameCount
+        frames = spriteCells.slice(0, expectedFrameCount);
+
+        // Log what we found
+        frames.forEach((f, i) => {
+            console.log(`✓ Frame ${i}: (${f.x}, ${f.y}) ${f.width}x${f.height}`);
+        });
+
+        if (frames.length < expectedFrameCount) {
+            console.warn(`⚠ Only found ${frames.length} sprites, expected ${expectedFrameCount}`);
         }
     } else {
         // Fallback to flood-fill if no grid info
@@ -121,9 +134,9 @@ export async function analyzeSpriteSheet(
         }
     }
 
-    // Sort frames by position (top to bottom, left to right)
+    // Sort frames by position
     frames.sort((a, b) => {
-        if (Math.abs(a.y - b.y) < 5) { // Same row (within 5px tolerance)
+        if (Math.abs(a.y - b.y) < 5) {
             return a.x - b.x;
         }
         return a.y - b.y;
@@ -203,20 +216,17 @@ function findSpriteBounds(
     let maxX = startX;
     let maxY = startY;
 
-    // Use a queue for breadth-first search
     const queue: [number, number][] = [[startX, startY]];
     visited[startY][startX] = true;
 
     while (queue.length > 0) {
         const [x, y] = queue.shift()!;
 
-        // Update bounds
         minX = Math.min(minX, x);
         minY = Math.min(minY, y);
         maxX = Math.max(maxX, x);
         maxY = Math.max(maxY, y);
 
-        // Check all 4 neighbors
         const neighbors = [
             [x + 1, y],
             [x - 1, y],
@@ -258,11 +268,9 @@ function analyzeLayout(
         };
     }
 
-    // Find most common frame size
     const frameSizes = frames.map(f => ({ width: f.width, height: f.height }));
     const suggestedFrameSize = getMostCommonSize(frameSizes);
 
-    // Detect layout pattern
     const firstRowFrames = frames.filter(f => Math.abs(f.y - frames[0].y) < 5);
     const firstColFrames = frames.filter(f => Math.abs(f.x - frames[0].x) < 5);
 
@@ -271,17 +279,14 @@ function analyzeLayout(
     let columns: number;
 
     if (firstRowFrames.length === frames.length) {
-        // All frames in one row
         layout = 'horizontal';
         rows = 1;
         columns = frames.length;
     } else if (firstColFrames.length === frames.length) {
-        // All frames in one column
         layout = 'vertical';
         rows = frames.length;
         columns = 1;
     } else {
-        // Grid layout
         layout = 'grid';
         columns = firstRowFrames.length;
         rows = Math.ceil(frames.length / columns);
@@ -295,9 +300,6 @@ function analyzeLayout(
     };
 }
 
-/**
- * Finds the most common size in an array of sizes
- */
 function getMostCommonSize(sizes: { width: number; height: number }[]): { width: number; height: number } {
     const sizeMap = new Map<string, { size: { width: number; height: number }; count: number }>();
 
