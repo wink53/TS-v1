@@ -34,48 +34,82 @@ function AnimatedSpritePreview({ blob_id, frameCount, frameWidth, frameHeight }:
 
     // Load the sprite sheet image when blob data is available
     useEffect(() => {
-        if (!blobData) return;
+        if (!blobData) {
+            console.log('⏳ Waiting for blob data...');
+            return;
+        }
+
+        console.log('🔄 Starting to load sprite sheet, blob size:', blobData.length);
 
         const img = new Image();
+
         img.onload = async () => {
-            console.log('✅ Sprite sheet loaded:', img.width, 'x', img.height);
+            console.log('✅ Sprite sheet image loaded successfully:', img.width, 'x', img.height);
             imageRef.current = img;
+
+            // Try to analyze sprite sheet, but always set fallback frames first
+            const fallbackFrames = [];
+            for (let i = 0; i < frameCount; i++) {
+                fallbackFrames.push({
+                    x: i * frameWidth,
+                    y: 0,
+                    width: frameWidth,
+                    height: frameHeight
+                });
+            }
+
+            console.log('📦 Fallback frames prepared:', fallbackFrames.length);
 
             // Analyze sprite sheet to detect frames
             try {
+                console.log('🔍 Attempting to analyze sprite sheet...');
                 const { analyzeSpriteSheet } = await import('../utils/spriteSheetAnalyzer');
+                console.log('✅ Analyzer module loaded');
+
                 const analysis = await analyzeSpriteSheet(img, {
                     minWidth: Math.min(frameWidth, 8),
                     minHeight: Math.min(frameHeight, 8)
                 });
 
-                console.log('📊 Detected', analysis.frames.length, 'frames');
+                console.log('📊 Analysis complete! Detected', analysis.frames.length, 'frames');
                 console.log('📐 Layout:', analysis.layout, `(${analysis.rows}x${analysis.columns})`);
                 console.log('📏 Suggested frame size:', analysis.suggestedFrameSize);
 
-                setDetectedFrames(analysis.frames);
-            } catch (error) {
-                console.error('Failed to analyze sprite sheet:', error);
-                // Fallback to manual coordinates
-                const fallbackFrames = [];
-                for (let i = 0; i < frameCount; i++) {
-                    fallbackFrames.push({
-                        x: i * frameWidth,
-                        y: 0,
-                        width: frameWidth,
-                        height: frameHeight
-                    });
+                if (analysis.frames.length > 0) {
+                    console.log('✨ Using detected frames');
+                    setDetectedFrames(analysis.frames);
+                } else {
+                    console.warn('⚠️ No frames detected, using fallback');
+                    setDetectedFrames(fallbackFrames);
                 }
+            } catch (error) {
+                console.error('❌ Failed to analyze sprite sheet:', error);
+                console.log('🔄 Using fallback frame coordinates');
                 setDetectedFrames(fallbackFrames);
             }
 
             setImageLoaded(true);
+            console.log('✅ Image loading complete');
         };
+
         img.onerror = (e) => {
             console.error('❌ Failed to load sprite sheet image:', blob_id, e);
+            // Even on error, set fallback frames so something displays
+            const fallbackFrames = [];
+            for (let i = 0; i < frameCount; i++) {
+                fallbackFrames.push({
+                    x: i * frameWidth,
+                    y: 0,
+                    width: frameWidth,
+                    height: frameHeight
+                });
+            }
+            setDetectedFrames(fallbackFrames);
+            setImageLoaded(false);
         };
 
         try {
+            console.log('🔄 Converting blob to base64...');
             const uint8Array = blobData instanceof Uint8Array ? blobData : new Uint8Array(blobData);
             let binary = '';
             const chunkSize = 0x8000;
@@ -84,12 +118,15 @@ function AnimatedSpritePreview({ blob_id, frameCount, frameWidth, frameHeight }:
                 binary += String.fromCharCode.apply(null, Array.from(chunk));
             }
             const base64 = btoa(binary);
+            console.log('✅ Base64 conversion complete, length:', base64.length);
             img.src = `data:image/png;base64,${base64}`;
+            console.log('✅ Image src set, waiting for load...');
         } catch (error) {
-            console.error('Error converting blob to base64:', error);
+            console.error('❌ Error converting blob to base64:', error);
         }
 
         return () => {
+            console.log('🧹 Cleaning up sprite sheet');
             imageRef.current = null;
             setImageLoaded(false);
             setDetectedFrames([]);
