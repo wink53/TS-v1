@@ -20,16 +20,27 @@ export interface SpriteSheetAnalysis {
 
 /**
  * Analyzes a sprite sheet image and detects individual sprite frames
+ * Uses grid-based detection when expected dimensions are provided
  */
 export async function analyzeSpriteSheet(
     image: HTMLImageElement,
     options: {
+        expectedFrameWidth?: number;
+        expectedFrameHeight?: number;
+        expectedFrameCount?: number;
         minWidth?: number;
         minHeight?: number;
         alphaThreshold?: number;
     } = {}
 ): Promise<SpriteSheetAnalysis> {
-    const { minWidth = 8, minHeight = 8, alphaThreshold = 10 } = options;
+    const {
+        expectedFrameWidth,
+        expectedFrameHeight,
+        expectedFrameCount,
+        minWidth = 8,
+        minHeight = 8,
+        alphaThreshold = 10
+    } = options;
 
     // Create a canvas to read pixel data
     const canvas = document.createElement('canvas');
@@ -46,9 +57,6 @@ export async function analyzeSpriteSheet(
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const pixels = imageData.data;
 
-    // Create a 2D array to track which pixels have been visited
-    const visited = Array(canvas.height).fill(null).map(() => Array(canvas.width).fill(false));
-
     // Helper function to check if a pixel is opaque
     const isOpaque = (x: number, y: number): boolean => {
         if (x < 0 || x >= canvas.width || y < 0 || y >= canvas.height) return false;
@@ -56,18 +64,58 @@ export async function analyzeSpriteSheet(
         return pixels[index + 3] > alphaThreshold; // Check alpha channel
     };
 
-    // Find all sprite frames using flood fill
-    const frames: SpriteFrame[] = [];
+    let frames: SpriteFrame[] = [];
 
-    for (let y = 0; y < canvas.height; y++) {
-        for (let x = 0; x < canvas.width; x++) {
-            if (!visited[y][x] && isOpaque(x, y)) {
-                // Found a new sprite, find its bounds
-                const bounds = findSpriteBounds(x, y, visited, isOpaque, canvas.width, canvas.height);
+    // Use grid-based detection if expected dimensions are provided
+    if (expectedFrameWidth && expectedFrameHeight && expectedFrameCount) {
+        console.log('🔍 Using grid-based detection:', expectedFrameWidth, 'x', expectedFrameHeight);
 
-                // Only add if it meets minimum size requirements
-                if (bounds.width >= minWidth && bounds.height >= minHeight) {
+        const cols = Math.floor(canvas.width / expectedFrameWidth);
+        const rows = Math.ceil(expectedFrameCount / cols);
+
+        console.log('📐 Grid:', rows, 'rows x', cols, 'columns');
+
+        for (let row = 0; row < rows; row++) {
+            for (let col = 0; col < cols; col++) {
+                const frameIndex = row * cols + col;
+                if (frameIndex >= expectedFrameCount) break;
+
+                const cellX = col * expectedFrameWidth;
+                const cellY = row * expectedFrameHeight;
+
+                // Find actual sprite bounds within this cell
+                const bounds = findSpriteInCell(
+                    cellX, cellY,
+                    expectedFrameWidth, expectedFrameHeight,
+                    isOpaque, minWidth, minHeight
+                );
+
+                if (bounds) {
                     frames.push(bounds);
+                    console.log(`✓ Frame ${frameIndex}: (${bounds.x}, ${bounds.y}) ${bounds.width}x${bounds.height}`);
+                } else {
+                    console.warn(`⚠ Frame ${frameIndex}: no sprite in cell, using full cell`);
+                    frames.push({
+                        x: cellX,
+                        y: cellY,
+                        width: expectedFrameWidth,
+                        height: expectedFrameHeight
+                    });
+                }
+            }
+        }
+    } else {
+        // Fallback to flood-fill if no grid info
+        console.log('🔍 Using flood-fill detection');
+        const visited = Array(canvas.height).fill(null).map(() => Array(canvas.width).fill(false));
+
+        for (let y = 0; y < canvas.height; y++) {
+            for (let x = 0; x < canvas.width; x++) {
+                if (!visited[y][x] && isOpaque(x, y)) {
+                    const bounds = findSpriteBounds(x, y, visited, isOpaque, canvas.width, canvas.height);
+                    if (bounds.width >= minWidth && bounds.height >= minHeight) {
+                        frames.push(bounds);
+                    }
                 }
             }
         }
@@ -89,14 +137,54 @@ export async function analyzeSpriteSheet(
         layout: analysis.layout,
         rows: analysis.rows,
         columns: analysis.columns,
-        suggestedFrameSize: analysis.suggestedFrameSize,
-        frames: frames.slice(0, 5) // Log first 5 frames
+        suggestedFrameSize: analysis.suggestedFrameSize
     });
 
     return {
         frames,
         ...analysis
     };
+}
+
+/**
+ * Finds the bounding box of a sprite within a specific grid cell
+ */
+function findSpriteInCell(
+    cellX: number,
+    cellY: number,
+    cellWidth: number,
+    cellHeight: number,
+    isOpaque: (x: number, y: number) => boolean,
+    minWidth: number,
+    minHeight: number
+): SpriteFrame | null {
+    let minX = cellX + cellWidth;
+    let minY = cellY + cellHeight;
+    let maxX = cellX;
+    let maxY = cellY;
+    let foundPixels = false;
+
+    // Scan the cell to find bounds of opaque pixels
+    for (let y = cellY; y < cellY + cellHeight; y++) {
+        for (let x = cellX; x < cellX + cellWidth; x++) {
+            if (isOpaque(x, y)) {
+                foundPixels = true;
+                minX = Math.min(minX, x);
+                minY = Math.min(minY, y);
+                maxX = Math.max(maxX, x);
+                maxY = Math.max(maxY, y);
+            }
+        }
+    }
+
+    if (!foundPixels) return null;
+
+    const width = maxX - minX + 1;
+    const height = maxY - minY + 1;
+
+    if (width < minWidth || height < minHeight) return null;
+
+    return { x: minX, y: minY, width, height };
 }
 
 /**

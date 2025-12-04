@@ -67,6 +67,9 @@ function AnimatedSpritePreview({ blob_id, frameCount, frameWidth, frameHeight }:
                 console.log('✅ Analyzer module loaded');
 
                 const analysis = await analyzeSpriteSheet(img, {
+                    expectedFrameWidth: frameWidth,
+                    expectedFrameHeight: frameHeight,
+                    expectedFrameCount: frameCount,
                     minWidth: Math.min(frameWidth, 8),
                     minHeight: Math.min(frameHeight, 8)
                 });
