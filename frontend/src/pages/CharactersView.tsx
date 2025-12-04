@@ -23,9 +23,11 @@ interface AnimatedSpritePreviewProps {
 
 function AnimatedSpritePreview({ blob_id, frameCount, frameWidth, frameHeight }: AnimatedSpritePreviewProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const debugCanvasRef = useRef<HTMLCanvasElement>(null);
     const imageRef = useRef<HTMLImageElement | null>(null);
     const [currentFrame, setCurrentFrame] = useState(0);
     const [imageLoaded, setImageLoaded] = useState(false);
+    const [detectedFrames, setDetectedFrames] = useState<Array<{ x: number, y: number, width: number, height: number }>>([]);
 
     // Fetch the sprite sheet blob from backend
     const { data: blobData, isLoading: isBlobLoading, error: blobError } = useGetCharacterSpriteSheet(blob_id);
@@ -35,12 +37,42 @@ function AnimatedSpritePreview({ blob_id, frameCount, frameWidth, frameHeight }:
         if (!blobData) return;
 
         const img = new Image();
-        img.onload = () => {
+        img.onload = async () => {
+            console.log('✅ Sprite sheet loaded:', img.width, 'x', img.height);
             imageRef.current = img;
+
+            // Analyze sprite sheet to detect frames
+            try {
+                const { analyzeSpriteSheet } = await import('../utils/spriteSheetAnalyzer');
+                const analysis = await analyzeSpriteSheet(img, {
+                    minWidth: Math.min(frameWidth, 8),
+                    minHeight: Math.min(frameHeight, 8)
+                });
+
+                console.log('📊 Detected', analysis.frames.length, 'frames');
+                console.log('📐 Layout:', analysis.layout, `(${analysis.rows}x${analysis.columns})`);
+                console.log('📏 Suggested frame size:', analysis.suggestedFrameSize);
+
+                setDetectedFrames(analysis.frames);
+            } catch (error) {
+                console.error('Failed to analyze sprite sheet:', error);
+                // Fallback to manual coordinates
+                const fallbackFrames = [];
+                for (let i = 0; i < frameCount; i++) {
+                    fallbackFrames.push({
+                        x: i * frameWidth,
+                        y: 0,
+                        width: frameWidth,
+                        height: frameHeight
+                    });
+                }
+                setDetectedFrames(fallbackFrames);
+            }
+
             setImageLoaded(true);
         };
         img.onerror = (e) => {
-            console.error('Failed to load sprite sheet image:', blob_id, e);
+            console.error('❌ Failed to load sprite sheet image:', blob_id, e);
         };
 
         try {
@@ -60,8 +92,9 @@ function AnimatedSpritePreview({ blob_id, frameCount, frameWidth, frameHeight }:
         return () => {
             imageRef.current = null;
             setImageLoaded(false);
+            setDetectedFrames([]);
         };
-    }, [blobData, blob_id]);
+    }, [blobData, blob_id, frameCount, frameWidth, frameHeight]);
 
     // Animate through frames
     useEffect(() => {
@@ -72,50 +105,112 @@ function AnimatedSpritePreview({ blob_id, frameCount, frameWidth, frameHeight }:
         return () => clearInterval(interval);
     }, [imageLoaded, frameCount]);
 
-    // Draw the current frame
+    // Draw the current frame AND debug view
     useEffect(() => {
         const canvas = canvasRef.current;
-        if (!canvas || !imageLoaded || !imageRef.current) return;
+        const debugCanvas = debugCanvasRef.current;
+        if (!canvas || !debugCanvas || !imageLoaded || !imageRef.current || detectedFrames.length === 0) return;
 
         const ctx = canvas.getContext('2d');
-        if (!ctx) return;
+        const debugCtx = debugCanvas.getContext('2d');
+        if (!ctx || !debugCtx) return;
 
-        // Clear and fill with white background
+        // Get the frame to display (cycle through detected frames)
+        const frameIndex = currentFrame % detectedFrames.length;
+        const frame = detectedFrames[frameIndex];
+
+        console.log(`📍 Frame ${frameIndex + 1}/${detectedFrames.length}: (${frame.x}, ${frame.y}) ${frame.width}x${frame.height}`);
+
+        // Draw extracted frame
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        // Draw the current frame from the sprite sheet
-        const sourceX = currentFrame * frameWidth;
-        const sourceY = 0;
 
         try {
             ctx.drawImage(
                 imageRef.current,
-                sourceX, sourceY, frameWidth, frameHeight,  // source rectangle
-                0, 0, canvas.width, canvas.height            // destination rectangle (scaled)
+                frame.x, frame.y, frame.width, frame.height,
+                0, 0, canvas.width, canvas.height
             );
         } catch (error) {
             console.error('Error drawing frame:', error);
         }
-    }, [currentFrame, frameWidth, frameHeight, imageLoaded]);
 
-    const displaySize = 128; // Display at 128x128 pixels
+        // Draw debug view - full sprite sheet with frame indicator
+        const scale = Math.min(200 / imageRef.current.width, 200 / imageRef.current.height);
+        debugCtx.fillStyle = '#000000';
+        debugCtx.fillRect(0, 0, debugCanvas.width, debugCanvas.height);
+
+        debugCtx.drawImage(
+            imageRef.current,
+            0, 0,
+            imageRef.current.width * scale,
+            imageRef.current.height * scale
+        );
+
+        // Draw red rectangle showing current frame location
+        debugCtx.strokeStyle = '#ff0000';
+        debugCtx.lineWidth = 2;
+        debugCtx.strokeRect(
+            frame.x * scale,
+            frame.y * scale,
+            frame.width * scale,
+            frame.height * scale
+        );
+
+        // Draw green rectangles for all other detected frames
+        debugCtx.strokeStyle = '#00ff00';
+        debugCtx.lineWidth = 1;
+        detectedFrames.forEach((f, i) => {
+            if (i !== frameIndex) {
+                debugCtx.strokeRect(
+                    f.x * scale,
+                    f.y * scale,
+                    f.width * scale,
+                    f.height * scale
+                );
+            }
+        });
+    }, [currentFrame, imageLoaded, detectedFrames]);
+
+    const displaySize = 128;
 
     return (
-        <div className="flex flex-col gap-1">
-            <canvas
-                ref={canvasRef}
-                width={displaySize}
-                height={displaySize}
-                className="border rounded bg-white"
-                style={{
-                    imageRendering: 'pixelated',
-                    width: displaySize,
-                    height: displaySize
-                }}
-            />
-            <div className="text-xs text-muted-foreground text-center">
-                Frame {currentFrame + 1}/{frameCount}
+        <div className="flex gap-2">
+            <div className="flex flex-col gap-1">
+                <div className="text-xs font-semibold">Extracted Frame</div>
+                <canvas
+                    ref={canvasRef}
+                    width={displaySize}
+                    height={displaySize}
+                    className="border rounded bg-white"
+                    style={{
+                        imageRendering: 'pixelated',
+                        width: displaySize,
+                        height: displaySize
+                    }}
+                />
+                <div className="text-xs text-muted-foreground text-center">
+                    {detectedFrames.length > 0
+                        ? `Frame ${(currentFrame % detectedFrames.length) + 1}/${detectedFrames.length}`
+                        : 'Analyzing...'}
+                </div>
+            </div>
+            <div className="flex flex-col gap-1">
+                <div className="text-xs font-semibold">Full Sprite Sheet</div>
+                <canvas
+                    ref={debugCanvasRef}
+                    width={200}
+                    height={200}
+                    className="border rounded bg-black"
+                    style={{
+                        imageRendering: 'pixelated',
+                        width: 200,
+                        height: 200
+                    }}
+                />
+                <div className="text-xs text-muted-foreground">
+                    Red box = current frame
+                </div>
             </div>
         </div>
     );
