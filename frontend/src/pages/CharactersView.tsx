@@ -19,9 +19,11 @@ interface AnimatedSpritePreviewProps {
     frameCount: number;
     frameWidth: number;
     frameHeight: number;
+    offsetX?: number;
+    offsetY?: number;
 }
 
-function AnimatedSpritePreview({ blob_id, frameCount, frameWidth, frameHeight }: AnimatedSpritePreviewProps) {
+function AnimatedSpritePreview({ blob_id, frameCount, frameWidth, frameHeight, offsetX = 0, offsetY = 0 }: AnimatedSpritePreviewProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const debugCanvasRef = useRef<HTMLCanvasElement>(null);
     const imageRef = useRef<HTMLImageElement | null>(null);
@@ -47,16 +49,17 @@ function AnimatedSpritePreview({ blob_id, frameCount, frameWidth, frameHeight }:
             console.log('✅ Sprite sheet image loaded successfully:', img.width, 'x', img.height);
             imageRef.current = img;
 
-            // Try to analyze sprite sheet, but always set fallback frames first
+            // Use manual offset for frame positions
             const fallbackFrames = [];
             for (let i = 0; i < frameCount; i++) {
                 fallbackFrames.push({
-                    x: i * frameWidth,
-                    y: 0,
+                    x: offsetX + (i * frameWidth),
+                    y: offsetY,
                     width: frameWidth,
                     height: frameHeight
                 });
             }
+            console.log('📍 Using offset:', offsetX, offsetY);
 
             console.log('📦 Fallback frames prepared:', fallbackFrames.length);
 
@@ -103,8 +106,8 @@ function AnimatedSpritePreview({ blob_id, frameCount, frameWidth, frameHeight }:
             const fallbackFrames = [];
             for (let i = 0; i < frameCount; i++) {
                 fallbackFrames.push({
-                    x: i * frameWidth,
-                    y: 0,
+                    x: offsetX + (i * frameWidth),
+                    y: offsetY,
                     width: frameWidth,
                     height: frameHeight
                 });
