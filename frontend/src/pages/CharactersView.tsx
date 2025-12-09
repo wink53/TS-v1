@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { PlayableCharacter, CharacterStats, AnimationState, Direction } from '../backend';
 import type { DetectionMode } from '../utils/spriteSheetAnalyzer';
+import { SpriteSelector } from '../components/SpriteSelector';
 
 // Animated Sprite Preview Component
 interface AnimatedSpritePreviewProps {
@@ -284,6 +285,11 @@ export function CharactersView() {
     const [selectedCharacter, setSelectedCharacter] = useState<PlayableCharacter | null>(null);
     const [detectionMode, setDetectionMode] = useState<'alpha' | 'blackBorder' | 'manual'>('alpha');
     const [manualOffset, setManualOffset] = useState({ x: 0, y: 0 });
+    const [showSpriteSelector, setShowSpriteSelector] = useState(false);
+    const [selectionBox, setSelectionBox] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
+    const [isSelecting, setIsSelecting] = useState(false);
+    const [selectionStart, setSelectionStart] = useState<{ x: number; y: number } | null>(null);
+    const selectorCanvasRef = useRef<HTMLCanvasElement>(null);
 
     // Form State
     const [formData, setFormData] = useState({
@@ -996,7 +1002,25 @@ export function CharactersView() {
                                                         className="w-20 h-7 text-xs"
                                                     />
                                                 </div>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="text-xs h-7"
+                                                    onClick={() => setShowSpriteSelector(!showSpriteSelector)}
+                                                >
+                                                    {showSpriteSelector ? 'Hide Selector' : 'Select on Image'}
+                                                </Button>
                                             </div>
+                                        )}
+                                        {showSpriteSelector && detectionMode === 'manual' && selectedCharacter?.sprite_sheets[0] && (
+                                            <SpriteSelector
+                                                blob_id={selectedCharacter.sprite_sheets[0].blob_id}
+                                                onSelect={(x, y, width, height) => {
+                                                    setManualOffset({ x, y });
+                                                    // Optionally update frame dimensions in formData
+                                                    console.log('Selected sprite:', { x, y, width, height });
+                                                }}
+                                            />
                                         )}
                                     </div>
                                     <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">

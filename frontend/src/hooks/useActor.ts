@@ -8,16 +8,24 @@ export const useActor = () => {
         const params = new URLSearchParams(window.location.search);
         const urlId = params.get('id');
 
-        if (urlId) {
+        // Validate and use URL canister ID
+        if (urlId && urlId.trim() && !urlId.includes(' ')) {
             console.log('Found canister ID in URL:', urlId);
             localStorage.setItem(STORAGE_KEY, urlId);
             return createActor(urlId);
         }
 
+        // Validate and use stored canister ID
         const storedId = localStorage.getItem(STORAGE_KEY);
-        if (storedId) {
+        if (storedId && storedId.trim() && !storedId.includes(' ')) {
             console.log('Found canister ID in Storage:', storedId);
             return createActor(storedId);
+        }
+
+        // Clear invalid stored ID if present
+        if (storedId) {
+            console.warn('Invalid canister ID in storage, clearing:', storedId);
+            localStorage.removeItem(STORAGE_KEY);
         }
 
         console.log('Using default backend actor');
