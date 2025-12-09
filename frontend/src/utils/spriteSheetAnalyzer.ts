@@ -3,6 +3,8 @@
  * Automatically detects sprite boundaries in a sprite sheet image
  */
 
+export type DetectionMode = 'alpha' | 'blackBorder';
+
 export interface SpriteFrame {
     x: number;
     y: number;
@@ -31,6 +33,8 @@ export async function analyzeSpriteSheet(
         minWidth?: number;
         minHeight?: number;
         alphaThreshold?: number;
+        detectionMode?: DetectionMode;
+        blackThreshold?: number;
     } = {}
 ): Promise<SpriteSheetAnalysis> {
     const {
@@ -39,8 +43,12 @@ export async function analyzeSpriteSheet(
         expectedFrameCount,
         minWidth = 8,
         minHeight = 8,
-        alphaThreshold = 10
+        alphaThreshold = 10,
+        detectionMode = 'alpha',
+        blackThreshold = 15
     } = options;
+
+    console.log(`🔍 Using detection mode: ${detectionMode}`);
 
     // Create a canvas to read pixel data
     const canvas = document.createElement('canvas');
@@ -57,12 +65,28 @@ export async function analyzeSpriteSheet(
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const pixels = imageData.data;
 
-    // Helper function to check if a pixel is opaque
-    const isOpaque = (x: number, y: number): boolean => {
+    // Helper function to check if a pixel is content (not background)
+    // Alpha mode: pixel is content if it has alpha > threshold
+    // BlackBorder mode: pixel is content if it's NOT black (sprites are on black background)
+    const isContent = (x: number, y: number): boolean => {
         if (x < 0 || x >= canvas.width || y < 0 || y >= canvas.height) return false;
         const index = (y * canvas.width + x) * 4;
-        return pixels[index + 3] > alphaThreshold;
+        const r = pixels[index];
+        const g = pixels[index + 1];
+        const b = pixels[index + 2];
+        const a = pixels[index + 3];
+
+        if (detectionMode === 'blackBorder') {
+            // In black-border mode, content is anything that's NOT black
+            // Black boxes are the borders, so we want non-black pixels
+            const isBlack = r < blackThreshold && g < blackThreshold && b < blackThreshold;
+            return a > alphaThreshold && !isBlack;
+        } else {
+            // Alpha mode: content is anything with alpha > threshold
+            return a > alphaThreshold;
+        }
     };
+
 
     let frames: SpriteFrame[] = [];
 
@@ -83,11 +107,11 @@ export async function analyzeSpriteSheet(
                 const cellX = col * expectedFrameWidth;
                 const cellY = row * expectedFrameHeight;
 
-                // Check if this cell has any opaque pixels
+                // Check if this cell has any content pixels
                 const bounds = findSpriteInCell(
                     cellX, cellY,
                     expectedFrameWidth, expectedFrameHeight,
-                    isOpaque, minWidth, minHeight
+                    isContent, minWidth, minHeight
                 );
 
                 if (bounds) {
@@ -124,8 +148,8 @@ export async function analyzeSpriteSheet(
 
         for (let y = 0; y < canvas.height; y++) {
             for (let x = 0; x < canvas.width; x++) {
-                if (!visited[y][x] && isOpaque(x, y)) {
-                    const bounds = findSpriteBounds(x, y, visited, isOpaque, canvas.width, canvas.height);
+                if (!visited[y][x] && isContent(x, y)) {
+                    const bounds = findSpriteBounds(x, y, visited, isContent, canvas.width, canvas.height);
                     if (bounds.width >= minWidth && bounds.height >= minHeight) {
                         frames.push(bounds);
                     }

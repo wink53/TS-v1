@@ -12,6 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { PlayableCharacter, CharacterStats, AnimationState, Direction } from '../backend';
+import type { DetectionMode } from '../utils/spriteSheetAnalyzer';
 
 // Animated Sprite Preview Component
 interface AnimatedSpritePreviewProps {
@@ -21,9 +22,10 @@ interface AnimatedSpritePreviewProps {
     frameHeight: number;
     offsetX?: number;
     offsetY?: number;
+    detectionMode?: DetectionMode;
 }
 
-function AnimatedSpritePreview({ blob_id, frameCount, frameWidth, frameHeight, offsetX = 0, offsetY = 0 }: AnimatedSpritePreviewProps) {
+function AnimatedSpritePreview({ blob_id, frameCount, frameWidth, frameHeight, offsetX = 0, offsetY = 0, detectionMode = 'alpha' }: AnimatedSpritePreviewProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const debugCanvasRef = useRef<HTMLCanvasElement>(null);
     const imageRef = useRef<HTMLImageElement | null>(null);
@@ -74,7 +76,8 @@ function AnimatedSpritePreview({ blob_id, frameCount, frameWidth, frameHeight, o
                     expectedFrameHeight: frameHeight,
                     expectedFrameCount: frameCount,
                     minWidth: Math.min(frameWidth, 8),
-                    minHeight: Math.min(frameHeight, 8)
+                    minHeight: Math.min(frameHeight, 8),
+                    detectionMode: detectionMode
                 });
 
                 console.log('📊 Analysis complete! Detected', analysis.frames.length, 'frames');
@@ -271,6 +274,7 @@ export function CharactersView() {
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [selectedCharacter, setSelectedCharacter] = useState<PlayableCharacter | null>(null);
+    const [detectionMode, setDetectionMode] = useState<'alpha' | 'blackBorder'>('alpha');
 
     // Form State
     const [formData, setFormData] = useState({
@@ -927,7 +931,28 @@ export function CharactersView() {
 
                                 {/* Existing Sheets List */}
                                 <div className="space-y-4">
-                                    <h3 className="font-medium">Configured Sprite Sheets</h3>
+                                    <div className="flex items-center justify-between">
+                                        <h3 className="font-medium">Configured Sprite Sheets</h3>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xs text-muted-foreground">Detection:</span>
+                                            <Button
+                                                variant={detectionMode === 'alpha' ? 'default' : 'outline'}
+                                                size="sm"
+                                                className="text-xs h-7 px-2"
+                                                onClick={() => setDetectionMode('alpha')}
+                                            >
+                                                Alpha
+                                            </Button>
+                                            <Button
+                                                variant={detectionMode === 'blackBorder' ? 'default' : 'outline'}
+                                                size="sm"
+                                                className="text-xs h-7 px-2"
+                                                onClick={() => setDetectionMode('blackBorder')}
+                                            >
+                                                Black Box
+                                            </Button>
+                                        </div>
+                                    </div>
                                     <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
                                         {selectedCharacter?.sprite_sheets.map((sheet: any, idx: number) => {
                                             const state = Object.keys(sheet.state)[0];
@@ -939,6 +964,7 @@ export function CharactersView() {
                                                         frameCount={Number(sheet.frame_count)}
                                                         frameWidth={Number(sheet.frame_width)}
                                                         frameHeight={Number(sheet.frame_height)}
+                                                        detectionMode={detectionMode}
                                                     />
                                                     <div className="flex-1">
                                                         <div className="font-medium capitalize">{state} - {direction}</div>
