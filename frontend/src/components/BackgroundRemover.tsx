@@ -1,5 +1,4 @@
 import { useRef, useEffect, useState } from 'react';
-import { Slider } from './ui/slider';
 import { Button } from './ui/button';
 
 interface BackgroundRemoverProps {
@@ -158,13 +157,14 @@ export function BackgroundRemover({ imageFile, onProcessed, onCancel }: Backgrou
                     <label className="font-medium">Tolerance: {tolerance}</label>
                     <span className="text-muted-foreground">Adjust to remove more/less background</span>
                 </div>
-                <Slider
-                    value={[tolerance]}
-                    onValueChange={(value) => setTolerance(value[0])}
+                <input
+                    type="range"
+                    value={tolerance}
+                    onChange={(e) => setTolerance(parseInt(e.target.value))}
                     min={0}
                     max={100}
                     step={1}
-                    className="w-full"
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
                 />
             </div>
 
