@@ -150,7 +150,7 @@ function AnimatedSpritePreview({ blob_id, frameCount, frameWidth, frameHeight, o
             setImageLoaded(false);
             setDetectedFrames([]);
         };
-    }, [blobData, blob_id, frameCount, frameWidth, frameHeight]);
+    }, [blobData, blob_id, frameCount, frameWidth, frameHeight, offsetX, offsetY, detectionMode]);
 
     // Animate through frames
     useEffect(() => {
