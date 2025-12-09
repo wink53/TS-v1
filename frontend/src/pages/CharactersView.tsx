@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { PlayableCharacter, CharacterStats, AnimationState, Direction } from '../backend';
 import type { DetectionMode } from '../utils/spriteSheetAnalyzer';
 import { SpriteSelector } from '../components/SpriteSelector';
+import { BackgroundRemover } from '../components/BackgroundRemover';
 
 // Animated Sprite Preview Component
 interface AnimatedSpritePreviewProps {
@@ -330,6 +331,11 @@ export function CharactersView() {
         frameHeight: 32,
     });
 
+    // Background removal state
+    const [removeBackground, setRemoveBackground] = useState(false);
+    const [showBackgroundRemover, setShowBackgroundRemover] = useState(false);
+    const [processedImageBlob, setProcessedImageBlob] = useState<Blob | null>(null);
+
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -458,7 +464,9 @@ export function CharactersView() {
 
         try {
             // 1. Upload the sprite sheet blob
-            const buffer = await spriteUploadState.file.arrayBuffer();
+            // Use processed blob if background was removed, otherwise use original file
+            const fileToUpload = processedImageBlob || spriteUploadState.file;
+            const buffer = await fileToUpload.arrayBuffer();
             const uint8Array = new Uint8Array(buffer);
             await uploadSpriteSheet.mutateAsync({
                 blob_id: blobId,
@@ -936,7 +944,43 @@ export function CharactersView() {
                                                 />
                                             </div>
 
-                                            <Button type="submit" className="w-full" disabled={!spriteUploadState.file}>
+                                            <div className="flex items-center space-x-2">
+                                                <input
+                                                    type="checkbox"
+                                                    id="removeBackground"
+                                                    checked={removeBackground}
+                                                    onChange={(e) => {
+                                                        setRemoveBackground(e.target.checked);
+                                                        if (e.target.checked && spriteUploadState.file) {
+                                                            setShowBackgroundRemover(true);
+                                                        } else {
+                                                            setShowBackgroundRemover(false);
+                                                            setProcessedImageBlob(null);
+                                                        }
+                                                    }}
+                                                    className="h-4 w-4"
+                                                />
+                                                <Label htmlFor="removeBackground" className="text-sm cursor-pointer">
+                                                    Remove background
+                                                </Label>
+                                            </div>
+
+                                            {showBackgroundRemover && spriteUploadState.file && (
+                                                <BackgroundRemover
+                                                    imageFile={spriteUploadState.file}
+                                                    onProcessed={(blob) => {
+                                                        setProcessedImageBlob(blob);
+                                                        setShowBackgroundRemover(false);
+                                                    }}
+                                                    onCancel={() => {
+                                                        setShowBackgroundRemover(false);
+                                                        setRemoveBackground(false);
+                                                        setProcessedImageBlob(null);
+                                                    }}
+                                                />
+                                            )}
+
+                                            <Button type="submit" className="w-full" disabled={!spriteUploadState.file || (removeBackground && !processedImageBlob && !showBackgroundRemover)}>
                                                 <Upload className="mr-2 h-4 w-4" />
                                                 Upload Sprite Sheet
                                             </Button>
