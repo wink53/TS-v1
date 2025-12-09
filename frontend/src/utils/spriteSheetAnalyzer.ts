@@ -87,6 +87,57 @@ export async function analyzeSpriteSheet(
         }
     };
 
+    // Helper to check if a pixel is black (for border detection)
+    const isBlackPixel = (x: number, y: number): boolean => {
+        if (x < 0 || x >= canvas.width || y < 0 || y >= canvas.height) return false;
+        const index = (y * canvas.width + x) * 4;
+        const r = pixels[index];
+        const g = pixels[index + 1];
+        const b = pixels[index + 2];
+        return r < blackThreshold && g < blackThreshold && b < blackThreshold;
+    };
+
+    // Check if a cell has black border on all edges (indicating a boxed sprite)
+    const hasCellBlackBorder = (cellX: number, cellY: number, width: number, height: number): boolean => {
+        let blackEdgeCount = 0;
+        const sampleCount = 8; // Sample 8 points per edge
+
+        // Check top edge
+        let topBlack = 0;
+        for (let i = 0; i < sampleCount; i++) {
+            const x = cellX + Math.floor((width * i) / sampleCount);
+            if (isBlackPixel(x, cellY)) topBlack++;
+        }
+        if (topBlack >= sampleCount * 0.6) blackEdgeCount++;
+
+        // Check bottom edge
+        let bottomBlack = 0;
+        for (let i = 0; i < sampleCount; i++) {
+            const x = cellX + Math.floor((width * i) / sampleCount);
+            if (isBlackPixel(x, cellY + height - 1)) bottomBlack++;
+        }
+        if (bottomBlack >= sampleCount * 0.6) blackEdgeCount++;
+
+        // Check left edge
+        let leftBlack = 0;
+        for (let i = 0; i < sampleCount; i++) {
+            const y = cellY + Math.floor((height * i) / sampleCount);
+            if (isBlackPixel(cellX, y)) leftBlack++;
+        }
+        if (leftBlack >= sampleCount * 0.6) blackEdgeCount++;
+
+        // Check right edge
+        let rightBlack = 0;
+        for (let i = 0; i < sampleCount; i++) {
+            const y = cellY + Math.floor((height * i) / sampleCount);
+            if (isBlackPixel(cellX + width - 1, y)) rightBlack++;
+        }
+        if (rightBlack >= sampleCount * 0.6) blackEdgeCount++;
+
+        // Return true if at least 3 edges are black (allowing for some variation)
+        return blackEdgeCount >= 3;
+    };
+
 
     let frames: SpriteFrame[] = [];
 
@@ -106,6 +157,13 @@ export async function analyzeSpriteSheet(
             for (let col = 0; col < totalCols; col++) {
                 const cellX = col * expectedFrameWidth;
                 const cellY = row * expectedFrameHeight;
+
+                // In blackBorder mode, only consider cells that have a black border
+                if (detectionMode === 'blackBorder') {
+                    if (!hasCellBlackBorder(cellX, cellY, expectedFrameWidth, expectedFrameHeight)) {
+                        continue; // Skip cells without black borders
+                    }
+                }
 
                 // Check if this cell has any content pixels
                 const bounds = findSpriteInCell(
