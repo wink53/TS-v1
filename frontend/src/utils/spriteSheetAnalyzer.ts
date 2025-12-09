@@ -3,7 +3,7 @@
  * Automatically detects sprite boundaries in a sprite sheet image
  */
 
-export type DetectionMode = 'alpha' | 'blackBorder';
+export type DetectionMode = 'alpha' | 'blackBorder' | 'manual';
 
 export interface SpriteFrame {
     x: number;

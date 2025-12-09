@@ -65,6 +65,14 @@ function AnimatedSpritePreview({ blob_id, frameCount, frameWidth, frameHeight, o
 
             console.log('📦 Fallback frames prepared:', fallbackFrames.length);
 
+            // In manual mode, skip analysis and use the manual offset directly
+            if (detectionMode === 'manual') {
+                console.log('📍 Manual mode: Using offset-based frames directly');
+                setDetectedFrames(fallbackFrames);
+                setImageLoaded(true);
+                return;
+            }
+
             // Analyze sprite sheet to detect frames
             try {
                 console.log('🔍 Attempting to analyze sprite sheet...');
@@ -274,7 +282,8 @@ export function CharactersView() {
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [selectedCharacter, setSelectedCharacter] = useState<PlayableCharacter | null>(null);
-    const [detectionMode, setDetectionMode] = useState<'alpha' | 'blackBorder'>('alpha');
+    const [detectionMode, setDetectionMode] = useState<'alpha' | 'blackBorder' | 'manual'>('alpha');
+    const [manualOffset, setManualOffset] = useState({ x: 0, y: 0 });
 
     // Form State
     const [formData, setFormData] = useState({
@@ -931,27 +940,64 @@ export function CharactersView() {
 
                                 {/* Existing Sheets List */}
                                 <div className="space-y-4">
-                                    <div className="flex items-center justify-between">
-                                        <h3 className="font-medium">Configured Sprite Sheets</h3>
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-xs text-muted-foreground">Detection:</span>
-                                            <Button
-                                                variant={detectionMode === 'alpha' ? 'default' : 'outline'}
-                                                size="sm"
-                                                className="text-xs h-7 px-2"
-                                                onClick={() => setDetectionMode('alpha')}
-                                            >
-                                                Alpha
-                                            </Button>
-                                            <Button
-                                                variant={detectionMode === 'blackBorder' ? 'default' : 'outline'}
-                                                size="sm"
-                                                className="text-xs h-7 px-2"
-                                                onClick={() => setDetectionMode('blackBorder')}
-                                            >
-                                                Black Box
-                                            </Button>
+                                    <div className="flex flex-col gap-2">
+                                        <div className="flex items-center justify-between">
+                                            <h3 className="font-medium">Configured Sprite Sheets</h3>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xs text-muted-foreground">Detection:</span>
+                                                <Button
+                                                    variant={detectionMode === 'alpha' ? 'default' : 'outline'}
+                                                    size="sm"
+                                                    className="text-xs h-7 px-2"
+                                                    onClick={() => setDetectionMode('alpha')}
+                                                >
+                                                    Alpha
+                                                </Button>
+                                                <Button
+                                                    variant={detectionMode === 'blackBorder' ? 'default' : 'outline'}
+                                                    size="sm"
+                                                    className="text-xs h-7 px-2"
+                                                    onClick={() => setDetectionMode('blackBorder')}
+                                                >
+                                                    Black Box
+                                                </Button>
+                                                <Button
+                                                    variant={detectionMode === 'manual' ? 'default' : 'outline'}
+                                                    size="sm"
+                                                    className="text-xs h-7 px-2"
+                                                    onClick={() => setDetectionMode('manual')}
+                                                >
+                                                    Manual
+                                                </Button>
+                                            </div>
                                         </div>
+                                        {detectionMode === 'manual' && (
+                                            <div className="flex items-center gap-4 p-2 bg-muted/50 rounded border">
+                                                <span className="text-xs font-medium">Offset (pixels):</span>
+                                                <div className="flex items-center gap-1">
+                                                    <Label htmlFor="offsetX" className="text-xs">X:</Label>
+                                                    <Input
+                                                        id="offsetX"
+                                                        type="number"
+                                                        min={0}
+                                                        value={manualOffset.x}
+                                                        onChange={(e) => setManualOffset({ ...manualOffset, x: parseInt(e.target.value) || 0 })}
+                                                        className="w-20 h-7 text-xs"
+                                                    />
+                                                </div>
+                                                <div className="flex items-center gap-1">
+                                                    <Label htmlFor="offsetY" className="text-xs">Y:</Label>
+                                                    <Input
+                                                        id="offsetY"
+                                                        type="number"
+                                                        min={0}
+                                                        value={manualOffset.y}
+                                                        onChange={(e) => setManualOffset({ ...manualOffset, y: parseInt(e.target.value) || 0 })}
+                                                        className="w-20 h-7 text-xs"
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                     <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
                                         {selectedCharacter?.sprite_sheets.map((sheet: any, idx: number) => {
@@ -965,6 +1011,8 @@ export function CharactersView() {
                                                         frameWidth={Number(sheet.frame_width)}
                                                         frameHeight={Number(sheet.frame_height)}
                                                         detectionMode={detectionMode}
+                                                        offsetX={detectionMode === 'manual' ? manualOffset.x : 0}
+                                                        offsetY={detectionMode === 'manual' ? manualOffset.y : 0}
                                                     />
                                                     <div className="flex-1">
                                                         <div className="font-medium capitalize">{state} - {direction}</div>
