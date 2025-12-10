@@ -350,18 +350,32 @@ export default function SpritesView() {
                                     id="removeBackground"
                                     checked={removeBackground}
                                     onChange={(e) => {
-                                        setRemoveBackground(e.target.checked);
-                                        if (e.target.checked && spriteState.file) {
+                                        const checked = e.target.checked;
+                                        setRemoveBackground(checked);
+
+                                        if (checked && previewImage) {
+                                            // Show background remover with current image
                                             setShowBackgroundRemover(true);
                                         } else {
                                             setShowBackgroundRemover(false);
                                             setProcessedImageBlob(null);
+                                            // Reset to original image if unchecking
+                                            if (spriteState.file && !checked) {
+                                                const reader = new FileReader();
+                                                reader.onload = (e) => {
+                                                    const img = new Image();
+                                                    img.onload = () => setPreviewImage(img);
+                                                    img.src = e.target?.result as string;
+                                                };
+                                                reader.readAsDataURL(spriteState.file);
+                                            }
                                         }
                                     }}
                                     className="h-4 w-4"
+                                    disabled={!previewImage}
                                 />
                                 <Label htmlFor="removeBackground" className="text-xs cursor-pointer">
-                                    Remove background
+                                    Remove background {!previewImage && '(load image first)'}
                                 </Label>
                             </div>
 
@@ -371,6 +385,15 @@ export default function SpritesView() {
                                     onProcessed={(blob) => {
                                         setProcessedImageBlob(blob);
                                         setShowBackgroundRemover(false);
+
+                                        // Update preview image with processed version
+                                        const reader = new FileReader();
+                                        reader.onload = (e) => {
+                                            const img = new Image();
+                                            img.onload = () => setPreviewImage(img);
+                                            img.src = e.target?.result as string;
+                                        };
+                                        reader.readAsDataURL(blob);
                                     }}
                                     onCancel={() => {
                                         setShowBackgroundRemover(false);
