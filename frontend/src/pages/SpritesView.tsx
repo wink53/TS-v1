@@ -46,6 +46,11 @@ export default function SpritesView() {
     const [currentFrame, setCurrentFrame] = useState(0);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
 
+    // Manual selection drawing state
+    const [isDrawing, setIsDrawing] = useState(false);
+    const [drawStart, setDrawStart] = useState<{ x: number; y: number } | null>(null);
+    const [drawEnd, setDrawEnd] = useState<{ x: number; y: number } | null>(null);
+
     const previewCanvasRef = useRef<HTMLCanvasElement>(null);
     const animationCanvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -106,18 +111,37 @@ export default function SpritesView() {
         // Draw image
         ctx.drawImage(previewImage, 0, 0);
 
-        // Draw green boxes over detected frames
-        ctx.strokeStyle = '#00ff00';
-        ctx.lineWidth = 2;
-        detectedFrames.forEach((frame, i) => {
-            ctx.strokeRect(frame.x, frame.y, frame.width, frame.height);
+        // In manual mode, draw selection box if drawing
+        if (detectionMode === 'manual' && drawStart && drawEnd) {
+            const x = Math.min(drawStart.x, drawEnd.x);
+            const y = Math.min(drawStart.y, drawEnd.y);
+            const width = Math.abs(drawEnd.x - drawStart.x);
+            const height = Math.abs(drawEnd.y - drawStart.y);
 
-            // Draw frame number
+            ctx.strokeStyle = '#00ff00';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(x, y, width, height);
+
+            // Draw dimensions
             ctx.fillStyle = '#00ff00';
             ctx.font = '12px monospace';
-            ctx.fillText(`${i + 1}`, frame.x + 4, frame.y + 14);
-        });
-    }, [previewImage, detectedFrames]);
+            ctx.fillText(`${width} × ${height}`, x + 4, y - 4);
+        }
+
+        // Draw green boxes over detected frames (not in manual mode while drawing)
+        if (detectionMode !== 'manual' || !drawStart) {
+            ctx.strokeStyle = '#00ff00';
+            ctx.lineWidth = 2;
+            detectedFrames.forEach((frame: any, i: number) => {
+                ctx.strokeRect(frame.x, frame.y, frame.width, frame.height);
+
+                // Draw frame number
+                ctx.fillStyle = '#00ff00';
+                ctx.font = '12px monospace';
+                ctx.fillText(`${i + 1}`, frame.x + 4, frame.y + 14);
+            });
+        }
+    }, [previewImage, detectedFrames, detectionMode, drawStart, drawEnd]);
 
     // Animate sprite preview
     useEffect(() => {
@@ -187,6 +211,59 @@ export default function SpritesView() {
             console.error('Upload error:', error);
             toast.error('Failed to upload sprite');
         }
+    };
+
+    // Mouse handlers for drawing on canvas in manual mode
+    const handleCanvasMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+        if (detectionMode !== 'manual' || !previewCanvasRef.current) return;
+
+        const canvas = previewCanvasRef.current;
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+
+        const x = (e.clientX - rect.left) * scaleX / zoom;
+        const y = (e.clientY - rect.top) * scaleY / zoom;
+
+        setIsDrawing(true);
+        setDrawStart({ x, y });
+        setDrawEnd({ x, y });
+    };
+
+    const handleCanvasMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+        if (!isDrawing || detectionMode !== 'manual' || !previewCanvasRef.current) return;
+
+        const canvas = previewCanvasRef.current;
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+
+        const x = (e.clientX - rect.left) * scaleX / zoom;
+        const y = (e.clientY - rect.top) * scaleY / zoom;
+
+        setDrawEnd({ x, y });
+    };
+
+    const handleCanvasMouseUp = () => {
+        if (!isDrawing || !drawStart || !drawEnd) return;
+
+        const x = Math.min(drawStart.x, drawEnd.x);
+        const y = Math.min(drawStart.y, drawEnd.y);
+        const width = Math.abs(drawEnd.x - drawStart.x);
+        const height = Math.abs(drawEnd.y - drawStart.y);
+
+        // Update manual offset and frame dimensions
+        setManualOffset({ x: Math.round(x), y: Math.round(y) });
+        setSpriteState({
+            ...spriteState,
+            frameWidth: Math.round(width),
+            frameHeight: Math.round(height)
+        });
+
+        // Reset drawing state
+        setIsDrawing(false);
+        setDrawStart(null);
+        setDrawEnd(null);
     };
 
     return (
@@ -300,33 +377,6 @@ export default function SpritesView() {
                                             />
                                         </div>
                                     </div>
-
-                                    {previewImage && spriteState.file && (
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            className="text-xs h-7 w-full"
-                                            onClick={() => setShowSpriteSelector(!showSpriteSelector)}
-                                        >
-                                            {showSpriteSelector ? 'Hide Selector' : 'Select on Image'}
-                                        </Button>
-                                    )}
-
-                                    {showSpriteSelector && previewImage && spriteState.file && (
-                                        <SpriteSelector
-                                            blob_id={`temp_${spriteState.file.name}`}
-                                            onSelect={(x, y, width, height) => {
-                                                setManualOffset({ x, y });
-                                                setSpriteState({
-                                                    ...spriteState,
-                                                    frameWidth: width,
-                                                    frameHeight: height
-                                                });
-                                                setShowSpriteSelector(false);
-                                            }}
-                                        />
-                                    )}
                                 </div>
                             )}
 
@@ -479,10 +529,15 @@ export default function SpritesView() {
                                 <div className="overflow-auto border rounded-lg bg-checkerboard p-4" style={{ maxHeight: '500px' }}>
                                     <canvas
                                         ref={previewCanvasRef}
+                                        onMouseDown={handleCanvasMouseDown}
+                                        onMouseMove={handleCanvasMouseMove}
+                                        onMouseUp={handleCanvasMouseUp}
+                                        onMouseLeave={handleCanvasMouseUp}
                                         style={{
                                             imageRendering: 'pixelated',
                                             transform: `scale(${zoom})`,
                                             transformOrigin: 'top left',
+                                            cursor: detectionMode === 'manual' ? 'crosshair' : 'default',
                                         }}
                                     />
                                 </div>
