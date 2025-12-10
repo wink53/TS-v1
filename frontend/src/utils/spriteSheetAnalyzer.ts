@@ -35,6 +35,8 @@ export async function analyzeSpriteSheet(
         alphaThreshold?: number;
         detectionMode?: DetectionMode;
         blackThreshold?: number;
+        manualOffsetX?: number;
+        manualOffsetY?: number;
     } = {}
 ): Promise<SpriteSheetAnalysis> {
     const {
@@ -45,7 +47,9 @@ export async function analyzeSpriteSheet(
         minHeight = 8,
         alphaThreshold = 10,
         detectionMode = 'alpha',
-        blackThreshold = 15
+        blackThreshold = 15,
+        manualOffsetX = 0,
+        manualOffsetY = 0
     } = options;
 
     console.log(`🔍 Using detection mode: ${detectionMode}`);
@@ -155,8 +159,8 @@ export async function analyzeSpriteSheet(
 
         for (let row = 0; row < totalRows; row++) {
             for (let col = 0; col < totalCols; col++) {
-                const cellX = col * expectedFrameWidth;
-                const cellY = row * expectedFrameHeight;
+                const cellX = col * expectedFrameWidth + manualOffsetX;
+                const cellY = row * expectedFrameHeight + manualOffsetY;
 
                 // In blackBorder mode, only consider cells that have a black border
                 if (detectionMode === 'blackBorder') {

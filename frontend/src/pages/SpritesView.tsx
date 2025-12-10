@@ -66,6 +66,8 @@ export default function SpritesView() {
                     expectedFrameHeight: spriteState.frameHeight,
                     expectedFrameCount: spriteState.frameCount,
                     detectionMode: detectionMode,
+                    manualOffsetX: manualOffset.x,
+                    manualOffsetY: manualOffset.y,
                 });
                 setDetectedFrames(analysis.frames);
             } catch (error) {
@@ -220,16 +222,9 @@ export default function SpritesView() {
         const canvas = previewCanvasRef.current;
         const rect = canvas.getBoundingClientRect();
 
-        console.log('MouseDown - clientX:', e.clientX, 'clientY:', e.clientY);
-        console.log('Rect - left:', rect.left, 'top:', rect.top, 'width:', rect.width, 'height:', rect.height);
-        console.log('Canvas - width:', canvas.width, 'height:', canvas.height);
-        console.log('Zoom:', zoom);
-
         // Calculate actual position on the canvas (accounting for zoom)
         const x = (e.clientX - rect.left) / zoom;
         const y = (e.clientY - rect.top) / zoom;
-
-        console.log('Calculated position - x:', x, 'y:', y);
 
         setIsDrawing(true);
         setDrawStart({ x, y });
@@ -256,9 +251,6 @@ export default function SpritesView() {
         const y = Math.min(drawStart.y, drawEnd.y);
         const width = Math.abs(drawEnd.x - drawStart.x);
         const height = Math.abs(drawEnd.y - drawStart.y);
-
-        console.log('Mouse Up - Start:', drawStart, 'End:', drawEnd);
-        console.log('Calculated - X:', x, 'Y:', y, 'Width:', width, 'Height:', height);
 
         // Update manual offset and frame dimensions
         setManualOffset({ x: Math.round(x), y: Math.round(y) });
