@@ -44,11 +44,36 @@ export default function SpritesView() {
     const [detectedFrames, setDetectedFrames] = useState<any[]>([]);
     const [isAnimating, setIsAnimating] = useState(true);
     const [currentFrame, setCurrentFrame] = useState(0);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
 
     const previewCanvasRef = useRef<HTMLCanvasElement>(null);
     const animationCanvasRef = useRef<HTMLCanvasElement>(null);
 
-    // Load and analyze sprite sheet when file changes
+    // Re-analyze sprite sheet when settings change
+    useEffect(() => {
+        if (!previewImage) return;
+
+        const analyzeSprite = async () => {
+            setIsAnalyzing(true);
+            try {
+                const analysis = await analyzeSpriteSheet(previewImage, {
+                    expectedFrameWidth: spriteState.frameWidth,
+                    expectedFrameHeight: spriteState.frameHeight,
+                    expectedFrameCount: spriteState.frameCount,
+                    detectionMode: detectionMode,
+                });
+                setDetectedFrames(analysis.frames);
+            } catch (error) {
+                console.error('Analysis error:', error);
+            } finally {
+                setIsAnalyzing(false);
+            }
+        };
+
+        analyzeSprite();
+    }, [previewImage, detectionMode, spriteState.frameWidth, spriteState.frameHeight, spriteState.frameCount, manualOffset]);
+
+    // Load sprite sheet when file changes
     useEffect(() => {
         if (!spriteState.file) {
             setPreviewImage(null);
@@ -59,23 +84,13 @@ export default function SpritesView() {
         const reader = new FileReader();
         reader.onload = async (e) => {
             const img = new Image();
-            img.onload = async () => {
+            img.onload = () => {
                 setPreviewImage(img);
-
-                // Analyze sprite sheet
-                const analysis = await analyzeSpriteSheet(img, {
-                    expectedFrameWidth: spriteState.frameWidth,
-                    expectedFrameHeight: spriteState.frameHeight,
-                    expectedFrameCount: spriteState.frameCount,
-                    detectionMode: detectionMode,
-                });
-
-                setDetectedFrames(analysis.frames);
             };
             img.src = e.target?.result as string;
         };
         reader.readAsDataURL(spriteState.file);
-    }, [spriteState.file, detectionMode, spriteState.frameWidth, spriteState.frameHeight, manualOffset]);
+    }, [spriteState.file]);
 
     // Draw preview with frame overlays
     useEffect(() => {
@@ -423,8 +438,18 @@ export default function SpritesView() {
                                 </div>
 
                                 <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                    <span>Green boxes show detected frames ({detectedFrames.length} found)</span>
+                                    <span>
+                                        {isAnalyzing ? (
+                                            <span className="text-blue-500">⏳ Analyzing...</span>
+                                        ) : (
+                                            <>Green boxes show detected frames ({detectedFrames.length} found)</>
+                                        )}
+                                    </span>
                                     <span>{previewImage.width} × {previewImage.height}px</span>
+                                </div>
+
+                                <div className="text-xs text-muted-foreground bg-blue-50 dark:bg-blue-950 p-2 rounded border border-blue-200 dark:border-blue-800">
+                                    💡 <strong>Tip:</strong> Adjust detection mode, frame dimensions, or offsets above - the preview updates instantly!
                                 </div>
 
                                 {/* Animated Preview */}
