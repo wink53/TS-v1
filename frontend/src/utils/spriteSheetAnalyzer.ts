@@ -243,6 +243,7 @@ export async function analyzeSpriteSheet(
 
 /**
  * Finds the bounding box of a sprite within a specific grid cell
+ * Returns the FULL CELL dimensions to ensure consistent frame sizes
  */
 function findSpriteInCell(
     cellX: number,
@@ -253,33 +254,27 @@ function findSpriteInCell(
     minWidth: number,
     minHeight: number
 ): SpriteFrame | null {
-    let minX = cellX + cellWidth;
-    let minY = cellY + cellHeight;
-    let maxX = cellX;
-    let maxY = cellY;
     let foundPixels = false;
 
-    // Scan the cell to find bounds of opaque pixels
-    for (let y = cellY; y < cellY + cellHeight; y++) {
-        for (let x = cellX; x < cellX + cellWidth; x++) {
+    // Scan the cell to check if it contains any opaque pixels
+    for (let y = cellY; y < cellY + cellHeight && !foundPixels; y++) {
+        for (let x = cellX; x < cellX + cellWidth && !foundPixels; x++) {
             if (isOpaque(x, y)) {
                 foundPixels = true;
-                minX = Math.min(minX, x);
-                minY = Math.min(minY, y);
-                maxX = Math.max(maxX, x);
-                maxY = Math.max(maxY, y);
             }
         }
     }
 
     if (!foundPixels) return null;
 
-    const width = maxX - minX + 1;
-    const height = maxY - minY + 1;
-
-    if (width < minWidth || height < minHeight) return null;
-
-    return { x: minX, y: minY, width, height };
+    // Return the FULL CELL dimensions instead of tight bounding box
+    // This ensures all frames have consistent sizes
+    return {
+        x: cellX,
+        y: cellY,
+        width: cellWidth,
+        height: cellHeight
+    };
 }
 
 /**

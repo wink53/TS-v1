@@ -8,10 +8,11 @@ import { PrefabsView } from './pages/PrefabsView';
 import { MapsView } from './pages/MapsView';
 import { EditorView } from './pages/EditorView';
 import { CharactersView } from './pages/CharactersView';
+import SpritesView from './pages/SpritesView';
 import { Dashboard } from './pages/Dashboard';
 import { Toaster } from '@/components/ui/sonner';
 
-export type ViewType = 'dashboard' | 'tiles' | 'objects' | 'tileSets' | 'prefabs' | 'maps' | 'editor' | 'characters';
+export type ViewType = 'dashboard' | 'tiles' | 'objects' | 'tileSets' | 'prefabs' | 'maps' | 'editor' | 'characters' | 'sprites';
 export type PaletteTab = 'tiles' | 'objects' | 'characters' | 'npcs';
 
 function App() {
@@ -47,6 +48,8 @@ function App() {
         return <EditorView mapId={selectedMapId} onBack={handleBackFromEditor} />;
       case 'characters':
         return <CharactersView />;
+      case 'sprites':
+        return <SpritesView />;
       default:
         return <Dashboard onNavigate={setCurrentView} />;
     }

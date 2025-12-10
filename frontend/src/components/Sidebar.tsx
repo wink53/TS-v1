@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, Square, Box, Layers, Package, Map, User } from 'lucide-react';
+import { LayoutDashboard, Square, Box, Layers, Package, Map, User, Image } from 'lucide-react';
 import type { ViewType } from '../App';
 
 interface SidebarProps {
@@ -14,6 +14,7 @@ const navItems = [
   { id: 'tileSets' as ViewType, label: 'Tile Sets', icon: Layers },
   { id: 'prefabs' as ViewType, label: 'Prefabs', icon: Package },
   { id: 'maps' as ViewType, label: 'Maps', icon: Map },
+  { id: 'sprites' as ViewType, label: 'Sprites', icon: Image },
   { id: 'characters' as ViewType, label: 'Characters', icon: User },
 ];
 
