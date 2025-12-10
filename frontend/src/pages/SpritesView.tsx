@@ -63,23 +63,14 @@ export default function SpritesView() {
                 setPreviewImage(img);
 
                 // Analyze sprite sheet
-                const canvas = document.createElement('canvas');
-                canvas.width = img.width;
-                canvas.height = img.height;
-                const ctx = canvas.getContext('2d');
-                if (ctx) {
-                    ctx.drawImage(img, 0, 0);
+                const analysis = await analyzeSpriteSheet(img, {
+                    expectedFrameWidth: spriteState.frameWidth,
+                    expectedFrameHeight: spriteState.frameHeight,
+                    expectedFrameCount: spriteState.frameCount,
+                    detectionMode: detectionMode,
+                });
 
-                    const analysis = await analyzeSpriteSheet(
-                        canvas,
-                        detectionMode,
-                        spriteState.frameWidth,
-                        spriteState.frameHeight,
-                        manualOffset
-                    );
-
-                    setDetectedFrames(analysis.frames);
-                }
+                setDetectedFrames(analysis.frames);
             };
             img.src = e.target?.result as string;
         };
