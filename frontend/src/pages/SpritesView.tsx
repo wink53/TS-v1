@@ -300,6 +300,33 @@ export default function SpritesView() {
                                             />
                                         </div>
                                     </div>
+
+                                    {previewImage && spriteState.file && (
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            className="text-xs h-7 w-full"
+                                            onClick={() => setShowSpriteSelector(!showSpriteSelector)}
+                                        >
+                                            {showSpriteSelector ? 'Hide Selector' : 'Select on Image'}
+                                        </Button>
+                                    )}
+
+                                    {showSpriteSelector && previewImage && spriteState.file && (
+                                        <SpriteSelector
+                                            blob_id={`temp_${spriteState.file.name}`}
+                                            onSelect={(x, y, width, height) => {
+                                                setManualOffset({ x, y });
+                                                setSpriteState({
+                                                    ...spriteState,
+                                                    frameWidth: width,
+                                                    frameHeight: height
+                                                });
+                                                setShowSpriteSelector(false);
+                                            }}
+                                        />
+                                    )}
                                 </div>
                             )}
 
