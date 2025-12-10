@@ -219,11 +219,10 @@ export default function SpritesView() {
 
         const canvas = previewCanvasRef.current;
         const rect = canvas.getBoundingClientRect();
-        const scaleX = canvas.width / rect.width;
-        const scaleY = canvas.height / rect.height;
 
-        const x = (e.clientX - rect.left) * scaleX / zoom;
-        const y = (e.clientY - rect.top) * scaleY / zoom;
+        // Calculate actual position on the canvas (accounting for zoom)
+        const x = (e.clientX - rect.left) / zoom;
+        const y = (e.clientY - rect.top) / zoom;
 
         setIsDrawing(true);
         setDrawStart({ x, y });
@@ -235,11 +234,10 @@ export default function SpritesView() {
 
         const canvas = previewCanvasRef.current;
         const rect = canvas.getBoundingClientRect();
-        const scaleX = canvas.width / rect.width;
-        const scaleY = canvas.height / rect.height;
 
-        const x = (e.clientX - rect.left) * scaleX / zoom;
-        const y = (e.clientY - rect.top) * scaleY / zoom;
+        // Calculate actual position on the canvas (accounting for zoom)
+        const x = (e.clientX - rect.left) / zoom;
+        const y = (e.clientY - rect.top) / zoom;
 
         setDrawEnd({ x, y });
     };
