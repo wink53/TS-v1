@@ -45,6 +45,11 @@ export default function SpritesView() {
     const [isAnimating, setIsAnimating] = useState(true);
     const [currentFrame, setCurrentFrame] = useState(0);
 
+    // Manual selection drawing state
+    const [isDrawing, setIsDrawing] = useState(false);
+    const [drawStart, setDrawStart] = useState<{ x: number; y: number } | null>(null);
+    const [drawEnd, setDrawEnd] = useState<{ x: number; y: number } | null>(null);
+
     const previewCanvasRef = useRef<HTMLCanvasElement>(null);
     const animationCanvasRef = useRef<HTMLCanvasElement>(null);
 
