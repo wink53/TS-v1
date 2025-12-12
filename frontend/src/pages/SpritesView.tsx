@@ -96,18 +96,37 @@ export default function SpritesView() {
         // Draw image
         ctx.drawImage(previewImage, 0, 0);
 
-        // Draw green boxes over detected frames
-        ctx.strokeStyle = '#00ff00';
-        ctx.lineWidth = 2;
-        detectedFrames.forEach((frame, i) => {
-            ctx.strokeRect(frame.x, frame.y, frame.width, frame.height);
+        // Draw green boxes over detected frames (only if not currently drawing in manual mode)
+        if (detectionMode !== 'manual' || !isDrawing) {
+            ctx.strokeStyle = '#00ff00';
+            ctx.lineWidth = 2;
+            detectedFrames.forEach((frame, i) => {
+                ctx.strokeRect(frame.x, frame.y, frame.width, frame.height);
 
-            // Draw frame number
+                // Draw frame number
+                ctx.fillStyle = '#00ff00';
+                ctx.font = '12px monospace';
+                ctx.fillText(`${i + 1}`, frame.x + 4, frame.y + 14);
+            });
+        }
+
+        // Draw selection box in manual mode
+        if (detectionMode === 'manual' && drawStart && drawEnd) {
+            const x = Math.min(drawStart.x, drawEnd.x);
+            const y = Math.min(drawStart.y, drawEnd.y);
+            const width = Math.abs(drawEnd.x - drawStart.x);
+            const height = Math.abs(drawEnd.y - drawStart.y);
+
+            ctx.strokeStyle = '#00ff00';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(x, y, width, height);
+
+            // Draw dimensions
             ctx.fillStyle = '#00ff00';
-            ctx.font = '12px monospace';
-            ctx.fillText(`${i + 1}`, frame.x + 4, frame.y + 14);
-        });
-    }, [previewImage, detectedFrames]);
+            ctx.font = '14px monospace';
+            ctx.fillText(`${Math.round(width)} × ${Math.round(height)}`, x, y - 5);
+        }
+    }, [previewImage, detectedFrames, detectionMode, isDrawing, drawStart, drawEnd]);
 
     // Animate sprite preview
     useEffect(() => {
@@ -178,6 +197,60 @@ export default function SpritesView() {
             toast.error('Failed to upload sprite');
         }
     };
+
+    // Mouse handlers for manual selection
+    const handleCanvasMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+        if (detectionMode !== 'manual' || !previewCanvasRef.current) return;
+
+        const canvas = previewCanvasRef.current;
+        const rect = canvas.getBoundingClientRect();
+        const x = (e.clientX - rect.left) / zoom;
+        const y = (e.clientY - rect.top) / zoom;
+
+        setIsDrawing(true);
+        setDrawStart({ x, y });
+        setDrawEnd({ x, y });
+    };
+
+    const handleCanvasMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+        if (!isDrawing || !previewCanvasRef.current) return;
+
+        const canvas = previewCanvasRef.current;
+        const rect = canvas.getBoundingClientRect();
+        const x = (e.clientX - rect.left) / zoom;
+        const y = (e.clientY - rect.top) / zoom;
+
+        setDrawEnd({ x, y });
+    };
+
+    const handleCanvasMouseUp = () => {
+        if (!isDrawing || !drawStart || !drawEnd) return;
+
+        const x = Math.min(drawStart.x, drawEnd.x);
+        const y = Math.min(drawStart.y, drawEnd.y);
+        const width = Math.abs(drawEnd.x - drawStart.x);
+        const height = Math.abs(drawEnd.y - drawStart.y);
+
+        setManualOffset({ x: Math.round(x), y: Math.round(y) });
+        setSpriteState(prev => ({
+            ...prev,
+            frameWidth: Math.round(width),
+            frameHeight: Math.round(height),
+        }));
+
+        setIsDrawing(false);
+        setDrawStart(null);
+        setDrawEnd(null);
+    };
+
+    const handleCanvasMouseLeave = () => {
+        if (isDrawing) {
+            setIsDrawing(false);
+            setDrawStart(null);
+            setDrawEnd(null);
+        }
+    };
+
 
     return (
         <div className="p-6 max-w-[1800px] mx-auto">
@@ -423,7 +496,12 @@ export default function SpritesView() {
                                             imageRendering: 'pixelated',
                                             transform: `scale(${zoom})`,
                                             transformOrigin: 'top left',
+                                            cursor: detectionMode === 'manual' ? 'crosshair' : 'default',
                                         }}
+                                        onMouseDown={handleCanvasMouseDown}
+                                        onMouseMove={handleCanvasMouseMove}
+                                        onMouseUp={handleCanvasMouseUp}
+                                        onMouseLeave={handleCanvasMouseLeave}
                                     />
                                 </div>
 
