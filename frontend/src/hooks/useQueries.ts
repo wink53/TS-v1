@@ -547,4 +547,109 @@ export function useGetCharacterSpriteSheet(blob_id: string) {
   });
 }
 
+// Sprite Sheet Hooks
+export function useListSpriteSheets() {
+  const { actor, isFetching } = useActor();
 
+  return useQuery({
+    queryKey: ['spriteSheets'],
+    queryFn: async () => {
+      if (!actor) return [];
+      return (actor as any).listSpriteSheets();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useGetSpriteSheet(id: string) {
+  const { actor, isFetching } = useActor();
+
+  return useQuery({
+    queryKey: ['spriteSheet', id],
+    queryFn: async () => {
+      if (!actor) return null;
+      const result = await (actor as any).getSpriteSheet(id);
+      if ('ok' in result) return result.ok;
+      return null;
+    },
+    enabled: !!actor && !isFetching && !!id,
+  });
+}
+
+export function useCreateSpriteSheet() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (sheet: any) => {
+      if (!actor) throw new Error('Actor not initialized');
+      return (actor as any).createSpriteSheet(sheet);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['spriteSheets'] });
+    },
+  });
+}
+
+export function useUpdateSpriteSheet() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, sheet }: { id: string; sheet: any }) => {
+      if (!actor) throw new Error('Actor not initialized');
+      return (actor as any).updateSpriteSheet(id, sheet);
+    },
+    onSuccess: (_: any, variables: any) => {
+      queryClient.invalidateQueries({ queryKey: ['spriteSheets'] });
+      queryClient.invalidateQueries({ queryKey: ['spriteSheet', variables.id] });
+    },
+  });
+}
+
+export function useDeleteSpriteSheet() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      if (!actor) throw new Error('Actor not initialized');
+      return (actor as any).deleteSpriteSheet(id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['spriteSheets'] });
+    },
+  });
+}
+
+export function useAddAnimationToSheet() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ sheetId, animation }: { sheetId: string; animation: any }) => {
+      if (!actor) throw new Error('Actor not initialized');
+      return (actor as any).addAnimationToSheet(sheetId, animation);
+    },
+    onSuccess: (_: any, variables: any) => {
+      queryClient.invalidateQueries({ queryKey: ['spriteSheet', variables.sheetId] });
+      queryClient.invalidateQueries({ queryKey: ['spriteSheets'] });
+    },
+  });
+}
+
+export function useRemoveAnimationFromSheet() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ sheetId, animationName }: { sheetId: string; animationName: string }) => {
+      if (!actor) throw new Error('Actor not initialized');
+      return (actor as any).removeAnimationFromSheet(sheetId, animationName);
+    },
+    onSuccess: (_: any, variables: any) => {
+      queryClient.invalidateQueries({ queryKey: ['spriteSheet', variables.sheetId] });
+      queryClient.invalidateQueries({ queryKey: ['spriteSheets'] });
+    },
+  });
+}

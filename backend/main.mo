@@ -1,6 +1,7 @@
 import OrderedMap "mo:base/OrderedMap";
 import Text "mo:base/Text";
 import Iter "mo:base/Iter";
+import Array "mo:base/Array";
 // TODO: Configure blob storage for ICP deployment
 // import MixinStorage "blob-storage/Mixin";
 // import Storage "blob-storage/Storage";
@@ -22,6 +23,7 @@ persistent actor Backend {
   var stable_object_images : [(Text, Blob)] = [];
   var stable_playable_characters : [(Text, PlayableCharacter)] = [];
   var stable_character_sprite_sheets : [(Text, Blob)] = [];
+  var stable_sprite_sheets : [(Text, SpriteSheet)] = [];
 
   type TileMetadata = {
     id : Text;
@@ -139,13 +141,6 @@ persistent actor Backend {
     overshield : ?Nat;
   };
 
-  type AnimationState = {
-    #idle;
-    #walk;
-    #run;
-    #attack;
-  };
-
   type Direction = {
     #up;
     #down;
@@ -153,13 +148,25 @@ persistent actor Backend {
     #right;
   };
 
+  type Animation = {
+    name : Text;              // e.g., "walk_down", "attack_left"
+    action_type : Text;       // e.g., "walk", "attack", "jump"
+    direction : ?Direction;   // Optional direction
+    frame_start : Nat;        // Starting frame index in sheet
+    frame_count : Nat;        // Number of frames for this animation
+    frame_rate : ?Nat;        // Optional FPS for animation
+  };
+
   type SpriteSheet = {
-    state : AnimationState;
-    direction : Direction;
-    blob_id : Text;
-    frame_count : Nat;
+    id : Text;                // Unique sheet ID
+    name : Text;              // User-friendly name
+    blob_id : Text;           // Reference to uploaded image
     frame_width : Nat;
     frame_height : Nat;
+    total_frames : Nat;       // Total frames in the sheet
+    animations : [Animation]; // Multiple animations defined on this sheet
+    created_at : Int;
+    updated_at : Int;
   };
 
   type PlayableCharacter = {
@@ -189,6 +196,7 @@ persistent actor Backend {
   transient var maps : OrderedMap.Map<Text, MapData> = textMap.empty<MapData>();
   transient var playable_characters : OrderedMap.Map<Text, PlayableCharacter> = textMap.empty<PlayableCharacter>();
   transient var character_sprite_sheets : OrderedMap.Map<Text, Blob> = textMap.empty<Blob>();
+  transient var sprite_sheets : OrderedMap.Map<Text, SpriteSheet> = textMap.empty<SpriteSheet>();
 
 
   public func createTile(metadata : TileMetadata) : async {
@@ -509,6 +517,122 @@ persistent actor Backend {
     textMap.get(character_sprite_sheets, blob_id)
   };
 
+  // Sprite Sheet CRUD Operations
+  public func createSpriteSheet(sheet : SpriteSheet) : async {
+    #ok : Text;
+    #err : ValidationError;
+  } {
+    switch (textMap.get(sprite_sheets, sheet.id)) {
+      case (?_) {
+        #err({ code = "409"; message = "Sprite sheet already exists"; fix_attempted = false })
+      };
+      case null {
+        sprite_sheets := textMap.put(sprite_sheets, sheet.id, sheet);
+        #ok(sheet.id)
+      };
+    };
+  };
+
+  public query func getSpriteSheet(id : Text) : async {
+    #ok : SpriteSheet;
+    #err : ValidationError;
+  } {
+    switch (textMap.get(sprite_sheets, id)) {
+      case (?sheet) { #ok(sheet) };
+      case null { #err({ code = "404"; message = "Sprite sheet not found"; fix_attempted = false }) };
+    };
+  };
+
+  public query func listSpriteSheets() : async [SpriteSheet] {
+    Iter.toArray(textMap.vals(sprite_sheets))
+  };
+
+  public func updateSpriteSheet(id : Text, sheet : SpriteSheet) : async {
+    #ok : Text;
+    #err : ValidationError;
+  } {
+    switch (textMap.get(sprite_sheets, id)) {
+      case null { #err({ code = "404"; message = "Sprite sheet not found"; fix_attempted = false }) };
+      case (?_) {
+        sprite_sheets := textMap.put(sprite_sheets, id, sheet);
+        #ok(id)
+      };
+    };
+  };
+
+  public func deleteSpriteSheet(id : Text) : async {
+    #ok : Text;
+    #err : ValidationError;
+  } {
+    switch (textMap.get(sprite_sheets, id)) {
+      case null { #err({ code = "404"; message = "Sprite sheet not found"; fix_attempted = false }) };
+      case (?_) {
+        sprite_sheets := textMap.delete(sprite_sheets, id);
+        #ok(id)
+      };
+    };
+  };
+
+  // Animation Management within Sprite Sheets
+  public func addAnimationToSheet(sheet_id : Text, animation : Animation) : async {
+    #ok : Text;
+    #err : ValidationError;
+  } {
+    switch (textMap.get(sprite_sheets, sheet_id)) {
+      case null { #err({ code = "404"; message = "Sprite sheet not found"; fix_attempted = false }) };
+      case (?sheet) {
+        // Check if animation name already exists
+        let existingAnimation = Array.find<Animation>(sheet.animations, func(a) { a.name == animation.name });
+        switch (existingAnimation) {
+          case (?_) {
+            #err({ code = "409"; message = "Animation with this name already exists"; fix_attempted = false })
+          };
+          case null {
+            let updatedAnimations = Array.append<Animation>(sheet.animations, [animation]);
+            let updatedSheet = {
+              id = sheet.id;
+              name = sheet.name;
+              blob_id = sheet.blob_id;
+              frame_width = sheet.frame_width;
+              frame_height = sheet.frame_height;
+              total_frames = sheet.total_frames;
+              animations = updatedAnimations;
+              created_at = sheet.created_at;
+              updated_at = sheet.updated_at;
+            };
+            sprite_sheets := textMap.put(sprite_sheets, sheet_id, updatedSheet);
+            #ok(sheet_id)
+          };
+        };
+      };
+    };
+  };
+
+  public func removeAnimationFromSheet(sheet_id : Text, animation_name : Text) : async {
+    #ok : Text;
+    #err : ValidationError;
+  } {
+    switch (textMap.get(sprite_sheets, sheet_id)) {
+      case null { #err({ code = "404"; message = "Sprite sheet not found"; fix_attempted = false }) };
+      case (?sheet) {
+        let updatedAnimations = Array.filter<Animation>(sheet.animations, func(a) { a.name != animation_name });
+        let updatedSheet = {
+          id = sheet.id;
+          name = sheet.name;
+          blob_id = sheet.blob_id;
+          frame_width = sheet.frame_width;
+          frame_height = sheet.frame_height;
+          total_frames = sheet.total_frames;
+          animations = updatedAnimations;
+          created_at = sheet.created_at;
+          updated_at = sheet.updated_at;
+        };
+        sprite_sheets := textMap.put(sprite_sheets, sheet_id, updatedSheet);
+        #ok(sheet_id)
+      };
+    };
+  };
+
 
   // System upgrade hooks for stable memory persistence
   system func preupgrade() {
@@ -522,6 +646,7 @@ persistent actor Backend {
     stable_object_images := Iter.toArray(textMap.entries(object_images));
     stable_playable_characters := Iter.toArray(textMap.entries(playable_characters));
     stable_character_sprite_sheets := Iter.toArray(textMap.entries(character_sprite_sheets));
+    stable_sprite_sheets := Iter.toArray(textMap.entries(sprite_sheets));
   };
 
   system func postupgrade() {
@@ -535,6 +660,7 @@ persistent actor Backend {
     object_images := textMap.fromIter<Blob>(stable_object_images.vals());
     playable_characters := textMap.fromIter<PlayableCharacter>(stable_playable_characters.vals());
     character_sprite_sheets := textMap.fromIter<Blob>(stable_character_sprite_sheets.vals());
+    sprite_sheets := textMap.fromIter<SpriteSheet>(stable_sprite_sheets.vals());
 
     // Clear stable variables to free memory (optional but recommended)
     stable_tiles := [];
@@ -546,5 +672,6 @@ persistent actor Backend {
     stable_object_images := [];
     stable_playable_characters := [];
     stable_character_sprite_sheets := [];
+    stable_sprite_sheets := [];
   };
 };
