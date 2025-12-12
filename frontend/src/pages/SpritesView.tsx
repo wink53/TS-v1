@@ -378,6 +378,7 @@ export default function SpritesView() {
                                     <BackgroundRemover
                                         imageFile={sheetData.file}
                                         onProcessed={setProcessedImageBlob}
+                                        onCancel={() => setRemoveBackground(false)}
                                     />
                                 )}
 
