@@ -1,42 +1,49 @@
 import { useState, useRef, useEffect } from 'react';
-import { Upload, ZoomIn, ZoomOut, Play, Pause } from 'lucide-react';
+import { Upload, ZoomIn, ZoomOut, Play, Pause, Plus, Trash2, Edit2, Save } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { toast } from 'sonner';
-import { useUploadCharacterSpriteSheet } from '../hooks/useQueries';
+import {
+    useCreateSpriteSheet,
+    useUploadCharacterSpriteSheet,
+    useAddAnimationToSheet
+} from '../hooks/useQueries';
 import { BackgroundRemover } from '../components/BackgroundRemover';
-import { SpriteSelector } from '../components/SpriteSelector';
 import { analyzeSpriteSheet, type DetectionMode } from '../utils/spriteSheetAnalyzer';
+import type { Animation, Direction, PREDEFINED_ACTION_TYPES } from '../types/spriteSheet';
+
+const PREDEFINED_ACTIONS = [
+    'walk', 'run', 'sprint', 'crouch', 'crawl',
+    'attack', 'defend', 'block', 'dodge', 'cast',
+    'idle', 'death', 'hurt', 'stunned',
+    'interact', 'pickup', 'use', 'throw',
+    'celebrate', 'taunt', 'emote',
+] as const;
 
 export default function SpritesView() {
-    const uploadSpriteSheet = useUploadCharacterSpriteSheet();
+    const createSpriteSheet = useCreateSpriteSheet();
+    const uploadBlob = useUploadCharacterSpriteSheet();
+    const addAnimation = useAddAnimationToSheet();
 
-    const [spriteState, setSpriteState] = useState<{
-        name: string;
-        state: 'idle' | 'walk' | 'run' | 'attack';
-        direction: 'up' | 'down' | 'left' | 'right';
-        file: File | null;
-        frameCount: number;
-        frameWidth: number;
-        frameHeight: number;
-    }>({
+    // Workflow step: 'upload' | 'define-animations' | 'complete'
+    const [step, setStep] = useState<'upload' | 'define-animations' | 'complete'>('upload');
+
+    // Sheet-level state
+    const [sheetData, setSheetData] = useState({
+        id: '',
         name: '',
-        state: 'idle',
-        direction: 'down',
-        file: null,
-        frameCount: 1,
+        file: null as File | null,
+        blob_id: '',
         frameWidth: 32,
         frameHeight: 32,
+        totalFrames: 0,
     });
 
-    const [detectionMode, setDetectionMode] = useState<DetectionMode>('alpha');
-    const [manualOffset, setManualOffset] = useState({ x: 0, y: 0 });
-    const [removeBackground, setRemoveBackground] = useState(false);
-    const [showBackgroundRemover, setShowBackgroundRemover] = useState(false);
-    const [processedImageBlob, setProcessedImageBlob] = useState<Blob | null>(null);
-    const [showSpriteSelector, setShowSpriteSelector] = useState(false);
+    // Animation being edited
+    const [editingAnimation, setEditingAnimation] = useState<Animation | null>(null);
+    const [animations, setAnimations] = useState<Animation[]>([]);
 
     // Preview state
     const [previewImage, setPreviewImage] = useState<HTMLImageElement | null>(null);
@@ -44,64 +51,66 @@ export default function SpritesView() {
     const [detectedFrames, setDetectedFrames] = useState<any[]>([]);
     const [isAnimating, setIsAnimating] = useState(true);
     const [currentFrame, setCurrentFrame] = useState(0);
-    const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-    // Manual selection drawing state
+    // Background removal
+    const [removeBackground, setRemoveBackground] = useState(false);
+    const [processedImageBlob, setProcessedImageBlob] = useState<Blob | null>(null);
+
+    // Manual frame selection
+    const [detectionMode, setDetectionMode] = useState<DetectionMode>('alpha');
+    const [manualOffset, setManualOffset] = useState({ x: 0, y: 0 });
     const [isDrawing, setIsDrawing] = useState(false);
     const [drawStart, setDrawStart] = useState<{ x: number; y: number } | null>(null);
     const [drawEnd, setDrawEnd] = useState<{ x: number; y: number } | null>(null);
 
     const previewCanvasRef = useRef<HTMLCanvasElement>(null);
     const animationCanvasRef = useRef<HTMLCanvasElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // Re-analyze sprite sheet when settings change
+    // Load sprite sheet image
     useEffect(() => {
-        if (!previewImage) return;
-
-        const analyzeSprite = async () => {
-            setIsAnalyzing(true);
-            try {
-                const analysis = await analyzeSpriteSheet(previewImage, {
-                    expectedFrameWidth: spriteState.frameWidth,
-                    expectedFrameHeight: spriteState.frameHeight,
-                    expectedFrameCount: spriteState.frameCount,
-                    detectionMode: detectionMode,
-                    manualOffsetX: manualOffset.x,
-                    manualOffsetY: manualOffset.y,
-                });
-                setDetectedFrames(analysis.frames);
-            } catch (error) {
-                console.error('Analysis error:', error);
-            } finally {
-                setIsAnalyzing(false);
-            }
-        };
-
-        analyzeSprite();
-    }, [previewImage, detectionMode, spriteState.frameWidth, spriteState.frameHeight, spriteState.frameCount, manualOffset]);
-
-    // Load sprite sheet when file changes
-    useEffect(() => {
-        if (!spriteState.file) {
+        if (!sheetData.file) {
             setPreviewImage(null);
-            setDetectedFrames([]);
             return;
         }
 
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-            const img = new Image();
-            img.onload = () => {
-                setPreviewImage(img);
-            };
-            img.src = e.target?.result as string;
-        };
-        reader.readAsDataURL(spriteState.file);
-    }, [spriteState.file]);
+        const img = new Image();
+        const url = URL.createObjectURL(removeBackground && processedImageBlob ? processedImageBlob : sheetData.file);
 
-    // Draw preview with frame overlays
+        img.onload = () => {
+            setPreviewImage(img);
+            // Auto-calculate total frames based on sheet size
+            const cols = Math.floor(img.width / sheetData.frameWidth);
+            const rows = Math.floor(img.height / sheetData.frameHeight);
+            setSheetData(prev => ({ ...prev, totalFrames: cols * rows }));
+        };
+
+        img.src = url;
+        return () => URL.revokeObjectURL(url);
+    }, [sheetData.file, sheetData.frameWidth, sheetData.frameHeight, removeBackground, processedImageBlob]);
+
+    // Analyze sprite sheet for frame detection
     useEffect(() => {
-        if (!previewImage || !previewCanvasRef.current) return;
+        if (!previewImage) return;
+
+        const analyze = async () => {
+            const analysis = await analyzeSpriteSheet(previewImage, {
+                expectedFrameWidth: sheetData.frameWidth,
+                expectedFrameHeight: sheetData.frameHeight,
+                expectedFrameCount: sheetData.totalFrames,
+                detectionMode,
+                manualOffsetX: manualOffset.x,
+                manualOffsetY: manualOffset.y,
+            });
+            setDetectedFrames(analysis.frames);
+        };
+
+        analyze();
+    }, [previewImage, sheetData.frameWidth, sheetData.frameHeight, sheetData.totalFrames, detectionMode, manualOffset]);
+
+    // Draw preview canvas with frame overlays
+    useEffect(() => {
+        if (!previewCanvasRef.current || !previewImage) return;
 
         const canvas = previewCanvasRef.current;
         const ctx = canvas.getContext('2d');
@@ -110,10 +119,19 @@ export default function SpritesView() {
         canvas.width = previewImage.width;
         canvas.height = previewImage.height;
 
-        // Draw image
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(previewImage, 0, 0);
 
-        // In manual mode, draw selection box if drawing
+        // Draw frame overlays
+        if (detectionMode !== 'manual' || !isDrawing) {
+            ctx.strokeStyle = '#00ff00';
+            ctx.lineWidth = 2;
+            detectedFrames.forEach(frame => {
+                ctx.strokeRect(frame.x, frame.y, frame.width, frame.height);
+            });
+        }
+
+        // Draw selection box in manual mode
         if (detectionMode === 'manual' && drawStart && drawEnd) {
             const x = Math.min(drawStart.x, drawEnd.x);
             const y = Math.min(drawStart.y, drawEnd.y);
@@ -126,39 +144,25 @@ export default function SpritesView() {
 
             // Draw dimensions
             ctx.fillStyle = '#00ff00';
-            ctx.font = '12px monospace';
-            ctx.fillText(`${width} × ${height}`, x + 4, y - 4);
+            ctx.font = '14px monospace';
+            ctx.fillText(`${Math.round(width)} × ${Math.round(height)}`, x, y - 5);
         }
+    }, [previewImage, detectedFrames, detectionMode, isDrawing, drawStart, drawEnd]);
 
-        // Draw green boxes over detected frames (not in manual mode while drawing)
-        if (detectionMode !== 'manual' || !drawStart) {
-            ctx.strokeStyle = '#00ff00';
-            ctx.lineWidth = 2;
-            detectedFrames.forEach((frame: any, i: number) => {
-                ctx.strokeRect(frame.x, frame.y, frame.width, frame.height);
-
-                // Draw frame number
-                ctx.fillStyle = '#00ff00';
-                ctx.font = '12px monospace';
-                ctx.fillText(`${i + 1}`, frame.x + 4, frame.y + 14);
-            });
-        }
-    }, [previewImage, detectedFrames, detectionMode, drawStart, drawEnd]);
-
-    // Animate sprite preview
+    // Animation preview
     useEffect(() => {
-        if (!isAnimating || detectedFrames.length === 0 || !previewImage) return;
+        if (!isAnimating || detectedFrames.length === 0) return;
 
         const interval = setInterval(() => {
-            setCurrentFrame((prev) => (prev + 1) % detectedFrames.length);
-        }, 150);
+            setCurrentFrame(prev => (prev + 1) % detectedFrames.length);
+        }, 100);
 
         return () => clearInterval(interval);
-    }, [isAnimating, detectedFrames.length, previewImage]);
+    }, [isAnimating, detectedFrames.length]);
 
-    // Draw animated preview
+    // Draw animation preview
     useEffect(() => {
-        if (!previewImage || !animationCanvasRef.current || detectedFrames.length === 0) return;
+        if (!animationCanvasRef.current || !previewImage || detectedFrames.length === 0) return;
 
         const canvas = animationCanvasRef.current;
         const ctx = canvas.getContext('2d');
@@ -178,51 +182,12 @@ export default function SpritesView() {
         );
     }, [previewImage, detectedFrames, currentFrame]);
 
-    const handleSpriteUpload = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!spriteState.file || !spriteState.name) {
-            toast.error('Please provide a name and select a file');
-            return;
-        }
-
-        const blobId = `sprite_${spriteState.name}_${spriteState.state}_${spriteState.direction}`;
-
-        try {
-            const fileToUpload = processedImageBlob || spriteState.file;
-            const buffer = await fileToUpload.arrayBuffer();
-            const uint8Array = new Uint8Array(buffer);
-
-            await uploadSpriteSheet.mutateAsync({
-                blob_id: blobId,
-                data: uint8Array
-            });
-
-            toast.success(`Sprite "${spriteState.name}" saved!`);
-
-            // Reset form
-            setSpriteState({
-                ...spriteState,
-                file: null,
-                name: ''
-            });
-            setProcessedImageBlob(null);
-            setRemoveBackground(false);
-            setPreviewImage(null);
-            setDetectedFrames([]);
-        } catch (error) {
-            console.error('Upload error:', error);
-            toast.error('Failed to upload sprite');
-        }
-    };
-
-    // Mouse handlers for drawing on canvas in manual mode
+    // Mouse handlers for manual selection
     const handleCanvasMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
         if (detectionMode !== 'manual' || !previewCanvasRef.current) return;
 
         const canvas = previewCanvasRef.current;
         const rect = canvas.getBoundingClientRect();
-
-        // Calculate actual position on the canvas (accounting for zoom)
         const x = (e.clientX - rect.left) / zoom;
         const y = (e.clientY - rect.top) / zoom;
 
@@ -232,12 +197,10 @@ export default function SpritesView() {
     };
 
     const handleCanvasMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-        if (!isDrawing || detectionMode !== 'manual' || !previewCanvasRef.current) return;
+        if (!isDrawing || !previewCanvasRef.current) return;
 
         const canvas = previewCanvasRef.current;
         const rect = canvas.getBoundingClientRect();
-
-        // Calculate actual position on the canvas (accounting for zoom)
         const x = (e.clientX - rect.left) / zoom;
         const y = (e.clientY - rect.top) / zoom;
 
@@ -252,362 +215,408 @@ export default function SpritesView() {
         const width = Math.abs(drawEnd.x - drawStart.x);
         const height = Math.abs(drawEnd.y - drawStart.y);
 
-        // Update manual offset and frame dimensions
         setManualOffset({ x: Math.round(x), y: Math.round(y) });
-        setSpriteState({
-            ...spriteState,
+        setSheetData(prev => ({
+            ...prev,
             frameWidth: Math.round(width),
-            frameHeight: Math.round(height)
-        });
+            frameHeight: Math.round(height),
+        }));
 
-        // Reset drawing state
         setIsDrawing(false);
         setDrawStart(null);
         setDrawEnd(null);
     };
 
+    const handleCanvasMouseLeave = () => {
+        if (isDrawing) {
+            setIsDrawing(false);
+            setDrawStart(null);
+            setDrawEnd(null);
+        }
+    };
+
+    // Step 1: Upload sprite sheet
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setSheetData(prev => ({ ...prev, file }));
+    };
+
+    const handleContinueToAnimations = async () => {
+        if (!sheetData.file || !sheetData.name) {
+            toast.error('Please provide a name and upload a sprite sheet');
+            return;
+        }
+
+        // Upload the blob
+        const arrayBuffer = await (removeBackground && processedImageBlob ? processedImageBlob : sheetData.file).arrayBuffer();
+        const uint8Array = new Uint8Array(arrayBuffer);
+        const blob_id = `sprite_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+        try {
+            await uploadBlob.mutateAsync({ blob_id, data: Array.from(uint8Array) });
+            setSheetData(prev => ({ ...prev, blob_id, id: blob_id }));
+            setStep('define-animations');
+            toast.success('Sprite sheet uploaded!');
+        } catch (error) {
+            toast.error('Failed to upload sprite sheet');
+            console.error(error);
+        }
+    };
+
+    // Step 2: Define animations
+    const handleAddAnimation = () => {
+        setEditingAnimation({
+            name: '',
+            action_type: 'idle',
+            direction: undefined,
+            frame_start: 0,
+            frame_count: detectedFrames.length,
+            frame_rate: 10,
+        });
+    };
+
+    const handleSaveAnimation = () => {
+        if (!editingAnimation || !editingAnimation.name) {
+            toast.error('Please provide an animation name');
+            return;
+        }
+
+        setAnimations(prev => [...prev, editingAnimation]);
+        setEditingAnimation(null);
+        toast.success(`Animation "${editingAnimation.name}" added!`);
+    };
+
+    const handleDeleteAnimation = (index: number) => {
+        setAnimations(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const handleSaveSheet = async () => {
+        if (animations.length === 0) {
+            toast.error('Please define at least one animation');
+            return;
+        }
+
+        try {
+            await createSpriteSheet.mutateAsync({
+                id: sheetData.id,
+                name: sheetData.name,
+                blob_id: sheetData.blob_id,
+                frame_width: sheetData.frameWidth,
+                frame_height: sheetData.frameHeight,
+                total_frames: sheetData.totalFrames,
+                animations,
+                created_at: BigInt(Date.now()),
+                updated_at: BigInt(Date.now()),
+            });
+
+            toast.success('Sprite sheet saved successfully!');
+            setStep('complete');
+        } catch (error) {
+            toast.error('Failed to save sprite sheet');
+            console.error(error);
+        }
+    };
+
     return (
-        <div className="p-6 max-w-[1800px] mx-auto">
-            <div className="mb-6">
-                <h1 className="text-3xl font-bold">Sprite Editor</h1>
-                <p className="text-muted-foreground mt-1">
-                    Upload and configure sprite sheets for use in your game
-                </p>
+        <div className="p-6 space-y-6">
+            <div className="flex items-center justify-between">
+                <h1 className="text-3xl font-bold">Sprite Sheet Editor</h1>
+                <div className="text-sm text-muted-foreground">
+                    Step {step === 'upload' ? '1' : step === 'define-animations' ? '2' : '3'} of 3
+                </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Left: Upload Form */}
+            {step === 'upload' && (
                 <Card>
                     <CardHeader>
-                        <CardTitle className="text-base">Configuration</CardTitle>
+                        <CardTitle>Upload Sprite Sheet</CardTitle>
                     </CardHeader>
-                    <CardContent>
-                        <form onSubmit={handleSpriteUpload} className="space-y-4">
-                            <div className="space-y-2">
-                                <Label className="text-xs">Sprite Name *</Label>
-                                <Input
-                                    placeholder="e.g., knight, wizard"
-                                    value={spriteState.name}
-                                    onChange={(e) => setSpriteState({ ...spriteState, name: e.target.value })}
-                                    required
-                                />
-                            </div>
+                    <CardContent className="space-y-4">
+                        <div>
+                            <Label htmlFor="sheet-name">Sheet Name</Label>
+                            <Input
+                                id="sheet-name"
+                                value={sheetData.name}
+                                onChange={(e) => setSheetData(prev => ({ ...prev, name: e.target.value }))}
+                                placeholder="e.g., Hero Character"
+                            />
+                        </div>
 
-                            <div className="grid grid-cols-2 gap-2">
-                                <div className="space-y-1">
-                                    <Label className="text-xs">State</Label>
-                                    <select
-                                        className="w-full p-2 text-xs border rounded-md bg-background"
-                                        value={spriteState.state}
-                                        onChange={(e) => setSpriteState({ ...spriteState, state: e.target.value as any })}
-                                    >
-                                        <option value="idle">Idle</option>
-                                        <option value="walk">Walk</option>
-                                        <option value="run">Run</option>
-                                        <option value="attack">Attack</option>
-                                    </select>
-                                </div>
-                                <div className="space-y-1">
-                                    <Label className="text-xs">Direction</Label>
-                                    <select
-                                        className="w-full p-2 text-xs border rounded-md bg-background"
-                                        value={spriteState.direction}
-                                        onChange={(e) => setSpriteState({ ...spriteState, direction: e.target.value as any })}
-                                    >
-                                        <option value="up">Up</option>
-                                        <option value="down">Down</option>
-                                        <option value="left">Left</option>
-                                        <option value="right">Right</option>
-                                    </select>
-                                </div>
+                        <div>
+                            <Label>Sprite Sheet Image</Label>
+                            <div className="flex gap-2">
+                                <Button onClick={() => fileInputRef.current?.click()} variant="outline">
+                                    <Upload className="w-4 h-4 mr-2" />
+                                    Choose File
+                                </Button>
+                                {sheetData.file && <span className="text-sm text-muted-foreground self-center">{sheetData.file.name}</span>}
                             </div>
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/*"
+                                onChange={handleFileUpload}
+                                className="hidden"
+                            />
+                        </div>
 
-                            <div className="space-y-2">
-                                <Label className="text-xs">Detection Mode</Label>
-                                <div className="flex gap-1">
-                                    <Button
-                                        type="button"
-                                        variant={detectionMode === 'alpha' ? 'default' : 'outline'}
-                                        size="sm"
-                                        className="text-xs flex-1"
-                                        onClick={() => setDetectionMode('alpha')}
-                                    >
-                                        Alpha
-                                    </Button>
-                                    <Button
-                                        type="button"
-                                        variant={detectionMode === 'blackBorder' ? 'default' : 'outline'}
-                                        size="sm"
-                                        className="text-xs flex-1"
-                                        onClick={() => setDetectionMode('blackBorder')}
-                                    >
-                                        Border
-                                    </Button>
-                                    <Button
-                                        type="button"
-                                        variant={detectionMode === 'manual' ? 'default' : 'outline'}
-                                        size="sm"
-                                        className="text-xs flex-1"
-                                        onClick={() => setDetectionMode('manual')}
-                                    >
-                                        Manual
-                                    </Button>
+                        {sheetData.file && (
+                            <>
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        type="checkbox"
+                                        id="remove-bg"
+                                        checked={removeBackground}
+                                        onChange={(e) => setRemoveBackground(e.target.checked)}
+                                    />
+                                    <Label htmlFor="remove-bg">Remove Background</Label>
                                 </div>
-                            </div>
 
-                            {detectionMode === 'manual' && (
-                                <div className="space-y-2">
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <div>
-                                            <Label className="text-xs">X Offset</Label>
-                                            <Input
-                                                type="number"
-                                                className="text-xs h-8"
-                                                value={manualOffset.x}
-                                                onChange={(e) => setManualOffset({ ...manualOffset, x: parseInt(e.target.value) || 0 })}
-                                            />
-                                        </div>
-                                        <div>
-                                            <Label className="text-xs">Y Offset</Label>
-                                            <Input
-                                                type="number"
-                                                className="text-xs h-8"
-                                                value={manualOffset.y}
-                                                onChange={(e) => setManualOffset({ ...manualOffset, y: parseInt(e.target.value) || 0 })}
-                                            />
-                                        </div>
+                                {removeBackground && (
+                                    <BackgroundRemover
+                                        imageFile={sheetData.file}
+                                        onProcessed={setProcessedImageBlob}
+                                    />
+                                )}
+
+                                <div className="grid grid-cols-3 gap-4">
+                                    <div>
+                                        <Label htmlFor="frame-width">Frame Width</Label>
+                                        <Input
+                                            id="frame-width"
+                                            type="number"
+                                            value={sheetData.frameWidth}
+                                            onChange={(e) => setSheetData(prev => ({ ...prev, frameWidth: parseInt(e.target.value) || 32 }))}
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="frame-height">Frame Height</Label>
+                                        <Input
+                                            id="frame-height"
+                                            type="number"
+                                            value={sheetData.frameHeight}
+                                            onChange={(e) => setSheetData(prev => ({ ...prev, frameHeight: parseInt(e.target.value) || 32 }))}
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label>Total Frames</Label>
+                                        <Input value={sheetData.totalFrames} disabled />
                                     </div>
                                 </div>
-                            )}
 
-                            <div className="grid grid-cols-3 gap-2">
-                                <div className="space-y-1">
-                                    <Label className="text-xs">Frames</Label>
-                                    <Input
-                                        type="number"
-                                        min="1"
-                                        className="text-xs h-8"
-                                        value={spriteState.frameCount}
-                                        onChange={(e) => setSpriteState({ ...spriteState, frameCount: parseInt(e.target.value) || 1 })}
-                                    />
-                                </div>
-                                <div className="space-y-1">
-                                    <Label className="text-xs">Width</Label>
-                                    <Input
-                                        type="number"
-                                        className="text-xs h-8"
-                                        value={spriteState.frameWidth}
-                                        onChange={(e) => setSpriteState({ ...spriteState, frameWidth: parseInt(e.target.value) || 32 })}
-                                    />
-                                </div>
-                                <div className="space-y-1">
-                                    <Label className="text-xs">Height</Label>
-                                    <Input
-                                        type="number"
-                                        className="text-xs h-8"
-                                        value={spriteState.frameHeight}
-                                        onChange={(e) => setSpriteState({ ...spriteState, frameHeight: parseInt(e.target.value) || 32 })}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label className="text-xs">Sprite Sheet (PNG)</Label>
-                                <Input
-                                    type="file"
-                                    accept="image/png"
-                                    className="text-xs"
-                                    onChange={(e) => setSpriteState({ ...spriteState, file: e.target.files?.[0] || null })}
-                                />
-                            </div>
-
-                            <div className="flex items-center space-x-2">
-                                <input
-                                    type="checkbox"
-                                    id="removeBackground"
-                                    checked={removeBackground}
-                                    onChange={(e) => {
-                                        const checked = e.target.checked;
-                                        setRemoveBackground(checked);
-
-                                        if (checked && previewImage) {
-                                            // Show background remover with current image
-                                            setShowBackgroundRemover(true);
-                                        } else {
-                                            setShowBackgroundRemover(false);
-                                            setProcessedImageBlob(null);
-                                            // Reset to original image if unchecking
-                                            if (spriteState.file && !checked) {
-                                                const reader = new FileReader();
-                                                reader.onload = (e) => {
-                                                    const img = new Image();
-                                                    img.onload = () => setPreviewImage(img);
-                                                    img.src = e.target?.result as string;
-                                                };
-                                                reader.readAsDataURL(spriteState.file);
-                                            }
-                                        }
-                                    }}
-                                    className="h-4 w-4"
-                                    disabled={!previewImage}
-                                />
-                                <Label htmlFor="removeBackground" className="text-xs cursor-pointer">
-                                    Remove background {!previewImage && '(load image first)'}
-                                </Label>
-                            </div>
-
-                            {showBackgroundRemover && spriteState.file && (
-                                <BackgroundRemover
-                                    imageFile={spriteState.file}
-                                    onProcessed={(blob) => {
-                                        setProcessedImageBlob(blob);
-                                        setShowBackgroundRemover(false);
-
-                                        // Update preview image with processed version
-                                        const reader = new FileReader();
-                                        reader.onload = (e) => {
-                                            const img = new Image();
-                                            img.onload = () => setPreviewImage(img);
-                                            img.src = e.target?.result as string;
-                                        };
-                                        reader.readAsDataURL(blob);
-                                    }}
-                                    onCancel={() => {
-                                        setShowBackgroundRemover(false);
-                                        setRemoveBackground(false);
-                                        setProcessedImageBlob(null);
-                                    }}
-                                />
-                            )}
-
-                            <Button
-                                type="submit"
-                                className="w-full text-xs"
-                                size="sm"
-                                disabled={!spriteState.file || !spriteState.name || (removeBackground && !processedImageBlob && !showBackgroundRemover)}
-                            >
-                                <Upload className="mr-2 h-3 w-3" />
-                                Save Sprite
-                            </Button>
-                        </form>
-                    </CardContent>
-                </Card>
-
-                {/* Center: Large Preview */}
-                <Card className="lg:col-span-2">
-                    <CardHeader>
-                        <div className="flex items-center justify-between">
-                            <CardTitle className="text-base">Sprite Sheet Preview</CardTitle>
-                            {previewImage && (
-                                <div className="flex gap-2">
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => setZoom(Math.max(0.5, zoom - 0.5))}
-                                    >
-                                        <ZoomOut className="h-4 w-4" />
-                                    </Button>
-                                    <span className="text-xs flex items-center px-2">{Math.round(zoom * 100)}%</span>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => setZoom(Math.min(4, zoom + 0.5))}
-                                    >
-                                        <ZoomIn className="h-4 w-4" />
-                                    </Button>
-                                </div>
-                            )}
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        {!previewImage ? (
-                            <div className="flex items-center justify-center h-96 border-2 border-dashed rounded-lg">
-                                <p className="text-muted-foreground text-sm">Upload a sprite sheet to see preview</p>
-                            </div>
-                        ) : (
-                            <div className="space-y-4">
-                                <div className="overflow-auto border rounded-lg bg-checkerboard p-4" style={{ maxHeight: '500px' }}>
-                                    <canvas
-                                        ref={previewCanvasRef}
-                                        onMouseDown={handleCanvasMouseDown}
-                                        onMouseMove={handleCanvasMouseMove}
-                                        onMouseUp={handleCanvasMouseUp}
-                                        onMouseLeave={handleCanvasMouseUp}
-                                        style={{
-                                            imageRendering: 'pixelated',
-                                            transform: `scale(${zoom})`,
-                                            transformOrigin: 'top left',
-                                            cursor: detectionMode === 'manual' ? 'crosshair' : 'default',
-                                        }}
-                                    />
-                                </div>
-
-                                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                    <span>
-                                        {isAnalyzing ? (
-                                            <span className="text-blue-500">⏳ Analyzing...</span>
-                                        ) : (
-                                            <>Green boxes show detected frames ({detectedFrames.length} found)</>
-                                        )}
-                                    </span>
-                                    <span>{previewImage.width} × {previewImage.height}px</span>
-                                </div>
-
-                                <div className="text-xs text-muted-foreground bg-blue-50 dark:bg-blue-950 p-2 rounded border border-blue-200 dark:border-blue-800">
-                                    💡 <strong>Tip:</strong> Adjust detection mode, frame dimensions, or offsets above - the preview updates instantly!
-                                </div>
-
-                                {/* Animated Preview */}
-                                {detectedFrames.length > 0 && (
-                                    <div className="flex items-center gap-4 p-4 border rounded-lg bg-muted/30">
-                                        <div className="flex flex-col gap-2">
-                                            <div className="text-xs font-semibold">Animation Preview</div>
-                                            <div className="border rounded bg-checkerboard p-2">
-                                                <canvas
-                                                    ref={animationCanvasRef}
-                                                    style={{
-                                                        imageRendering: 'pixelated',
-                                                        width: '128px',
-                                                        height: '128px',
-                                                    }}
-                                                />
-                                            </div>
-                                            <div className="text-xs text-center text-muted-foreground">
-                                                Frame {currentFrame + 1}/{detectedFrames.length}
+                                {previewImage && (
+                                    <div className="space-y-2">
+                                        <div className="flex items-center justify-between">
+                                            <Label>Preview</Label>
+                                            <div className="flex gap-2">
+                                                <Button size="sm" variant="outline" onClick={() => setZoom(z => Math.max(0.5, z - 0.5))}>
+                                                    <ZoomOut className="w-4 h-4" />
+                                                </Button>
+                                                <Button size="sm" variant="outline" onClick={() => setZoom(z => Math.min(4, z + 0.5))}>
+                                                    <ZoomIn className="w-4 h-4" />
+                                                </Button>
                                             </div>
                                         </div>
-                                        <div className="flex flex-col gap-2">
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => setIsAnimating(!isAnimating)}
-                                            >
-                                                {isAnimating ? <Pause className="h-4 w-4 mr-2" /> : <Play className="h-4 w-4 mr-2" />}
-                                                {isAnimating ? 'Pause' : 'Play'}
-                                            </Button>
-                                            <div className="text-xs text-muted-foreground">
-                                                {spriteState.frameWidth} × {spriteState.frameHeight}px per frame
-                                            </div>
+                                        <div className="border rounded-lg overflow-auto max-h-96">
+                                            <canvas
+                                                ref={previewCanvasRef}
+                                                style={{ transform: `scale(${zoom})`, transformOrigin: 'top left', cursor: detectionMode === 'manual' ? 'crosshair' : 'default' }}
+                                                onMouseDown={handleCanvasMouseDown}
+                                                onMouseMove={handleCanvasMouseMove}
+                                                onMouseUp={handleCanvasMouseUp}
+                                                onMouseLeave={handleCanvasMouseLeave}
+                                            />
                                         </div>
                                     </div>
                                 )}
-                            </div>
+
+                                <Button onClick={handleContinueToAnimations} className="w-full">
+                                    Continue to Define Animations
+                                </Button>
+                            </>
                         )}
                     </CardContent>
                 </Card>
-            </div>
+            )}
 
-            <style>{`
-                .bg-checkerboard {
-                    background-image: 
-                        linear-gradient(45deg, #ccc 25%, transparent 25%),
-                        linear-gradient(-45deg, #ccc 25%, transparent 25%),
-                        linear-gradient(45deg, transparent 75%, #ccc 75%),
-                        linear-gradient(-45deg, transparent 75%, #ccc 75%);
-                    background-size: 20px 20px;
-                    background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
-                }
-            `}</style>
+            {step === 'define-animations' && (
+                <div className="space-y-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Define Animations</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="flex justify-between items-center">
+                                <p className="text-sm text-muted-foreground">
+                                    Define multiple animations from this sprite sheet
+                                </p>
+                                <Button onClick={handleAddAnimation}>
+                                    <Plus className="w-4 h-4 mr-2" />
+                                    Add Animation
+                                </Button>
+                            </div>
+
+                            {animations.length > 0 && (
+                                <div className="border rounded-lg">
+                                    <table className="w-full">
+                                        <thead className="bg-muted">
+                                            <tr>
+                                                <th className="p-2 text-left">Name</th>
+                                                <th className="p-2 text-left">Action</th>
+                                                <th className="p-2 text-left">Direction</th>
+                                                <th className="p-2 text-left">Frames</th>
+                                                <th className="p-2 text-left">FPS</th>
+                                                <th className="p-2 text-right">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {animations.map((anim, index) => (
+                                                <tr key={index} className="border-t">
+                                                    <td className="p-2">{anim.name}</td>
+                                                    <td className="p-2">{anim.action_type}</td>
+                                                    <td className="p-2">{anim.direction || '-'}</td>
+                                                    <td className="p-2">{anim.frame_start} - {anim.frame_start + anim.frame_count - 1}</td>
+                                                    <td className="p-2">{anim.frame_rate || 10}</td>
+                                                    <td className="p-2 text-right">
+                                                        <Button size="sm" variant="ghost" onClick={() => handleDeleteAnimation(index)}>
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </Button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+
+                            {editingAnimation && (
+                                <Card className="border-2 border-primary">
+                                    <CardHeader>
+                                        <CardTitle className="text-lg">New Animation</CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4">
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <Label>Animation Name</Label>
+                                                <Input
+                                                    value={editingAnimation.name}
+                                                    onChange={(e) => setEditingAnimation(prev => prev ? { ...prev, name: e.target.value } : null)}
+                                                    placeholder="e.g., walk_down"
+                                                />
+                                            </div>
+                                            <div>
+                                                <Label>Action Type</Label>
+                                                <select
+                                                    className="w-full p-2 border rounded"
+                                                    value={editingAnimation.action_type}
+                                                    onChange={(e) => setEditingAnimation(prev => prev ? { ...prev, action_type: e.target.value } : null)}
+                                                >
+                                                    {PREDEFINED_ACTIONS.map(action => (
+                                                        <option key={action} value={action}>{action}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <Label>Direction (Optional)</Label>
+                                                <select
+                                                    className="w-full p-2 border rounded"
+                                                    value={editingAnimation.direction || ''}
+                                                    onChange={(e) => setEditingAnimation(prev => prev ? { ...prev, direction: e.target.value as Direction || undefined } : null)}
+                                                >
+                                                    <option value="">None</option>
+                                                    <option value="up">Up</option>
+                                                    <option value="down">Down</option>
+                                                    <option value="left">Left</option>
+                                                    <option value="right">Right</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <Label>Frame Rate (FPS)</Label>
+                                                <Input
+                                                    type="number"
+                                                    value={editingAnimation.frame_rate || 10}
+                                                    onChange={(e) => setEditingAnimation(prev => prev ? { ...prev, frame_rate: parseInt(e.target.value) || 10 } : null)}
+                                                />
+                                            </div>
+                                            <div>
+                                                <Label>Start Frame</Label>
+                                                <Input
+                                                    type="number"
+                                                    value={editingAnimation.frame_start}
+                                                    onChange={(e) => setEditingAnimation(prev => prev ? { ...prev, frame_start: parseInt(e.target.value) || 0 } : null)}
+                                                />
+                                            </div>
+                                            <div>
+                                                <Label>Frame Count</Label>
+                                                <Input
+                                                    type="number"
+                                                    value={editingAnimation.frame_count}
+                                                    onChange={(e) => setEditingAnimation(prev => prev ? { ...prev, frame_count: parseInt(e.target.value) || 1 } : null)}
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <Button onClick={handleSaveAnimation}>
+                                                <Save className="w-4 h-4 mr-2" />
+                                                Save Animation
+                                            </Button>
+                                            <Button variant="outline" onClick={() => setEditingAnimation(null)}>
+                                                Cancel
+                                            </Button>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            )}
+
+                            <Button onClick={handleSaveSheet} className="w-full" disabled={animations.length === 0}>
+                                Save Sprite Sheet
+                            </Button>
+                        </CardContent>
+                    </Card>
+
+                    {previewImage && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Animation Preview</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="flex items-center justify-center p-4 border rounded-lg bg-muted">
+                                    <canvas ref={animationCanvasRef} className="pixelated" style={{ imageRendering: 'pixelated' }} />
+                                </div>
+                                <div className="flex items-center justify-center gap-2 mt-4">
+                                    <Button size="sm" onClick={() => setIsAnimating(!isAnimating)}>
+                                        {isAnimating ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                                    </Button>
+                                    <span className="text-sm text-muted-foreground">
+                                        Frame {currentFrame + 1} / {detectedFrames.length}
+                                    </span>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
+                </div>
+            )}
+
+            {step === 'complete' && (
+                <Card>
+                    <CardContent className="p-8 text-center space-y-4">
+                        <div className="text-6xl">✅</div>
+                        <h2 className="text-2xl font-bold">Sprite Sheet Saved!</h2>
+                        <p className="text-muted-foreground">
+                            Your sprite sheet "{sheetData.name}" with {animations.length} animation(s) has been saved successfully.
+                        </p>
+                        <Button onClick={() => {
+                            setStep('upload');
+                            setSheetData({ id: '', name: '', file: null, blob_id: '', frameWidth: 32, frameHeight: 32, totalFrames: 0 });
+                            setAnimations([]);
+                        }}>
+                            Create Another Sprite Sheet
+                        </Button>
+                    </CardContent>
+                </Card>
+            )}
         </div>
     );
 }
