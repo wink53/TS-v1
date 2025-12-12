@@ -375,6 +375,7 @@ export default function SpritesView() {
                                 </div>
 
                                 {removeBackground && (
+                                    // Background removal with auto-detection
                                     <BackgroundRemover
                                         imageFile={sheetData.file}
                                         onProcessed={setProcessedImageBlob}
