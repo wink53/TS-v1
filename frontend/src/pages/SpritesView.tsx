@@ -72,7 +72,7 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
         setSpriteState({
             name: existingSprite.name,
             description: existingSprite.description,
-            tags: existingSprite.tags,
+            tags: existingSprite.tags || [], // Ensure tags is always an array
             file: null, // We don't have the original file, just the blob
             frameCount: Number(existingSprite.total_frames),
             frameWidth: Number(existingSprite.frame_width),
