@@ -101,6 +101,9 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
         return () => URL.revokeObjectURL(url);
     }, [existingSprite, spriteImageBlob]);
 
+    // Ensure detectedFrames is always an array (declare early for use in useEffects)
+    const safeDetectedFrames = detectedFrames || [];
+
     // Load and analyze sprite sheet when file changes
     useEffect(() => {
         if (!spriteState.file) {
@@ -155,7 +158,7 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
         if (detectionMode !== 'manual' || !isDrawing) {
             detectedFrames.forEach((frame, i) => {
                 // Use subtle red for current frame if multiple frames exist
-                const isCurrentFrame = i === currentFrame && detectedFrames.length > 1;
+                const isCurrentFrame = i === currentFrame && safeDetectedFrames.length > 1;
                 const color = isCurrentFrame ? '#ff6b6b' : '#00ff00';
 
                 ctx.strokeStyle = color;
@@ -192,24 +195,24 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
 
     // Animate sprite preview
     useEffect(() => {
-        if (!isAnimating || detectedFrames.length === 0 || !previewImage) return;
+        if (!isAnimating || safeDetectedFrames.length === 0 || !previewImage) return;
 
         const interval = setInterval(() => {
-            setCurrentFrame((prev) => (prev + 1) % detectedFrames.length);
+            setCurrentFrame((prev) => (prev + 1) % safeDetectedFrames.length);
         }, 150);
 
         return () => clearInterval(interval);
-    }, [isAnimating, detectedFrames.length, previewImage]);
+    }, [isAnimating, safeDetectedFrames.length, previewImage]);
 
     // Draw animated preview
     useEffect(() => {
-        if (!previewImage || !animationCanvasRef.current || detectedFrames.length === 0) return;
+        if (!previewImage || !animationCanvasRef.current || safeDetectedFrames.length === 0) return;
 
         const canvas = animationCanvasRef.current;
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        const frame = detectedFrames[currentFrame];
+        const frame = safeDetectedFrames[currentFrame];
         if (!frame) return;
 
         canvas.width = frame.width;
@@ -221,7 +224,7 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
             frame.x, frame.y, frame.width, frame.height,
             0, 0, frame.width, frame.height
         );
-    }, [previewImage, detectedFrames, currentFrame]);
+    }, [previewImage, safeDetectedFrames, currentFrame]);
 
     const handleSpriteUpload = async (e: React.FormEvent) => {
         e.preventDefault();
