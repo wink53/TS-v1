@@ -365,8 +365,8 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
     };
 
 
-    // Show loading state while fetching sprite data
-    if (isLoadingSprite) {
+    // Show loading state while fetching sprite data OR sprite image
+    if (isLoadingSprite || (spriteId && !spriteImageBlob)) {
         return (
             <div className="p-6 max-w-[1800px] mx-auto">
                 <div className="text-center py-12">
