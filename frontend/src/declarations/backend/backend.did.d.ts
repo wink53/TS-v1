@@ -100,13 +100,26 @@ export type Direction = { 'up': null } |
 { 'down': null } |
 { 'left': null } |
 { 'right': null };
-export interface SpriteSheet {
-    'state': AnimationState,
-    'direction': Direction,
-    'blob_id': string,
+export interface Animation {
+    'name': string,
+    'action_type': string,
+    'direction': [] | [Direction],
+    'frame_start': bigint,
     'frame_count': bigint,
+    'frame_rate': [] | [bigint],
+}
+export interface SpriteSheet {
+    'id': string,
+    'name': string,
+    'description': string,
+    'tags': Array<string>,
+    'blob_id': string,
     'frame_width': bigint,
     'frame_height': bigint,
+    'total_frames': bigint,
+    'animations': Array<Animation>,
+    'created_at': bigint,
+    'updated_at': bigint,
 }
 export interface PlayableCharacter {
     'id': string,
@@ -167,4 +180,11 @@ export interface _SERVICE {
     'deletePlayableCharacter': ActorMethod<[string], Result>,
     'uploadCharacterSpriteSheet': ActorMethod<[string, Uint8Array | number[]], Result>,
     'getCharacterSpriteSheet': ActorMethod<[string], [] | [Uint8Array | number[]]>,
+    'createSpriteSheet': ActorMethod<[SpriteSheet], Result>,
+    'getSpriteSheet': ActorMethod<[string], { 'ok': SpriteSheet } | { 'err': ValidationError }>,
+    'listSpriteSheets': ActorMethod<[], Array<SpriteSheet>>,
+    'updateSpriteSheet': ActorMethod<[string, SpriteSheet], Result>,
+    'deleteSpriteSheet': ActorMethod<[string], Result>,
+    'addAnimationToSheet': ActorMethod<[string, Animation], Result>,
+    'removeAnimationFromSheet': ActorMethod<[string, string], Result>,
 }
