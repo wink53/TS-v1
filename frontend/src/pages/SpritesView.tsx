@@ -348,13 +348,34 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
     };
 
 
+    // Show loading state while fetching sprite data
+    if (isLoadingSprite) {
+        return (
+            <div className="p-6 max-w-[1800px] mx-auto">
+                <div className="text-center py-12">
+                    <p className="text-lg">Loading sprite sheet...</p>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="p-6 max-w-[1800px] mx-auto">
             <div className="mb-6">
-                <h1 className="text-3xl font-bold">Sprite Editor</h1>
-                <p className="text-muted-foreground mt-1">
-                    Upload and configure sprite sheets for use in your game
-                </p>
+                <div className="flex items-center gap-4 mb-4">
+                    {onBack && (
+                        <Button variant="outline" size="sm" onClick={onBack}>
+                            <ArrowLeft className="w-4 h-4 mr-2" />
+                            Back to Library
+                        </Button>
+                    )}
+                    <div className="flex-1">
+                        <h1 className="text-3xl font-bold">Sprite Editor</h1>
+                        <p className="text-muted-foreground mt-1">
+                            {spriteId ? 'Edit animations for your sprite sheet' : 'Upload and configure sprite sheets for use in your game'}
+                        </p>
+                    </div>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
