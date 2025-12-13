@@ -65,6 +65,9 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
     useEffect(() => {
         if (!existingSprite || !spriteImageBlob) return;
 
+        // Ensure animations is always an array (backend might return undefined)
+        const safeAnimations = existingSprite.animations || [];
+
         // Populate sprite state with existing data
         setSpriteState({
             name: existingSprite.name,
@@ -100,6 +103,12 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
 
         return () => URL.revokeObjectURL(url);
     }, [existingSprite, spriteImageBlob]);
+
+    // Create a safe version of existingSprite with animations guaranteed to be an array
+    const safeExistingSprite = existingSprite ? {
+        ...existingSprite,
+        animations: existingSprite.animations || []
+    } : null;
 
     // Ensure detectedFrames is always an array (declare early for use in useEffects)
     const safeDetectedFrames = detectedFrames || [];
