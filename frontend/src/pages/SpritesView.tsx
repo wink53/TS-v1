@@ -5,7 +5,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { toast } from 'sonner';
-import { useUploadCharacterSpriteSheet } from '../hooks/useQueries';
+import { useUploadCharacterSpriteSheet, useCreateSpriteSheet } from '../hooks/useQueries';
 import { BackgroundRemover } from '../components/BackgroundRemover';
 import { SpriteSelector } from '../components/SpriteSelector';
 import { TagInput } from '../components/TagInput';
@@ -13,6 +13,7 @@ import { analyzeSpriteSheet, type DetectionMode } from '../utils/spriteSheetAnal
 
 export default function SpritesView() {
     const uploadSpriteSheet = useUploadCharacterSpriteSheet();
+    const createSpriteSheet = useCreateSpriteSheet();
 
     const [spriteState, setSpriteState] = useState<{
         name: string;
@@ -188,6 +189,7 @@ export default function SpritesView() {
         const blobId = `${spriteId}_blob`;
 
         try {
+            // Step 1: Upload sprite sheet image blob
             const fileToUpload = processedImageBlob || spriteState.file;
             const buffer = await fileToUpload.arrayBuffer();
             const uint8Array = new Uint8Array(buffer);
@@ -197,7 +199,28 @@ export default function SpritesView() {
                 data: uint8Array
             });
 
-            toast.success(`Sprite "${spriteState.name}" saved with ID: ${spriteId}`);
+            // Step 2: Create sprite sheet metadata record
+            const spriteSheetRecord = {
+                id: spriteId,
+                name: spriteState.name,
+                description: spriteState.description,
+                tags: spriteState.tags,
+                blob_id: blobId,
+                frame_width: spriteState.frameWidth,
+                frame_height: spriteState.frameHeight,
+                total_frames: spriteState.frameCount,
+                animations: [], // Empty for now, will add animation UI later
+                created_at: BigInt(Date.now() * 1000000), // Convert to nanoseconds
+                updated_at: BigInt(Date.now() * 1000000)
+            };
+
+            const result = await createSpriteSheet.mutateAsync(spriteSheetRecord);
+
+            if ('err' in result) {
+                throw new Error(result.err.message);
+            }
+
+            toast.success(`Sprite "${spriteState.name}" saved successfully!`);
 
             // Reset form including metadata
             setSpriteState({
@@ -213,9 +236,15 @@ export default function SpritesView() {
             setRemoveBackground(false);
             setPreviewImage(null);
             setDetectedFrames([]);
-        } catch (error) {
-            console.error('Upload error:', error);
-            toast.error('Failed to upload sprite');
+        } catch (error: any) {
+            console.error('Save error:', error);
+            if (error.message?.includes('409') || error.message?.includes('already exists')) {
+                toast.error('Sprite ID already exists. Please try again.');
+            } else if (error.message?.includes('blob')) {
+                toast.error('Failed to upload sprite image.');
+            } else {
+                toast.error('Failed to save sprite: ' + (error.message || 'Unknown error'));
+            }
         }
     };
 

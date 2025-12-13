@@ -160,6 +160,8 @@ persistent actor Backend {
   type SpriteSheet = {
     id : Text;                // Unique sheet ID
     name : Text;              // User-friendly name
+    description : Text;       // Optional description
+    tags : [Text];            // Searchable tags
     blob_id : Text;           // Reference to uploaded image
     frame_width : Nat;
     frame_height : Nat;
