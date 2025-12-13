@@ -61,6 +61,45 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
     const previewCanvasRef = useRef<HTMLCanvasElement>(null);
     const animationCanvasRef = useRef<HTMLCanvasElement>(null);
 
+    // Load existing sprite sheet when editing
+    useEffect(() => {
+        if (!existingSprite || !spriteImageBlob) return;
+
+        // Populate sprite state with existing data
+        setSpriteState({
+            name: existingSprite.name,
+            description: existingSprite.description,
+            tags: existingSprite.tags,
+            file: null, // We don't have the original file, just the blob
+            frameCount: Number(existingSprite.total_frames),
+            frameWidth: Number(existingSprite.frame_width),
+            frameHeight: Number(existingSprite.frame_height),
+        });
+
+        // Load the image from blob
+        const blob = new Blob([spriteImageBlob], { type: 'image/png' });
+        const url = URL.createObjectURL(blob);
+        const img = new Image();
+        img.onload = async () => {
+            setPreviewImage(img);
+
+            // Analyze the loaded sprite sheet
+            const analysis = await analyzeSpriteSheet(img, {
+                expectedFrameWidth: Number(existingSprite.frame_width),
+                expectedFrameHeight: Number(existingSprite.frame_height),
+                expectedFrameCount: Number(existingSprite.total_frames),
+                detectionMode: detectionMode,
+                manualOffsetX: manualOffset.x,
+                manualOffsetY: manualOffset.y,
+            });
+
+            setDetectedFrames(analysis.frames);
+        };
+        img.src = url;
+
+        return () => URL.revokeObjectURL(url);
+    }, [existingSprite, spriteImageBlob]);
+
     // Load and analyze sprite sheet when file changes
     useEffect(() => {
         if (!spriteState.file) {
