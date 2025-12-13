@@ -87,7 +87,7 @@ export default function SpritesView() {
         if (fileToRead) {
             reader.readAsDataURL(fileToRead);
         }
-    }, [spriteState.file, detectionMode, spriteState.frameWidth, spriteState.frameHeight, manualOffset, processedImageBlob]);
+    }, [spriteState.file, detectionMode, spriteState.frameWidth, spriteState.frameHeight, spriteState.frameCount, manualOffset, processedImageBlob]);
 
     // Draw preview with frame overlays
     useEffect(() => {
