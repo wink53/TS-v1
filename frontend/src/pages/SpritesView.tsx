@@ -133,7 +133,20 @@ export default function SpritesView() {
             ctx.font = '14px monospace';
             ctx.fillText(`${Math.round(width)} × ${Math.round(height)}`, x, y - 5);
         }
-    }, [previewImage, detectedFrames, detectionMode, isDrawing, drawStart, drawEnd]);
+
+        // Highlight current frame in red
+        if (detectedFrames.length > 0 && currentFrame < detectedFrames.length) {
+            const frame = detectedFrames[currentFrame];
+            ctx.strokeStyle = '#ff0000';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(frame.x, frame.y, frame.width, frame.height);
+
+            // Draw "CURRENT" label
+            ctx.fillStyle = '#ff0000';
+            ctx.font = 'bold 12px monospace';
+            ctx.fillText('CURRENT', frame.x + 4, frame.y + frame.height - 6);
+        }
+    }, [previewImage, detectedFrames, detectionMode, isDrawing, drawStart, drawEnd, currentFrame]);
 
     // Animate sprite preview
     useEffect(() => {
