@@ -115,13 +115,26 @@ export const idlFactory = ({ IDL }) => {
         'left': IDL.Null,
         'right': IDL.Null,
     });
-    const SpriteSheet = IDL.Record({
-        'state': AnimationState,
-        'direction': Direction,
-        'blob_id': IDL.Text,
+    const Animation = IDL.Record({
+        'name': IDL.Text,
+        'action_type': IDL.Text,
+        'direction': IDL.Opt(Direction),
+        'frame_start': IDL.Nat,
         'frame_count': IDL.Nat,
+        'frame_rate': IDL.Opt(IDL.Nat),
+    });
+    const SpriteSheet = IDL.Record({
+        'id': IDL.Text,
+        'name': IDL.Text,
+        'description': IDL.Text,
+        'tags': IDL.Vec(IDL.Text),
+        'blob_id': IDL.Text,
         'frame_width': IDL.Nat,
         'frame_height': IDL.Nat,
+        'total_frames': IDL.Nat,
+        'animations': IDL.Vec(Animation),
+        'created_at': IDL.Int,
+        'updated_at': IDL.Int,
     });
     const PlayableCharacter = IDL.Record({
         'id': IDL.Text,
@@ -175,6 +188,13 @@ export const idlFactory = ({ IDL }) => {
         'deletePlayableCharacter': IDL.Func([IDL.Text], [Result], []),
         'uploadCharacterSpriteSheet': IDL.Func([IDL.Text, IDL.Vec(IDL.Nat8)], [Result], []),
         'getCharacterSpriteSheet': IDL.Func([IDL.Text], [IDL.Opt(IDL.Vec(IDL.Nat8))], ['query']),
+        'createSpriteSheet': IDL.Func([SpriteSheet], [Result], []),
+        'getSpriteSheet': IDL.Func([IDL.Text], [IDL.Variant({ 'ok': SpriteSheet, 'err': ValidationError })], ['query']),
+        'listSpriteSheets': IDL.Func([], [IDL.Vec(SpriteSheet)], ['query']),
+        'updateSpriteSheet': IDL.Func([IDL.Text, SpriteSheet], [Result], []),
+        'deleteSpriteSheet': IDL.Func([IDL.Text], [Result], []),
+        'addAnimationToSheet': IDL.Func([IDL.Text, Animation], [Result], []),
+        'removeAnimationFromSheet': IDL.Func([IDL.Text, IDL.Text], [Result], []),
     });
 };
 export const init = ({ IDL }) => { return []; };
