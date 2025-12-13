@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { useUploadCharacterSpriteSheet } from '../hooks/useQueries';
 import { BackgroundRemover } from '../components/BackgroundRemover';
 import { SpriteSelector } from '../components/SpriteSelector';
+import { TagInput } from '../components/TagInput';
 import { analyzeSpriteSheet, type DetectionMode } from '../utils/spriteSheetAnalyzer';
 
 export default function SpritesView() {
@@ -15,16 +16,16 @@ export default function SpritesView() {
 
     const [spriteState, setSpriteState] = useState<{
         name: string;
-        state: 'idle' | 'walk' | 'run' | 'attack';
-        direction: 'up' | 'down' | 'left' | 'right';
+        description: string;
+        tags: string[];
         file: File | null;
         frameCount: number;
         frameWidth: number;
         frameHeight: number;
     }>({
         name: '',
-        state: 'idle',
-        direction: 'down',
+        description: '',
+        tags: [],
         file: null,
         frameCount: 1,
         frameWidth: 32,
@@ -182,7 +183,9 @@ export default function SpritesView() {
             return;
         }
 
-        const blobId = `sprite_${spriteState.name}_${spriteState.state}_${spriteState.direction}`;
+        // Generate auto-generated immutable sprite ID
+        const spriteId = `sprite_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const blobId = `${spriteId}_blob`;
 
         try {
             const fileToUpload = processedImageBlob || spriteState.file;
@@ -194,13 +197,17 @@ export default function SpritesView() {
                 data: uint8Array
             });
 
-            toast.success(`Sprite "${spriteState.name}" saved!`);
+            toast.success(`Sprite "${spriteState.name}" saved with ID: ${spriteId}`);
 
-            // Reset form
+            // Reset form including metadata
             setSpriteState({
-                ...spriteState,
+                name: '',
+                description: '',
+                tags: [],
                 file: null,
-                name: ''
+                frameCount: 1,
+                frameWidth: 32,
+                frameHeight: 32,
             });
             setProcessedImageBlob(null);
             setRemoveBackground(false);
@@ -293,34 +300,23 @@ export default function SpritesView() {
                                 />
                             </div>
 
-                            <div className="grid grid-cols-2 gap-2">
-                                <div className="space-y-1">
-                                    <Label className="text-xs">State</Label>
-                                    <select
-                                        className="w-full p-2 text-xs border rounded-md bg-background"
-                                        value={spriteState.state}
-                                        onChange={(e) => setSpriteState({ ...spriteState, state: e.target.value as any })}
-                                    >
-                                        <option value="idle">Idle</option>
-                                        <option value="walk">Walk</option>
-                                        <option value="run">Run</option>
-                                        <option value="attack">Attack</option>
-                                    </select>
-                                </div>
-                                <div className="space-y-1">
-                                    <Label className="text-xs">Direction</Label>
-                                    <select
-                                        className="w-full p-2 text-xs border rounded-md bg-background"
-                                        value={spriteState.direction}
-                                        onChange={(e) => setSpriteState({ ...spriteState, direction: e.target.value as any })}
-                                    >
-                                        <option value="up">Up</option>
-                                        <option value="down">Down</option>
-                                        <option value="left">Left</option>
-                                        <option value="right">Right</option>
-                                    </select>
-                                </div>
+                            <div className="space-y-2">
+                                <Label className="text-xs">Description</Label>
+                                <textarea
+                                    className="w-full p-2 text-xs border rounded-md bg-background min-h-[60px] resize-none"
+                                    placeholder="Optional description of the sprite..."
+                                    value={spriteState.description}
+                                    onChange={(e) => setSpriteState({ ...spriteState, description: e.target.value })}
+                                />
                             </div>
+
+                            <TagInput
+                                tags={spriteState.tags}
+                                onTagsChange={(tags) => setSpriteState({ ...spriteState, tags })}
+                                suggestions={['typing', 'run', 'walk', 'shoot', 'jump', 'duck', 'roll', 'left', 'right', 'up', 'down', 'crawl']}
+                                label="Tags"
+                                placeholder="Type to add tags..."
+                            />
 
                             <div className="space-y-2">
                                 <Label className="text-xs">Detection Mode</Label>
