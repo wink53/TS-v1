@@ -615,12 +615,12 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
                                 </div>
 
                                 <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                    <span>Green boxes show detected frames ({detectedFrames.length} found)</span>
+                                    <span>Green boxes show detected frames ({safeDetectedFrames.length} found)</span>
                                     <span>{previewImage.width} × {previewImage.height}px</span>
                                 </div>
 
                                 {/* Animated Preview */}
-                                {detectedFrames.length > 0 && (
+                                {safeDetectedFrames.length > 0 && (
                                     <div className="flex items-center gap-4 p-4 border rounded-lg bg-muted/30">
                                         <div className="flex flex-col gap-2">
                                             <div className="text-xs font-semibold">Animation Preview</div>
@@ -635,7 +635,7 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
                                                 />
                                             </div>
                                             <div className="text-xs text-center text-muted-foreground">
-                                                Frame {currentFrame + 1}/{detectedFrames.length}
+                                                Frame {currentFrame + 1}/{safeDetectedFrames.length}
                                             </div>
                                         </div>
                                         <div className="flex flex-col gap-2">
