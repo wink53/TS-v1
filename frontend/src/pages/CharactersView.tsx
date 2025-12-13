@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useListPlayableCharacters, useCreatePlayableCharacter, useUpdatePlayableCharacter, useDeletePlayableCharacter, useUploadCharacterSpriteSheet, useGetCharacterSpriteSheet } from '../hooks/useQueries';
+import type { SpriteSheet } from '../declarations/backend/backend.did.d.ts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -473,24 +474,27 @@ export function CharactersView() {
                 data: uint8Array
             });
 
-            // 2. Update the character with the new sprite sheet reference
-            const stateVariant: AnimationState = { [spriteUploadState.state]: null } as any;
-            const directionVariant: Direction = { [spriteUploadState.direction]: null } as any;
 
-            const newSpriteSheet = {
-                state: stateVariant,
-                direction: directionVariant,
+            // 2. Update the character with the new sprite sheet reference
+            const spriteSheetId = `sprite_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+            const newSpriteSheet: SpriteSheet = {
+                id: spriteSheetId,
+                name: `${spriteUploadState.state}_${spriteUploadState.direction}`,
+                description: '',
+                tags: [spriteUploadState.state, spriteUploadState.direction],
                 blob_id: blobId,
-                frame_count: BigInt(spriteUploadState.frameCount),
                 frame_width: BigInt(spriteUploadState.frameWidth),
                 frame_height: BigInt(spriteUploadState.frameHeight),
+                total_frames: BigInt(spriteUploadState.frameCount),
+                animations: [],
+                created_at: BigInt(Date.now() * 1000000),
+                updated_at: BigInt(Date.now() * 1000000),
             };
 
-            // Filter out existing sprite sheet for this state/direction if it exists
+            // Filter out existing sprite sheet with same name if it exists
             const updatedSpriteSheets = selectedCharacter.sprite_sheets.filter((sheet: any) => {
-                const sheetState = Object.keys(sheet.state)[0];
-                const sheetDir = Object.keys(sheet.direction)[0];
-                return !(sheetState === spriteUploadState.state && sheetDir === spriteUploadState.direction);
+                return sheet.name !== newSpriteSheet.name;
             });
 
             const updatedChar: PlayableCharacter = {
