@@ -77,7 +77,7 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
         });
 
         // Load the image from blob
-        const blob = new Blob([spriteImageBlob], { type: 'image/png' });
+        const blob = new Blob([new Uint8Array(spriteImageBlob as any)], { type: 'image/png' });
         const url = URL.createObjectURL(blob);
         const img = new Image();
         img.onload = async () => {
