@@ -9,8 +9,6 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Plus, Edit, Trash2, Search, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { TagInput } from '../components/TagInput';
-import { BackgroundRemover } from '../components/BackgroundRemover';
-import { SpriteSelector } from '../components/SpriteSelector';
 import { analyzeSpriteSheet } from '../utils/spriteSheetAnalyzer';
 import type { SpriteSheet } from '../declarations/backend/backend.did.d.ts';
 
@@ -32,8 +30,6 @@ export default function SpritesLibraryView({ onNavigate }: { onNavigate?: (sprit
         frameHeight: 32,
     });
     const [detectionMode, setDetectionMode] = useState<'auto' | 'manual'>('auto');
-    const [removeBackground, setRemoveBackground] = useState(false);
-    const [processedImageBlob, setProcessedImageBlob] = useState<Blob | null>(null);
     const [previewImage, setPreviewImage] = useState<string | null>(null);
     const [detectedFrames, setDetectedFrames] = useState<any[]>([]);
 
@@ -63,10 +59,13 @@ export default function SpritesLibraryView({ onNavigate }: { onNavigate?: (sprit
                 img.src = url;
                 await new Promise((resolve) => { img.onload = resolve; });
 
-                const frames = await analyzeSpriteSheet(img, spriteState.frameWidth, spriteState.frameHeight);
-                setDetectedFrames(frames);
-                setSpriteState(prev => ({ ...prev, frameCount: frames.length }));
-                toast.success(`Detected ${frames.length} frames`);
+                const analysis = await analyzeSpriteSheet(img, {
+                    expectedFrameWidth: spriteState.frameWidth,
+                    expectedFrameHeight: spriteState.frameHeight
+                });
+                setDetectedFrames(analysis.frames);
+                setSpriteState(prev => ({ ...prev, frameCount: analysis.frames.length }));
+                toast.success(`Detected ${analysis.frames.length} frames`);
             } catch (error) {
                 console.error('Frame detection error:', error);
                 toast.error('Failed to detect frames');
@@ -86,8 +85,7 @@ export default function SpritesLibraryView({ onNavigate }: { onNavigate?: (sprit
 
         try {
             // Step 1: Upload image blob
-            const fileToUpload = processedImageBlob || spriteState.file;
-            const buffer = await fileToUpload.arrayBuffer();
+            const buffer = await spriteState.file.arrayBuffer();
             const uint8Array = new Uint8Array(buffer);
 
             await uploadSpriteSheet.mutateAsync({
@@ -128,8 +126,6 @@ export default function SpritesLibraryView({ onNavigate }: { onNavigate?: (sprit
                 frameWidth: 32,
                 frameHeight: 32,
             });
-            setProcessedImageBlob(null);
-            setRemoveBackground(false);
             setPreviewImage(null);
             setDetectedFrames([]);
             setUploadDialogOpen(false);
@@ -251,16 +247,6 @@ export default function SpritesLibraryView({ onNavigate }: { onNavigate?: (sprit
                                     />
                                 </div>
                             </div>
-
-                            {/* Background Removal */}
-                            {previewImage && (
-                                <BackgroundRemover
-                                    imageUrl={previewImage}
-                                    enabled={removeBackground}
-                                    onToggle={setRemoveBackground}
-                                    onProcessed={setProcessedImageBlob}
-                                />
-                            )}
 
                             <div className="flex justify-end gap-2 pt-4">
                                 <Button type="button" variant="outline" onClick={() => setUploadDialogOpen(false)}>

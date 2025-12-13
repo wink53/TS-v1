@@ -11,7 +11,7 @@ import { SpriteSelector } from '../components/SpriteSelector';
 import { TagInput } from '../components/TagInput';
 import { analyzeSpriteSheet, type DetectionMode } from '../utils/spriteSheetAnalyzer';
 
-export default function SpritesView() {
+export default function SpritesView({ spriteId, onBack }: { spriteId?: string; onBack?: () => void }) {
     const uploadSpriteSheet = useUploadCharacterSpriteSheet();
     const createSpriteSheet = useCreateSpriteSheet();
 
