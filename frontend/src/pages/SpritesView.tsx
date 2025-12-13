@@ -67,20 +67,27 @@ export default function SpritesView() {
             img.onload = async () => {
                 setPreviewImage(img);
 
-                // Analyze sprite sheet
+                // Analyze sprite sheet with manual offset
                 const analysis = await analyzeSpriteSheet(img, {
                     expectedFrameWidth: spriteState.frameWidth,
                     expectedFrameHeight: spriteState.frameHeight,
                     expectedFrameCount: spriteState.frameCount,
                     detectionMode: detectionMode,
+                    manualOffsetX: manualOffset.x,
+                    manualOffsetY: manualOffset.y,
                 });
 
                 setDetectedFrames(analysis.frames);
             };
             img.src = e.target?.result as string;
         };
-        reader.readAsDataURL(spriteState.file);
-    }, [spriteState.file, detectionMode, spriteState.frameWidth, spriteState.frameHeight, manualOffset]);
+
+        // Use processed image if background was removed, otherwise use original file
+        const fileToRead = processedImageBlob || spriteState.file;
+        if (fileToRead) {
+            reader.readAsDataURL(fileToRead);
+        }
+    }, [spriteState.file, detectionMode, spriteState.frameWidth, spriteState.frameHeight, manualOffset, processedImageBlob]);
 
     // Draw preview with frame overlays
     useEffect(() => {
