@@ -65,18 +65,23 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
     useEffect(() => {
         if (!existingSprite || !spriteImageBlob) return;
 
+        // DEBUG: Log the sprite data to see what we're getting
+        console.log('Loading existing sprite:', existingSprite);
+        console.log('Sprite tags:', existingSprite.tags);
+        console.log('Sprite animations:', existingSprite.animations);
+
         // Ensure animations is always an array (backend might return undefined)
         const safeAnimations = existingSprite.animations || [];
 
-        // Populate sprite state with existing data
+        // Populate sprite state with existing data (with comprehensive null safety)
         setSpriteState({
-            name: existingSprite.name,
-            description: existingSprite.description,
+            name: existingSprite.name || '',
+            description: existingSprite.description || '',
             tags: existingSprite.tags || [], // Ensure tags is always an array
             file: null, // We don't have the original file, just the blob
-            frameCount: Number(existingSprite.total_frames),
-            frameWidth: Number(existingSprite.frame_width),
-            frameHeight: Number(existingSprite.frame_height),
+            frameCount: Number(existingSprite.total_frames) || 1,
+            frameWidth: Number(existingSprite.frame_width) || 32,
+            frameHeight: Number(existingSprite.frame_height) || 32,
         });
 
         // Load the image from blob
