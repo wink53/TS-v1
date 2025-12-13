@@ -156,7 +156,7 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
 
         // Draw boxes over detected frames (only if not currently drawing in manual mode)
         if (detectionMode !== 'manual' || !isDrawing) {
-            detectedFrames.forEach((frame, i) => {
+            safeDetectedFrames.forEach((frame, i) => {
                 // Use subtle red for current frame if multiple frames exist
                 const isCurrentFrame = i === currentFrame && safeDetectedFrames.length > 1;
                 const color = isCurrentFrame ? '#ff6b6b' : '#00ff00';
