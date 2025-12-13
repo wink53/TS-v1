@@ -23,28 +23,32 @@ export function TagInput({
     const inputRef = useRef<HTMLInputElement>(null);
     const suggestionsRef = useRef<HTMLDivElement>(null);
 
+    // Ensure tags and suggestions are always arrays (safety check)
+    const safeTags = tags || [];
+    const safeSuggestions = suggestions || [];
+
     // Filter suggestions based on input and exclude already added tags
-    const filteredSuggestions = suggestions.filter(suggestion => {
+    const filteredSuggestions = safeSuggestions.filter(suggestion => {
         const lowerSuggestion = suggestion.toLowerCase();
         const lowerInput = inputValue.toLowerCase();
         return (
             lowerInput.length > 0 &&
             lowerSuggestion.includes(lowerInput) &&
-            !tags.includes(lowerSuggestion)
+            !safeTags.includes(lowerSuggestion)
         );
     });
 
     const addTag = (tag: string) => {
         const lowerTag = tag.trim().toLowerCase();
-        if (lowerTag && !tags.includes(lowerTag)) {
-            onTagsChange([...tags, lowerTag]);
+        if (lowerTag && !safeTags.includes(lowerTag)) {
+            onTagsChange([...safeTags, lowerTag]);
             setInputValue('');
             setShowSuggestions(false);
         }
     };
 
     const removeTag = (tagToRemove: string) => {
-        onTagsChange(tags.filter(tag => tag !== tagToRemove));
+        onTagsChange(safeTags.filter(tag => tag !== tagToRemove));
     };
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -84,9 +88,9 @@ export function TagInput({
             <Label className="text-xs">{label}</Label>
 
             {/* Tags display */}
-            {tags.length > 0 && (
+            {safeTags.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-2">
-                    {tags.map((tag) => (
+                    {safeTags.map((tag) => (
                         <div
                             key={tag}
                             className="inline-flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary rounded-md text-xs"
