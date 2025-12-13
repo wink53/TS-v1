@@ -9,15 +9,17 @@ import { MapsView } from './pages/MapsView';
 import { EditorView } from './pages/EditorView';
 import { CharactersView } from './pages/CharactersView';
 import SpritesView from './pages/SpritesView';
+import SpritesLibraryView from './pages/SpritesLibraryView';
 import { Dashboard } from './pages/Dashboard';
 import { Toaster } from '@/components/ui/sonner';
 
-export type ViewType = 'dashboard' | 'tiles' | 'objects' | 'tileSets' | 'prefabs' | 'maps' | 'editor' | 'characters' | 'sprites';
+export type ViewType = 'dashboard' | 'tiles' | 'objects' | 'tileSets' | 'prefabs' | 'maps' | 'editor' | 'characters' | 'sprites' | 'spriteEditor';
 export type PaletteTab = 'tiles' | 'objects' | 'characters' | 'npcs';
 
 function App() {
   const [currentView, setCurrentView] = useState<ViewType>('dashboard');
   const [selectedMapId, setSelectedMapId] = useState<string | null>(null);
+  const [selectedSpriteId, setSelectedSpriteId] = useState<string | null>(null);
 
   const handleOpenEditor = (mapId: string) => {
     setSelectedMapId(mapId);
@@ -49,7 +51,19 @@ function App() {
       case 'characters':
         return <CharactersView />;
       case 'sprites':
-        return <SpritesView />;
+        return <SpritesLibraryView onNavigate={(spriteId) => {
+          setSelectedSpriteId(spriteId);
+          setCurrentView('spriteEditor');
+        }} />;
+      case 'spriteEditor':
+        if (!selectedSpriteId) return <SpritesLibraryView onNavigate={(spriteId) => {
+          setSelectedSpriteId(spriteId);
+          setCurrentView('spriteEditor');
+        }} />;
+        return <SpritesView spriteId={selectedSpriteId} onBack={() => {
+          setSelectedSpriteId(null);
+          setCurrentView('sprites');
+        }} />;
       default:
         return <Dashboard onNavigate={setCurrentView} />;
     }

@@ -14,7 +14,7 @@ const navItems = [
   { id: 'tileSets' as ViewType, label: 'Tile Sets', icon: Layers },
   { id: 'prefabs' as ViewType, label: 'Prefabs', icon: Package },
   { id: 'maps' as ViewType, label: 'Maps', icon: Map },
-  { id: 'sprites' as ViewType, label: 'Sprites', icon: Image },
+  { id: 'sprites' as ViewType, label: 'Sprite Library', icon: Image },
   { id: 'characters' as ViewType, label: 'Characters', icon: User },
 ];
 
