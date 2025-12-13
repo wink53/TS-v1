@@ -1,11 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
-import { Upload, ZoomIn, ZoomOut, Play, Pause } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Play, Pause, ZoomIn, ZoomOut, Upload, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { toast } from 'sonner';
-import { useUploadCharacterSpriteSheet, useCreateSpriteSheet } from '../hooks/useQueries';
+import { useUploadCharacterSpriteSheet, useCreateSpriteSheet, useGetSpriteSheet, useGetCharacterSpriteSheet } from '../hooks/useQueries';
 import { BackgroundRemover } from '../components/BackgroundRemover';
 import { SpriteSelector } from '../components/SpriteSelector';
 import { TagInput } from '../components/TagInput';
@@ -14,6 +14,12 @@ import { analyzeSpriteSheet, type DetectionMode } from '../utils/spriteSheetAnal
 export default function SpritesView({ spriteId, onBack }: { spriteId?: string; onBack?: () => void }) {
     const uploadSpriteSheet = useUploadCharacterSpriteSheet();
     const createSpriteSheet = useCreateSpriteSheet();
+    const { data: existingSprite, isLoading: isLoadingSprite } = spriteId
+        ? useGetSpriteSheet(spriteId)
+        : { data: null, isLoading: false };
+    const { data: spriteImageBlob } = existingSprite
+        ? useGetCharacterSpriteSheet(existingSprite.blob_id)
+        : { data: null };
 
     const [spriteState, setSpriteState] = useState<{
         name: string;
