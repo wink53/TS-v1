@@ -594,6 +594,8 @@ persistent actor Backend {
             let updatedSheet = {
               id = sheet.id;
               name = sheet.name;
+              description = sheet.description;
+              tags = sheet.tags;
               blob_id = sheet.blob_id;
               frame_width = sheet.frame_width;
               frame_height = sheet.frame_height;
@@ -621,6 +623,8 @@ persistent actor Backend {
         let updatedSheet = {
           id = sheet.id;
           name = sheet.name;
+          description = sheet.description;
+          tags = sheet.tags;
           blob_id = sheet.blob_id;
           frame_width = sheet.frame_width;
           frame_height = sheet.frame_height;
