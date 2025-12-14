@@ -699,7 +699,7 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
                                 type="submit"
                                 className="w-full text-xs"
                                 size="sm"
-                                disabled={!spriteState.file || !spriteState.name || (removeBackground && !processedImageBlob && !showBackgroundRemover)}
+                                disabled={(!spriteState.file && !spriteId) || !spriteState.name || (removeBackground && !processedImageBlob && !showBackgroundRemover)}
                             >
                                 <Upload className="mr-2 h-3 w-3" />
                                 Save Sprite
