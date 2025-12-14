@@ -12,6 +12,7 @@ import SpritesView from './pages/SpritesView';
 import SpritesLibraryView from './pages/SpritesLibraryView';
 import { Dashboard } from './pages/Dashboard';
 import { Toaster } from '@/components/ui/sonner';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 export type ViewType = 'dashboard' | 'tiles' | 'objects' | 'tileSets' | 'prefabs' | 'maps' | 'editor' | 'characters' | 'sprites' | 'spriteEditor';
 export type PaletteTab = 'tiles' | 'objects' | 'characters' | 'npcs';
@@ -60,10 +61,14 @@ function App() {
           setSelectedSpriteId(spriteId);
           setCurrentView('spriteEditor');
         }} />;
-        return <SpritesView spriteId={selectedSpriteId} onBack={() => {
-          setSelectedSpriteId(null);
-          setCurrentView('sprites');
-        }} />;
+        return (
+          <ErrorBoundary name="SpritesView">
+            <SpritesView spriteId={selectedSpriteId} onBack={() => {
+              setSelectedSpriteId(null);
+              setCurrentView('sprites');
+            }} />
+          </ErrorBoundary>
+        );
       default:
         return <Dashboard onNavigate={setCurrentView} />;
     }
