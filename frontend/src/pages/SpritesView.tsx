@@ -16,9 +16,17 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
 
     const uploadSpriteSheet = useUploadCharacterSpriteSheet();
     const createSpriteSheet = useCreateSpriteSheet();
-    const { data: existingSprite, isLoading: isLoadingSprite } = spriteId
+    const { data: rawExistingSprite, isLoading: isLoadingSprite } = spriteId
         ? useGetSpriteSheet(spriteId)
         : { data: null, isLoading: false };
+
+    // CRITICAL: Ensure existingSprite always has tags as an array (defensive against race conditions)
+    const existingSprite = rawExistingSprite ? {
+        ...rawExistingSprite,
+        tags: Array.isArray(rawExistingSprite.tags) ? rawExistingSprite.tags : [],
+        animations: Array.isArray(rawExistingSprite.animations) ? rawExistingSprite.animations : []
+    } : null;
+
     const { data: spriteImageBlob } = existingSprite
         ? useGetCharacterSpriteSheet(existingSprite.blob_id)
         : { data: null };
@@ -26,7 +34,10 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
     console.log('🔍 Data loaded:', {
         existingSprite: existingSprite ? 'YES' : 'NO',
         spriteImageBlob: spriteImageBlob ? 'YES' : 'NO',
-        isLoadingSprite
+        isLoadingSprite,
+        existingSpriteTags: existingSprite?.tags,
+        existingSpriteTagsType: typeof existingSprite?.tags,
+        existingSpriteTagsIsArray: Array.isArray(existingSprite?.tags)
     });
 
     const [spriteState, setSpriteState] = useState<{
