@@ -16,9 +16,11 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
 
     const uploadSpriteSheet = useUploadCharacterSpriteSheet();
     const createSpriteSheet = useCreateSpriteSheet();
-    const { data: rawExistingSprite, isLoading: isLoadingSprite } = spriteId
-        ? useGetSpriteSheet(spriteId)
-        : { data: null, isLoading: false };
+
+    // FIXED: Always call hooks unconditionally (React rules of hooks)
+    const spriteQuery = useGetSpriteSheet(spriteId || '');
+    const rawExistingSprite = spriteId ? spriteQuery.data : null;
+    const isLoadingSprite = spriteId ? spriteQuery.isLoading : false;
 
     // CRITICAL: Ensure existingSprite always has tags as an array (defensive against race conditions)
     const existingSprite = rawExistingSprite ? {
@@ -27,9 +29,9 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
         animations: Array.isArray(rawExistingSprite.animations) ? rawExistingSprite.animations : []
     } : null;
 
-    const { data: spriteImageBlob } = existingSprite
-        ? useGetCharacterSpriteSheet(existingSprite.blob_id)
-        : { data: null };
+    // FIXED: Always call hooks unconditionally (React rules of hooks)
+    const blobQuery = useGetCharacterSpriteSheet(existingSprite?.blob_id || '');
+    const spriteImageBlob = existingSprite ? blobQuery.data : null;
 
     console.log('🔍 Data loaded:', {
         existingSprite: existingSprite ? 'YES' : 'NO',
