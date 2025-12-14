@@ -83,6 +83,7 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
     const [showBackgroundRemover, setShowBackgroundRemover] = useState(false);
     const [processedImageBlob, setProcessedImageBlob] = useState<Blob | null>(null);
     const [showSpriteSelector, setShowSpriteSelector] = useState(false);
+    const [existingSpriteFile, setExistingSpriteFile] = useState<File | null>(null); // File version of existing sprite for BackgroundRemover
 
     // Preview state
     const [previewImage, setPreviewImage] = useState<HTMLImageElement | null>(null);
@@ -157,6 +158,11 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
         // Load the image from blob
         const uint8Array = spriteImageBlob instanceof Uint8Array ? spriteImageBlob : new Uint8Array(spriteImageBlob);
         const blob = new Blob([uint8Array.buffer as ArrayBuffer], { type: 'image/png' });
+
+        // Create a File from the blob for BackgroundRemover
+        const file = new File([blob], existingSprite.name || 'sprite.png', { type: 'image/png' });
+        setExistingSpriteFile(file);
+
         const url = URL.createObjectURL(blob);
         const img = new Image();
         img.onload = async () => {
@@ -657,7 +663,8 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
                                     checked={removeBackground}
                                     onChange={(e) => {
                                         setRemoveBackground(e.target.checked);
-                                        if (e.target.checked && spriteState.file) {
+                                        const fileToUse = spriteState.file || existingSpriteFile;
+                                        if (e.target.checked && fileToUse) {
                                             setShowBackgroundRemover(true);
                                         } else {
                                             setShowBackgroundRemover(false);
@@ -671,9 +678,9 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
                                 </Label>
                             </div>
 
-                            {showBackgroundRemover && spriteState.file && (
+                            {showBackgroundRemover && (spriteState.file || existingSpriteFile) && (
                                 <BackgroundRemover
-                                    imageFile={spriteState.file}
+                                    imageFile={(spriteState.file || existingSpriteFile)!}
                                     onProcessed={(blob) => {
                                         setProcessedImageBlob(blob);
                                         setShowBackgroundRemover(false);
