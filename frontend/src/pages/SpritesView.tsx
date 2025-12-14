@@ -188,11 +188,15 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
     // Ensure detectedFrames is always an array (declare early for use in useEffects)
     const safeDetectedFrames = detectedFrames || [];
 
-    // Load and analyze sprite sheet when file changes
+    // Load and analyze sprite sheet when file changes (only for NEW file uploads, not existing sprites)
     useEffect(() => {
+        // Only clear preview if this is a new sprite (no spriteId) and no file is selected
+        // Don't clear when editing existing sprites
         if (!spriteState.file) {
-            setPreviewImage(null);
-            setDetectedFrames([]);
+            if (!spriteId) {
+                setPreviewImage(null);
+                setDetectedFrames([]);
+            }
             return;
         }
 
@@ -223,6 +227,33 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
             reader.readAsDataURL(fileToRead);
         }
     }, [spriteState.file, detectionMode, spriteState.frameWidth, spriteState.frameHeight, spriteState.frameCount, manualOffset, processedImageBlob]);
+
+    // Re-analyze EXISTING sprites when frame dimensions change (for edit mode)
+    useEffect(() => {
+        // Only run for existing sprites (when we have spriteId and previewImage but no file)
+        if (!spriteId || !previewImage || spriteState.file) return;
+
+        const reanalyze = async () => {
+            console.log('🔍 Re-analyzing existing sprite with new dimensions:', {
+                frameWidth: spriteState.frameWidth,
+                frameHeight: spriteState.frameHeight,
+                frameCount: spriteState.frameCount
+            });
+
+            const analysis = await analyzeSpriteSheet(previewImage, {
+                expectedFrameWidth: spriteState.frameWidth,
+                expectedFrameHeight: spriteState.frameHeight,
+                expectedFrameCount: spriteState.frameCount,
+                detectionMode: detectionMode,
+                manualOffsetX: manualOffset.x,
+                manualOffsetY: manualOffset.y,
+            });
+
+            setDetectedFrames(analysis.frames);
+        };
+
+        reanalyze();
+    }, [spriteId, previewImage, spriteState.frameWidth, spriteState.frameHeight, spriteState.frameCount, detectionMode, manualOffset, spriteState.file]);
 
     // Draw preview with frame overlays
     useEffect(() => {
@@ -595,15 +626,18 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
                                 </div>
                             </div>
 
-                            <div className="space-y-2">
-                                <Label className="text-xs">Sprite Sheet (PNG)</Label>
-                                <Input
-                                    type="file"
-                                    accept="image/png"
-                                    className="text-xs"
-                                    onChange={(e) => setSpriteState({ ...spriteState, file: e.target.files?.[0] || null })}
-                                />
-                            </div>
+                            {/* Only show file upload when creating new sprite, not when editing */}
+                            {!spriteId && (
+                                <div className="space-y-2">
+                                    <Label className="text-xs">Sprite Sheet (PNG)</Label>
+                                    <Input
+                                        type="file"
+                                        accept="image/png"
+                                        className="text-xs"
+                                        onChange={(e) => setSpriteState({ ...spriteState, file: e.target.files?.[0] || null })}
+                                    />
+                                </div>
+                            )}
 
                             <div className="flex items-center space-x-2">
                                 <input
