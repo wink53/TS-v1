@@ -274,7 +274,7 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
         }, 150);
 
         return () => clearInterval(interval);
-    }, [isAnimating, safeDetectedFrames.length, previewImage]);
+    }, [isAnimating, detectedFrames, previewImage]); // FIXED: Use detectedFrames instead of safeDetectedFrames.length
 
     // Draw animated preview
     useEffect(() => {
