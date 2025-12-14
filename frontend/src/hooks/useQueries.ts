@@ -569,7 +569,15 @@ export function useGetSpriteSheet(id: string) {
     queryFn: async () => {
       if (!actor) return null;
       const result = await (actor as any).getSpriteSheet(id);
-      if ('ok' in result) return result.ok;
+      if ('ok' in result) {
+        // Ensure arrays are never undefined (Candid serialization issue)
+        const spriteSheet = result.ok;
+        return {
+          ...spriteSheet,
+          tags: spriteSheet.tags || [],
+          animations: spriteSheet.animations || [],
+        };
+      }
       return null;
     },
     enabled: !!actor && !isFetching && !!id,
