@@ -51,6 +51,18 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
     const safeSpriteStateTags = Array.isArray(spriteState.tags) ? spriteState.tags : [];
 
     console.log('🔍 spriteState.tags:', spriteState.tags, 'type:', typeof spriteState.tags, 'isArray:', Array.isArray(spriteState.tags));
+    console.log('🔍 safeSpriteStateTags:', safeSpriteStateTags, 'type:', typeof safeSpriteStateTags, 'isArray:', Array.isArray(safeSpriteStateTags));
+
+    // Debug: Track spriteState changes
+    useEffect(() => {
+        console.log('🔍 spriteState CHANGED:', {
+            tags: spriteState.tags,
+            tagsType: typeof spriteState.tags,
+            tagsIsArray: Array.isArray(spriteState.tags),
+            name: spriteState.name,
+            description: spriteState.description
+        });
+    }, [spriteState]);
 
     const [detectionMode, setDetectionMode] = useState<DetectionMode>('alpha');
     const [manualOffset, setManualOffset] = useState({ x: 0, y: 0 });
@@ -76,26 +88,48 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
 
     // Load existing sprite sheet when editing
     useEffect(() => {
-        if (!existingSprite || !spriteImageBlob) return;
+        console.log('🔍 useEffect TRIGGERED - existingSprite:', existingSprite ? 'YES' : 'NO', 'spriteImageBlob:', spriteImageBlob ? 'YES' : 'NO');
+
+        if (!existingSprite || !spriteImageBlob) {
+            console.log('🔍 useEffect EARLY RETURN - no sprite or blob');
+            return;
+        }
 
         // DEBUG: Log the sprite data to see what we're getting
-        console.log('Loading existing sprite:', existingSprite);
-        console.log('Sprite tags:', existingSprite.tags);
-        console.log('Sprite animations:', existingSprite.animations);
+        console.log('🔍 Loading existing sprite:', existingSprite);
+        console.log('🔍 Sprite tags RAW:', existingSprite.tags, 'type:', typeof existingSprite.tags, 'isArray:', Array.isArray(existingSprite.tags));
+        console.log('🔍 Sprite animations:', existingSprite.animations);
 
         // Ensure animations is always an array (backend might return undefined)
         const safeAnimations = existingSprite.animations || [];
 
-        // Populate sprite state with existing data (with comprehensive null safety)
-        setSpriteState({
+        // Ensure tags is ALWAYS an array with multiple safety checks
+        let safeTags: string[] = [];
+        if (Array.isArray(existingSprite.tags)) {
+            safeTags = existingSprite.tags;
+            console.log('🔍 Tags is array, using directly:', safeTags);
+        } else if (existingSprite.tags) {
+            console.warn('⚠️ Tags is not an array but exists:', existingSprite.tags, 'type:', typeof existingSprite.tags);
+            safeTags = [];
+        } else {
+            console.log('🔍 Tags is null/undefined, using empty array');
+            safeTags = [];
+        }
+
+        const newState = {
             name: existingSprite.name || '',
             description: existingSprite.description || '',
-            tags: existingSprite.tags || [], // Ensure tags is always an array
+            tags: safeTags,
             file: null, // We don't have the original file, just the blob
             frameCount: Number(existingSprite.total_frames) || 1,
             frameWidth: Number(existingSprite.frame_width) || 32,
             frameHeight: Number(existingSprite.frame_height) || 32,
-        });
+        };
+
+        console.log('🔍 Setting sprite state with tags:', newState.tags, 'isArray:', Array.isArray(newState.tags));
+
+        // Populate sprite state with existing data (with comprehensive null safety)
+        setSpriteState(newState);
 
         // Load the image from blob
         const uint8Array = spriteImageBlob instanceof Uint8Array ? spriteImageBlob : new Uint8Array(spriteImageBlob);
