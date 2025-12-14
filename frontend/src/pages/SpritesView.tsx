@@ -206,7 +206,9 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
 
         // Only clear preview if this is a new sprite (no spriteId) and no file is selected
         // Don't clear when editing existing sprites
-        if (!spriteState.file) {
+        // Also, allow processedImageBlob to update the preview even for existing sprites
+        const hasFileToProcess = spriteState.file || processedImageBlob;
+        if (!hasFileToProcess) {
             if (!spriteId) {
                 console.log('🔵 CLEARING PREVIEW - new sprite with no file');
                 setPreviewImage(null);
