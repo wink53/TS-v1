@@ -190,12 +190,23 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
 
     // Load and analyze sprite sheet when file changes (only for NEW file uploads, not existing sprites)
     useEffect(() => {
+        console.log('🔵 FILE UPLOAD useEffect triggered:', {
+            hasFile: !!spriteState.file,
+            spriteId: spriteId,
+            frameWidth: spriteState.frameWidth,
+            frameHeight: spriteState.frameHeight,
+            frameCount: spriteState.frameCount
+        });
+
         // Only clear preview if this is a new sprite (no spriteId) and no file is selected
         // Don't clear when editing existing sprites
         if (!spriteState.file) {
             if (!spriteId) {
+                console.log('🔵 CLEARING PREVIEW - new sprite with no file');
                 setPreviewImage(null);
                 setDetectedFrames([]);
+            } else {
+                console.log('🔵 SKIPPING CLEAR - editing existing sprite (spriteId:', spriteId, ')');
             }
             return;
         }
