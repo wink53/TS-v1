@@ -47,6 +47,9 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
         frameHeight: 32,
     });
 
+    // Ensure tags is always an array (defensive programming)
+    const safeSpriteStateTags = Array.isArray(spriteState.tags) ? spriteState.tags : [];
+
     console.log('🔍 spriteState.tags:', spriteState.tags, 'type:', typeof spriteState.tags, 'isArray:', Array.isArray(spriteState.tags));
 
     const [detectionMode, setDetectionMode] = useState<DetectionMode>('alpha');
@@ -434,11 +437,11 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
                             </div>
 
                             {(() => {
-                                console.log('🔍 About to render TagInput with tags:', spriteState.tags);
+                                console.log('🔍 About to render TagInput with tags:', safeSpriteStateTags);
                                 return (
                                     <TagInput
-                                        tags={spriteState.tags}
-                                        onTagsChange={(tags) => setSpriteState({ ...spriteState, tags })}
+                                        tags={safeSpriteStateTags}
+                                        onTagsChange={(tags) => setSpriteState({ ...spriteState, tags: tags || [] })}
                                         suggestions={['typing', 'run', 'walk', 'shoot', 'jump', 'duck', 'roll', 'left', 'right', 'up', 'down', 'crawl']}
                                         label="Tags"
                                         placeholder="Type to add tags..."
