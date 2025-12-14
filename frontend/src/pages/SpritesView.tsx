@@ -98,15 +98,25 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
 
     const previewCanvasRef = useRef<HTMLCanvasElement>(null);
     const animationCanvasRef = useRef<HTMLCanvasElement>(null);
+    const initialDataLoaded = useRef(false); // Track if we've already loaded existing sprite data
 
-    // Load existing sprite sheet when editing
+    // Load existing sprite sheet when editing (only once)
     useEffect(() => {
-        console.log('🔍 useEffect TRIGGERED - existingSprite:', existingSprite ? 'YES' : 'NO', 'spriteImageBlob:', spriteImageBlob ? 'YES' : 'NO');
+        console.log('🔍 useEffect TRIGGERED - existingSprite:', existingSprite ? 'YES' : 'NO', 'spriteImageBlob:', spriteImageBlob ? 'YES' : 'NO', 'initialDataLoaded:', initialDataLoaded.current);
 
         if (!existingSprite || !spriteImageBlob) {
             console.log('🔍 useEffect EARLY RETURN - no sprite or blob');
             return;
         }
+
+        // Skip if we've already loaded the initial data (prevents resetting user input)
+        if (initialDataLoaded.current) {
+            console.log('🔍 useEffect SKIPPED - initial data already loaded');
+            return;
+        }
+
+        // Mark that we've loaded initial data
+        initialDataLoaded.current = true;
 
         // DEBUG: Log the sprite data to see what we're getting
         console.log('🔍 Loading existing sprite:', existingSprite);
