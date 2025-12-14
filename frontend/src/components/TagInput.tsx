@@ -18,6 +18,8 @@ export function TagInput({
     label = 'Tags',
     placeholder = 'Type to add tags...'
 }: TagInputProps) {
+    console.log('🔍 TagInput RENDER - tags:', tags, 'type:', typeof tags, 'isArray:', Array.isArray(tags));
+
     const [inputValue, setInputValue] = useState('');
     const [showSuggestions, setShowSuggestions] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
@@ -26,6 +28,8 @@ export function TagInput({
     // Ensure tags and suggestions are always arrays (safety check)
     const safeTags = tags || [];
     const safeSuggestions = suggestions || [];
+
+    console.log('🔍 TagInput safeTags:', safeTags, 'length:', safeTags.length);
 
     // Filter suggestions based on input and exclude already added tags
     const filteredSuggestions = safeSuggestions.filter(suggestion => {

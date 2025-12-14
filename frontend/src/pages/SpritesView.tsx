@@ -12,6 +12,8 @@ import { TagInput } from '../components/TagInput';
 import { analyzeSpriteSheet, type DetectionMode } from '../utils/spriteSheetAnalyzer';
 
 export default function SpritesView({ spriteId, onBack }: { spriteId?: string; onBack?: () => void }) {
+    console.log('🔍 SpritesView RENDER - spriteId:', spriteId);
+
     const uploadSpriteSheet = useUploadCharacterSpriteSheet();
     const createSpriteSheet = useCreateSpriteSheet();
     const { data: existingSprite, isLoading: isLoadingSprite } = spriteId
@@ -20,6 +22,12 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
     const { data: spriteImageBlob } = existingSprite
         ? useGetCharacterSpriteSheet(existingSprite.blob_id)
         : { data: null };
+
+    console.log('🔍 Data loaded:', {
+        existingSprite: existingSprite ? 'YES' : 'NO',
+        spriteImageBlob: spriteImageBlob ? 'YES' : 'NO',
+        isLoadingSprite
+    });
 
     const [spriteState, setSpriteState] = useState<{
         name: string;
@@ -38,6 +46,8 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
         frameWidth: 32,
         frameHeight: 32,
     });
+
+    console.log('🔍 spriteState.tags:', spriteState.tags, 'type:', typeof spriteState.tags, 'isArray:', Array.isArray(spriteState.tags));
 
     const [detectionMode, setDetectionMode] = useState<DetectionMode>('alpha');
     const [manualOffset, setManualOffset] = useState({ x: 0, y: 0 });
@@ -423,13 +433,18 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
                                 />
                             </div>
 
-                            <TagInput
-                                tags={spriteState.tags}
-                                onTagsChange={(tags) => setSpriteState({ ...spriteState, tags })}
-                                suggestions={['typing', 'run', 'walk', 'shoot', 'jump', 'duck', 'roll', 'left', 'right', 'up', 'down', 'crawl']}
-                                label="Tags"
-                                placeholder="Type to add tags..."
-                            />
+                            {(() => {
+                                console.log('🔍 About to render TagInput with tags:', spriteState.tags);
+                                return (
+                                    <TagInput
+                                        tags={spriteState.tags}
+                                        onTagsChange={(tags) => setSpriteState({ ...spriteState, tags })}
+                                        suggestions={['typing', 'run', 'walk', 'shoot', 'jump', 'duck', 'roll', 'left', 'right', 'up', 'down', 'crawl']}
+                                        label="Tags"
+                                        placeholder="Type to add tags..."
+                                    />
+                                );
+                            })()}
 
                             <div className="space-y-2">
                                 <Label className="text-xs">Detection Mode</Label>
