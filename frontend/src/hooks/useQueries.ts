@@ -555,7 +555,13 @@ export function useListSpriteSheets() {
     queryKey: ['spriteSheets'],
     queryFn: async () => {
       if (!actor) return [];
-      return (actor as any).listSpriteSheets();
+      const spriteSheets = await (actor as any).listSpriteSheets();
+      // Ensure arrays are never undefined for each sprite sheet (Candid serialization issue)
+      return spriteSheets.map((sheet: any) => ({
+        ...sheet,
+        tags: sheet.tags || [],
+        animations: sheet.animations || [],
+      }));
     },
     enabled: !!actor && !isFetching,
   });
