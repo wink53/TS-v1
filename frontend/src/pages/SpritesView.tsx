@@ -11,6 +11,20 @@ import { SpriteSelector } from '../components/SpriteSelector';
 import { TagInput } from '../components/TagInput';
 import { analyzeSpriteSheet, type DetectionMode } from '../utils/spriteSheetAnalyzer';
 
+// Animation type matching backend schema
+type Direction = 'up' | 'down' | 'left' | 'right';
+type Animation = {
+    name: string;
+    action_type: string;
+    direction: Direction | null;
+    frame_start: number;
+    frame_count: number;
+    frame_rate: number | null;
+};
+
+const ACTION_TYPES = ['walk', 'run', 'attack', 'idle', 'jump', 'die', 'cast', 'hurt', 'block'] as const;
+const DIRECTIONS: (Direction | null)[] = [null, 'up', 'down', 'left', 'right'];
+
 export default function SpritesView({ spriteId, onBack }: { spriteId?: string; onBack?: () => void }) {
     console.log('🔍 SpritesView RENDER - spriteId:', spriteId);
 
@@ -98,6 +112,19 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
     const [drawStart, setDrawStart] = useState<{ x: number; y: number } | null>(null);
     const [drawEnd, setDrawEnd] = useState<{ x: number; y: number } | null>(null);
 
+    // Animation editor state
+    const [animations, setAnimations] = useState<Animation[]>([]);
+    const [showAnimationForm, setShowAnimationForm] = useState(false);
+    const [editingAnimationIndex, setEditingAnimationIndex] = useState<number | null>(null);
+    const [newAnimation, setNewAnimation] = useState<Animation>({
+        name: '',
+        action_type: 'idle',
+        direction: null,
+        frame_start: 0,
+        frame_count: 1,
+        frame_rate: null
+    });
+
     const previewCanvasRef = useRef<HTMLCanvasElement>(null);
     const animationCanvasRef = useRef<HTMLCanvasElement>(null);
     const initialDataLoaded = useRef(false); // Track if we've already loaded existing sprite data
@@ -155,6 +182,9 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
 
         // Populate sprite state with existing data (with comprehensive null safety)
         setSpriteState(newState);
+
+        // Load existing animations
+        setAnimations(safeAnimations as Animation[]);
 
         // Load the image from blob
         const uint8Array = spriteImageBlob instanceof Uint8Array ? spriteImageBlob : new Uint8Array(spriteImageBlob);
@@ -402,7 +432,7 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
                 frame_width: spriteState.frameWidth,
                 frame_height: spriteState.frameHeight,
                 total_frames: spriteState.frameCount,
-                animations: existingSprite?.animations || [], // Preserve existing animations when editing
+                animations: animations, // Use local animations state (user may have edited)
                 created_at: existingSprite?.created_at || BigInt(Date.now() * 1000000), // Preserve original timestamp when editing
                 updated_at: BigInt(Date.now() * 1000000)
             };
@@ -711,6 +741,198 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
                                     }}
                                 />
                             )}
+
+                            {/* Animation Editor Section */}
+                            <div className="space-y-2 border-t pt-3 mt-3">
+                                <div className="flex items-center justify-between">
+                                    <Label className="text-xs font-semibold">Animations ({animations.length})</Label>
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-6 px-2 text-xs"
+                                        onClick={() => {
+                                            setNewAnimation({
+                                                name: '',
+                                                action_type: 'idle',
+                                                direction: null,
+                                                frame_start: 0,
+                                                frame_count: 1,
+                                                frame_rate: null
+                                            });
+                                            setEditingAnimationIndex(null);
+                                            setShowAnimationForm(!showAnimationForm);
+                                        }}
+                                    >
+                                        <Plus className="h-3 w-3 mr-1" />
+                                        Add
+                                    </Button>
+                                </div>
+
+                                {/* Animation List */}
+                                {animations.length > 0 && (
+                                    <div className="space-y-1 max-h-32 overflow-y-auto">
+                                        {animations.map((anim, index) => (
+                                            <div key={index} className="flex items-center justify-between bg-muted/50 rounded px-2 py-1 text-xs">
+                                                <div className="flex-1 truncate">
+                                                    <span className="font-medium">{anim.name}</span>
+                                                    <span className="text-muted-foreground ml-1">
+                                                        ({anim.action_type}{anim.direction ? `_${anim.direction}` : ''})
+                                                    </span>
+                                                    <span className="text-muted-foreground ml-1">
+                                                        F{anim.frame_start}-{anim.frame_start + anim.frame_count - 1}
+                                                    </span>
+                                                </div>
+                                                <div className="flex gap-1">
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-5 w-5 p-0"
+                                                        onClick={() => {
+                                                            setNewAnimation({ ...anim });
+                                                            setEditingAnimationIndex(index);
+                                                            setShowAnimationForm(true);
+                                                        }}
+                                                    >
+                                                        ✏️
+                                                    </Button>
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-5 w-5 p-0 text-destructive"
+                                                        onClick={() => {
+                                                            setAnimations(prev => prev.filter((_, i) => i !== index));
+                                                        }}
+                                                    >
+                                                        <Trash2 className="h-3 w-3" />
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* Add/Edit Animation Form */}
+                                {showAnimationForm && (
+                                    <div className="space-y-2 p-2 bg-muted/30 rounded border">
+                                        <div className="text-xs font-medium">
+                                            {editingAnimationIndex !== null ? 'Edit Animation' : 'New Animation'}
+                                        </div>
+
+                                        <div className="grid gap-2">
+                                            <Input
+                                                placeholder="Animation name (e.g., walk_down)"
+                                                value={newAnimation.name}
+                                                onChange={(e) => setNewAnimation(prev => ({ ...prev, name: e.target.value }))}
+                                                className="text-xs h-7"
+                                            />
+
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <select
+                                                    value={newAnimation.action_type}
+                                                    onChange={(e) => setNewAnimation(prev => ({ ...prev, action_type: e.target.value }))}
+                                                    className="text-xs h-7 rounded border bg-background px-2"
+                                                >
+                                                    {ACTION_TYPES.map(type => (
+                                                        <option key={type} value={type}>{type}</option>
+                                                    ))}
+                                                </select>
+
+                                                <select
+                                                    value={newAnimation.direction || ''}
+                                                    onChange={(e) => setNewAnimation(prev => ({
+                                                        ...prev,
+                                                        direction: e.target.value ? e.target.value as Direction : null
+                                                    }))}
+                                                    className="text-xs h-7 rounded border bg-background px-2"
+                                                >
+                                                    <option value="">No direction</option>
+                                                    {DIRECTIONS.filter(d => d !== null).map(dir => (
+                                                        <option key={dir} value={dir!}>{dir}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <div>
+                                                    <Label className="text-xs">Start Frame</Label>
+                                                    <Input
+                                                        type="number"
+                                                        min={0}
+                                                        max={spriteState.frameCount - 1}
+                                                        value={newAnimation.frame_start}
+                                                        onChange={(e) => setNewAnimation(prev => ({
+                                                            ...prev,
+                                                            frame_start: Math.max(0, parseInt(e.target.value) || 0)
+                                                        }))}
+                                                        className="text-xs h-7"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <Label className="text-xs">Frame Count</Label>
+                                                    <Input
+                                                        type="number"
+                                                        min={1}
+                                                        max={spriteState.frameCount}
+                                                        value={newAnimation.frame_count}
+                                                        onChange={(e) => setNewAnimation(prev => ({
+                                                            ...prev,
+                                                            frame_count: Math.max(1, parseInt(e.target.value) || 1)
+                                                        }))}
+                                                        className="text-xs h-7"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex gap-2">
+                                            <Button
+                                                type="button"
+                                                size="sm"
+                                                className="flex-1 h-7 text-xs"
+                                                disabled={!newAnimation.name}
+                                                onClick={() => {
+                                                    if (editingAnimationIndex !== null) {
+                                                        // Update existing animation
+                                                        setAnimations(prev => prev.map((a, i) =>
+                                                            i === editingAnimationIndex ? newAnimation : a
+                                                        ));
+                                                    } else {
+                                                        // Add new animation
+                                                        setAnimations(prev => [...prev, newAnimation]);
+                                                    }
+                                                    setShowAnimationForm(false);
+                                                    setEditingAnimationIndex(null);
+                                                    setNewAnimation({
+                                                        name: '',
+                                                        action_type: 'idle',
+                                                        direction: null,
+                                                        frame_start: 0,
+                                                        frame_count: 1,
+                                                        frame_rate: null
+                                                    });
+                                                }}
+                                            >
+                                                {editingAnimationIndex !== null ? 'Update' : 'Add Animation'}
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                className="h-7 text-xs"
+                                                onClick={() => {
+                                                    setShowAnimationForm(false);
+                                                    setEditingAnimationIndex(null);
+                                                }}
+                                            >
+                                                Cancel
+                                            </Button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
 
                             <Button
                                 type="submit"
