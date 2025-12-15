@@ -362,29 +362,38 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
 
     const handleSpriteUpload = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!spriteState.file || !spriteState.name) {
+
+        // For new sprites, we need a file. For existing sprites, we have existingSpriteFile or can skip upload
+        const hasFile = spriteState.file || existingSpriteFile || processedImageBlob;
+        if (!hasFile && !spriteId) {
             toast.error('Please provide a name and select a file');
             return;
         }
+        if (!spriteState.name) {
+            toast.error('Please provide a name');
+            return;
+        }
 
-        // Generate auto-generated immutable sprite ID
-        const spriteId = `sprite_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        const blobId = `${spriteId}_blob`;
+        // Generate auto-generated immutable sprite ID (only for new sprites)
+        const newSpriteId = spriteId || `sprite_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const blobId = `${newSpriteId}_blob`;
 
         try {
-            // Step 1: Upload sprite sheet image blob
-            const fileToUpload = processedImageBlob || spriteState.file;
-            const buffer = await fileToUpload.arrayBuffer();
-            const uint8Array = new Uint8Array(buffer);
+            // Step 1: Upload sprite sheet image blob (only if we have a new file or processed image)
+            const fileToUpload = processedImageBlob || spriteState.file || existingSpriteFile;
+            if (fileToUpload) {
+                const buffer = await fileToUpload.arrayBuffer();
+                const uint8Array = new Uint8Array(buffer);
 
-            await uploadSpriteSheet.mutateAsync({
-                blob_id: blobId,
-                data: uint8Array
-            });
+                await uploadSpriteSheet.mutateAsync({
+                    blob_id: blobId,
+                    data: uint8Array
+                });
+            }
 
             // Step 2: Create sprite sheet metadata record
             const spriteSheetRecord = {
-                id: spriteId,
+                id: newSpriteId,
                 name: spriteState.name,
                 description: spriteState.description,
                 tags: spriteState.tags,
