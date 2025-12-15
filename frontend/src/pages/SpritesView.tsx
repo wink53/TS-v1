@@ -5,7 +5,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { toast } from 'sonner';
-import { useUploadCharacterSpriteSheet, useCreateSpriteSheet, useGetSpriteSheet, useGetCharacterSpriteSheet } from '../hooks/useQueries';
+import { useUploadCharacterSpriteSheet, useCreateSpriteSheet, useUpdateSpriteSheet, useGetSpriteSheet, useGetCharacterSpriteSheet } from '../hooks/useQueries';
 import { BackgroundRemover } from '../components/BackgroundRemover';
 import { SpriteSelector } from '../components/SpriteSelector';
 import { TagInput } from '../components/TagInput';
@@ -16,6 +16,7 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
 
     const uploadSpriteSheet = useUploadCharacterSpriteSheet();
     const createSpriteSheet = useCreateSpriteSheet();
+    const updateSpriteSheet = useUpdateSpriteSheet();
 
     // FIXED: Always call hooks unconditionally (React rules of hooks)
     const spriteQuery = useGetSpriteSheet(spriteId || '');
@@ -391,7 +392,7 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
                 });
             }
 
-            // Step 2: Create sprite sheet metadata record
+            // Step 2: Create or update sprite sheet metadata record
             const spriteSheetRecord = {
                 id: newSpriteId,
                 name: spriteState.name,
@@ -401,18 +402,25 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
                 frame_width: spriteState.frameWidth,
                 frame_height: spriteState.frameHeight,
                 total_frames: spriteState.frameCount,
-                animations: [], // Empty for now, will add animation UI later
-                created_at: BigInt(Date.now() * 1000000), // Convert to nanoseconds
+                animations: existingSprite?.animations || [], // Preserve existing animations when editing
+                created_at: existingSprite?.created_at || BigInt(Date.now() * 1000000), // Preserve original timestamp when editing
                 updated_at: BigInt(Date.now() * 1000000)
             };
 
-            const result = await createSpriteSheet.mutateAsync(spriteSheetRecord);
+            let result;
+            if (spriteId) {
+                // Updating existing sprite
+                result = await updateSpriteSheet.mutateAsync({ id: spriteId, sheet: spriteSheetRecord });
+            } else {
+                // Creating new sprite
+                result = await createSpriteSheet.mutateAsync(spriteSheetRecord);
+            }
 
             if ('err' in result) {
                 throw new Error(result.err.message);
             }
 
-            toast.success(`Sprite "${spriteState.name}" saved successfully!`);
+            toast.success(`Sprite "${spriteState.name}" ${spriteId ? 'updated' : 'saved'} successfully!`);
 
             // Reset form including metadata
             setSpriteState({
