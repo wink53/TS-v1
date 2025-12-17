@@ -751,13 +751,15 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
                                         variant="ghost"
                                         size="sm"
                                         className="h-6 px-2 text-xs"
+                                        disabled={!spriteState.frameCount || spriteState.frameCount < 1}
                                         onClick={() => {
+                                            // Capture current preview frame settings
                                             setNewAnimation({
                                                 name: '',
                                                 action_type: 'idle',
                                                 direction: null,
                                                 frame_start: 0,
-                                                frame_count: 1,
+                                                frame_count: spriteState.frameCount || 1,
                                                 frame_rate: null
                                             });
                                             setEditingAnimationIndex(null);
@@ -765,7 +767,7 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
                                         }}
                                     >
                                         <Plus className="h-3 w-3 mr-1" />
-                                        Add
+                                        Add ({spriteState.frameCount} frames)
                                     </Button>
                                 </div>
 
@@ -819,6 +821,9 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
                                     <div className="space-y-2 p-2 bg-muted/30 rounded border">
                                         <div className="text-xs font-medium">
                                             {editingAnimationIndex !== null ? 'Edit Animation' : 'New Animation'}
+                                        </div>
+                                        <div className="text-xs text-muted-foreground">
+                                            Using {spriteState.frameCount} frames from sprite preview (Frame 0-{spriteState.frameCount - 1})
                                         </div>
 
                                         <div className="grid gap-2">
