@@ -423,16 +423,38 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
             }
 
             // Step 2: Create or update sprite sheet metadata record
+            // Convert animations to Candid-compatible format
+            const candid_animations = animations.map(anim => {
+                // Convert direction string to Candid variant format: [] | [{ 'up': null } | ...]
+                let candid_direction: [] | [{ 'up': null } | { 'down': null } | { 'left': null } | { 'right': null }] = [];
+                if (anim.direction === 'up') candid_direction = [{ 'up': null }];
+                else if (anim.direction === 'down') candid_direction = [{ 'down': null }];
+                else if (anim.direction === 'left') candid_direction = [{ 'left': null }];
+                else if (anim.direction === 'right') candid_direction = [{ 'right': null }];
+
+                // Convert frame_rate to optional bigint format: [] | [bigint]
+                const candid_frame_rate: [] | [bigint] = anim.frame_rate !== null ? [BigInt(anim.frame_rate)] : [];
+
+                return {
+                    name: anim.name,
+                    action_type: anim.action_type,
+                    direction: candid_direction,
+                    frame_start: BigInt(anim.frame_start),
+                    frame_count: BigInt(anim.frame_count),
+                    frame_rate: candid_frame_rate
+                };
+            });
+
             const spriteSheetRecord = {
                 id: newSpriteId,
                 name: spriteState.name,
                 description: spriteState.description,
                 tags: spriteState.tags,
                 blob_id: blobId,
-                frame_width: spriteState.frameWidth,
-                frame_height: spriteState.frameHeight,
-                total_frames: spriteState.frameCount,
-                animations: animations, // Use local animations state (user may have edited)
+                frame_width: BigInt(spriteState.frameWidth),
+                frame_height: BigInt(spriteState.frameHeight),
+                total_frames: BigInt(spriteState.frameCount),
+                animations: candid_animations, // Use converted animations for Candid compatibility
                 created_at: existingSprite?.created_at || BigInt(Date.now() * 1000000), // Preserve original timestamp when editing
                 updated_at: BigInt(Date.now() * 1000000)
             };
