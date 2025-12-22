@@ -119,6 +119,8 @@ export const idlFactory = ({ IDL }) => {
         'name': IDL.Text,
         'action_type': IDL.Text,
         'direction': IDL.Opt(Direction),
+        'start_x': IDL.Nat,
+        'start_y': IDL.Nat,
         'frame_start': IDL.Nat,
         'frame_count': IDL.Nat,
         'frame_rate': IDL.Opt(IDL.Nat),
