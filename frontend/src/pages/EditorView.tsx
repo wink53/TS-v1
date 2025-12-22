@@ -733,7 +733,8 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
                 id: s.id,
                 name: s.name,
                 character_id: s.characterId,
-                position: { x: BigInt(s.x), y: BigInt(s.y) }
+                x: BigInt(s.x),
+                y: BigInt(s.y)
             }))
         };
 
