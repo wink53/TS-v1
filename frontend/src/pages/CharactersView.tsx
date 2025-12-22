@@ -1073,14 +1073,30 @@ export function CharactersView() {
                                                     {sheet.animations.length > 0 ? (
                                                         <div className="grid grid-cols-2 gap-2">
                                                             {sheet.animations.map((anim: any, animIdx: number) => {
-                                                                // Handle both Candid enum objects and plain strings
-                                                                const getEnumValue = (val: any) => {
+                                                                // Handle Candid optional format: [] | [value]
+                                                                // Direction: [] = none, [{ 'up': null }] = 'up'
+                                                                // Frame rate: [] = none, [12n] = 12
+                                                                const getDirection = (val: any): string => {
+                                                                    if (!val || (Array.isArray(val) && val.length === 0)) return '—';
                                                                     if (typeof val === 'string') return val;
-                                                                    if (val && typeof val === 'object') return Object.keys(val)[0];
+                                                                    if (Array.isArray(val) && val.length > 0) {
+                                                                        const inner = val[0];
+                                                                        if (typeof inner === 'object') return Object.keys(inner)[0];
+                                                                        return String(inner);
+                                                                    }
+                                                                    if (typeof val === 'object') return Object.keys(val)[0];
                                                                     return String(val);
                                                                 };
-                                                                const actionType = getEnumValue(anim.action_type);
-                                                                const direction = getEnumValue(anim.direction);
+                                                                const getFrameRate = (val: any): number => {
+                                                                    if (!val || (Array.isArray(val) && val.length === 0)) return 8; // default
+                                                                    if (typeof val === 'number') return val;
+                                                                    if (typeof val === 'bigint') return Number(val);
+                                                                    if (Array.isArray(val) && val.length > 0) return Number(val[0]);
+                                                                    return Number(val) || 8;
+                                                                };
+                                                                const actionType = typeof anim.action_type === 'string' ? anim.action_type : String(anim.action_type);
+                                                                const direction = getDirection(anim.direction);
+                                                                const frameRate = getFrameRate(anim.frame_rate);
                                                                 return (
                                                                     <div key={animIdx} className="p-2 bg-muted/50 rounded text-xs space-y-1">
                                                                         <div className="font-medium">{anim.name}</div>
@@ -1088,7 +1104,7 @@ export function CharactersView() {
                                                                             {actionType} • {direction}
                                                                         </div>
                                                                         <div className="text-muted-foreground">
-                                                                            Frames {Number(anim.frame_start)}–{Number(anim.frame_start) + Number(anim.frame_count) - 1} @ {Number(anim.frame_rate)}fps
+                                                                            Frames {Number(anim.frame_start)}–{Number(anim.frame_start) + Number(anim.frame_count) - 1} @ {frameRate}fps
                                                                         </div>
                                                                         {(Number(anim.start_x) > 0 || Number(anim.start_y) > 0) && (
                                                                             <div className="text-muted-foreground">
