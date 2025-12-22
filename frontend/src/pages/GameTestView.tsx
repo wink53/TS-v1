@@ -236,7 +236,8 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
         for (const anim of sheet.animations) {
             let animDir: string | null = null;
             if (Array.isArray(anim.direction) && anim.direction.length > 0 && anim.direction[0]) {
-                animDir = Object.keys(anim.direction[0] as object)[0];
+                const dirObj = anim.direction[0] as Record<string, unknown>;
+                animDir = Object.keys(dirObj)[0] || null;
             }
 
             if (animDir === direction) {
