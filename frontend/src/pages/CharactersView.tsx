@@ -16,6 +16,130 @@ import type { PlayableCharacter, CharacterStats, AnimationState, Direction } fro
 import type { DetectionMode } from '../utils/spriteSheetAnalyzer';
 import { SpriteSelector } from '../components/SpriteSelector';
 
+// Compact Animation Preview - displays a looping animation preview
+interface CompactAnimationPreviewProps {
+    spriteSheet: SpriteSheet;
+}
+
+function CompactAnimationPreview({ spriteSheet }: CompactAnimationPreviewProps) {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const imageRef = useRef<HTMLImageElement | null>(null);
+    const [currentFrame, setCurrentFrame] = useState(0);
+    const [imageLoaded, setImageLoaded] = useState(false);
+
+    // Get the first animation (if any)
+    const firstAnimation = spriteSheet.animations[0];
+    const frameStart = firstAnimation ? Number(firstAnimation.frame_start) : 0;
+    const frameCount = firstAnimation ? Number(firstAnimation.frame_count) : Number(spriteSheet.total_frames);
+    const frameRate = firstAnimation ? Number(firstAnimation.frame_rate) : 8;
+    const startX = firstAnimation?.start_x !== undefined ? Number(firstAnimation.start_x) : 0;
+    const startY = firstAnimation?.start_y !== undefined ? Number(firstAnimation.start_y) : 0;
+    const frameWidth = Number(spriteSheet.frame_width);
+    const frameHeight = Number(spriteSheet.frame_height);
+
+    // Fetch the sprite sheet blob from backend
+    const { data: blobData, isLoading } = useGetCharacterSpriteSheet(spriteSheet.blob_id);
+
+    // Load the sprite sheet image when blob data is available
+    useEffect(() => {
+        if (!blobData) return;
+
+        const img = new Image();
+        img.onload = () => {
+            imageRef.current = img;
+            setImageLoaded(true);
+        };
+        img.onerror = () => setImageLoaded(false);
+
+        try {
+            const uint8Array = blobData instanceof Uint8Array ? blobData : new Uint8Array(blobData);
+            let binary = '';
+            const chunkSize = 0x8000;
+            for (let i = 0; i < uint8Array.length; i += chunkSize) {
+                const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
+                binary += String.fromCharCode.apply(null, Array.from(chunk));
+            }
+            const base64 = btoa(binary);
+            img.src = `data:image/png;base64,${base64}`;
+        } catch (error) {
+            console.error('Error converting blob:', error);
+        }
+
+        return () => {
+            imageRef.current = null;
+            setImageLoaded(false);
+        };
+    }, [blobData, spriteSheet.blob_id]);
+
+    // Animate through frames
+    useEffect(() => {
+        if (!imageLoaded || frameCount === 0) return;
+        const interval = setInterval(() => {
+            setCurrentFrame((prev) => (prev + 1) % frameCount);
+        }, frameRate > 0 ? 1000 / frameRate : 125);
+        return () => clearInterval(interval);
+    }, [imageLoaded, frameCount, frameRate]);
+
+    // Draw the current frame
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas || !imageLoaded || !imageRef.current) return;
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        // Calculate frame position
+        const frameIndex = frameStart + currentFrame;
+        const imgWidth = imageRef.current.width;
+        const framesPerRow = Math.floor(imgWidth / frameWidth);
+        const col = framesPerRow > 0 ? frameIndex % framesPerRow : 0;
+        const row = framesPerRow > 0 ? Math.floor(frameIndex / framesPerRow) : 0;
+        const x = startX + (col * frameWidth);
+        const y = startY + (row * frameHeight);
+
+        // Clear and draw
+        ctx.fillStyle = '#1a1a2e';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        try {
+            ctx.drawImage(
+                imageRef.current,
+                x, y, frameWidth, frameHeight,
+                0, 0, canvas.width, canvas.height
+            );
+        } catch (error) {
+            console.error('Error drawing frame:', error);
+        }
+    }, [currentFrame, imageLoaded, frameStart, frameWidth, frameHeight, startX, startY]);
+
+    const displaySize = 80;
+
+    if (isLoading) {
+        return <Skeleton className="w-20 h-20 rounded" />;
+    }
+
+    return (
+        <div className="flex flex-col items-center gap-1">
+            <canvas
+                ref={canvasRef}
+                width={displaySize}
+                height={displaySize}
+                className="border rounded bg-[#1a1a2e]"
+                style={{
+                    imageRendering: 'pixelated',
+                    width: displaySize,
+                    height: displaySize
+                }}
+            />
+            {firstAnimation && (
+                <div className="text-xs text-muted-foreground text-center">
+                    {firstAnimation.name}
+                </div>
+            )}
+        </div>
+    );
+}
+
 
 // Animated Sprite Preview Component
 interface AnimatedSpritePreviewProps {
@@ -823,18 +947,29 @@ export function CharactersView() {
 
                                         {/* Selected Sprite Sheet Info */}
                                         {selectedSpriteSheet && (
-                                            <div className="p-3 bg-muted/50 rounded-md space-y-2">
-                                                <div className="font-medium">{selectedSpriteSheet.name}</div>
-                                                <div className="text-sm text-muted-foreground">
-                                                    {Number(selectedSpriteSheet.frame_width)}×{Number(selectedSpriteSheet.frame_height)}px • {Number(selectedSpriteSheet.total_frames)} frames
-                                                </div>
-                                                {selectedSpriteSheet.tags.length > 0 && (
-                                                    <div className="flex flex-wrap gap-1">
-                                                        {selectedSpriteSheet.tags.map((tag: string) => (
-                                                            <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>
-                                                        ))}
+                                            <div className="p-3 bg-muted/50 rounded-md space-y-3">
+                                                <div className="flex gap-4 items-start">
+                                                    {/* Animation Preview */}
+                                                    <CompactAnimationPreview spriteSheet={selectedSpriteSheet} />
+
+                                                    {/* Info */}
+                                                    <div className="flex-1 space-y-1">
+                                                        <div className="font-medium">{selectedSpriteSheet.name}</div>
+                                                        <div className="text-sm text-muted-foreground">
+                                                            {Number(selectedSpriteSheet.frame_width)}×{Number(selectedSpriteSheet.frame_height)}px • {Number(selectedSpriteSheet.total_frames)} frames
+                                                        </div>
+                                                        <div className="text-sm text-muted-foreground">
+                                                            {selectedSpriteSheet.animations.length} animation{selectedSpriteSheet.animations.length !== 1 ? 's' : ''}
+                                                        </div>
+                                                        {selectedSpriteSheet.tags.length > 0 && (
+                                                            <div className="flex flex-wrap gap-1 pt-1">
+                                                                {selectedSpriteSheet.tags.map((tag: string) => (
+                                                                    <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>
+                                                                ))}
+                                                            </div>
+                                                        )}
                                                     </div>
-                                                )}
+                                                </div>
                                             </div>
                                         )}
 
@@ -937,22 +1072,32 @@ export function CharactersView() {
                                                 <CardContent className="pt-0">
                                                     {sheet.animations.length > 0 ? (
                                                         <div className="grid grid-cols-2 gap-2">
-                                                            {sheet.animations.map((anim: any, animIdx: number) => (
-                                                                <div key={animIdx} className="p-2 bg-muted/50 rounded text-xs space-y-1">
-                                                                    <div className="font-medium">{anim.name}</div>
-                                                                    <div className="text-muted-foreground">
-                                                                        {Object.keys(anim.action_type)[0]} • {Object.keys(anim.direction)[0]}
-                                                                    </div>
-                                                                    <div className="text-muted-foreground">
-                                                                        Frames {Number(anim.frame_start)}–{Number(anim.frame_start) + Number(anim.frame_count) - 1} @ {Number(anim.frame_rate)}fps
-                                                                    </div>
-                                                                    {(Number(anim.start_x) > 0 || Number(anim.start_y) > 0) && (
+                                                            {sheet.animations.map((anim: any, animIdx: number) => {
+                                                                // Handle both Candid enum objects and plain strings
+                                                                const getEnumValue = (val: any) => {
+                                                                    if (typeof val === 'string') return val;
+                                                                    if (val && typeof val === 'object') return Object.keys(val)[0];
+                                                                    return String(val);
+                                                                };
+                                                                const actionType = getEnumValue(anim.action_type);
+                                                                const direction = getEnumValue(anim.direction);
+                                                                return (
+                                                                    <div key={animIdx} className="p-2 bg-muted/50 rounded text-xs space-y-1">
+                                                                        <div className="font-medium">{anim.name}</div>
                                                                         <div className="text-muted-foreground">
-                                                                            Start: ({Number(anim.start_x)}, {Number(anim.start_y)})px
+                                                                            {actionType} • {direction}
                                                                         </div>
-                                                                    )}
-                                                                </div>
-                                                            ))}
+                                                                        <div className="text-muted-foreground">
+                                                                            Frames {Number(anim.frame_start)}–{Number(anim.frame_start) + Number(anim.frame_count) - 1} @ {Number(anim.frame_rate)}fps
+                                                                        </div>
+                                                                        {(Number(anim.start_x) > 0 || Number(anim.start_y) > 0) && (
+                                                                            <div className="text-muted-foreground">
+                                                                                Start: ({Number(anim.start_x)}, {Number(anim.start_y)})px
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                );
+                                                            })}
                                                         </div>
                                                     ) : (
                                                         <p className="text-sm text-muted-foreground">No animations defined</p>
@@ -972,6 +1117,6 @@ export function CharactersView() {
                     </Tabs>
                 </DialogContent>
             </Dialog>
-        </div>
+        </div >
     );
 }
