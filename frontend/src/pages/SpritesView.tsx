@@ -153,7 +153,37 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
         console.log('🔍 Sprite animations:', existingSprite.animations);
 
         // Ensure animations is always an array (backend might return undefined)
-        const safeAnimations = existingSprite.animations || [];
+        // Also convert Candid types back to frontend types
+        const rawAnimations = existingSprite.animations || [];
+        const safeAnimations: Animation[] = rawAnimations.map((anim: any) => {
+            // Convert direction from Candid variant format back to string
+            // Candid format: [] | [{ 'up': null } | { 'down': null } | ...]
+            let direction: Direction | null = null;
+            if (anim.direction && Array.isArray(anim.direction) && anim.direction.length > 0) {
+                const dirVariant = anim.direction[0];
+                if (dirVariant && typeof dirVariant === 'object') {
+                    if ('up' in dirVariant) direction = 'up';
+                    else if ('down' in dirVariant) direction = 'down';
+                    else if ('left' in dirVariant) direction = 'left';
+                    else if ('right' in dirVariant) direction = 'right';
+                }
+            }
+
+            // Convert frame_rate from Candid optional format back to number | null
+            let frame_rate: number | null = null;
+            if (anim.frame_rate && Array.isArray(anim.frame_rate) && anim.frame_rate.length > 0) {
+                frame_rate = Number(anim.frame_rate[0]);
+            }
+
+            return {
+                name: anim.name || '',
+                action_type: anim.action_type || 'idle',
+                direction,
+                frame_start: Number(anim.frame_start) || 0,
+                frame_count: Number(anim.frame_count) || 1,
+                frame_rate
+            };
+        });
 
         // Ensure tags is ALWAYS an array with multiple safety checks
         let safeTags: string[] = [];
