@@ -818,8 +818,8 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
                                                 name: '',
                                                 action_type: 'idle',
                                                 direction: null,
-                                                start_x: 0,
-                                                start_y: 0,
+                                                start_x: manualOffset.x,
+                                                start_y: manualOffset.y,
                                                 frame_start: 0,
                                                 frame_count: spriteState.frameCount || 1,
                                                 frame_rate: null
