@@ -6,7 +6,9 @@ export interface Animation {
     name: string;              // e.g., "walk_down", "attack_left"
     action_type: string;       // e.g., "walk", "attack", "jump"
     direction?: Direction;     // Optional direction
-    frame_start: number;       // Starting frame index in sheet
+    start_x: number;           // X pixel coordinate where this animation starts
+    start_y: number;           // Y pixel coordinate where this animation starts
+    frame_start: number;       // Starting frame index (for backward compatibility)
     frame_count: number;       // Number of frames for this animation
     frame_rate?: number;       // Optional FPS for animation
 }

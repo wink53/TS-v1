@@ -104,6 +104,8 @@ export interface Animation {
     'name': string,
     'action_type': string,
     'direction': [] | [Direction],
+    'start_x': bigint,
+    'start_y': bigint,
     'frame_start': bigint,
     'frame_count': bigint,
     'frame_rate': [] | [bigint],

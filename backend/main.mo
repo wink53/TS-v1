@@ -152,7 +152,9 @@ persistent actor Backend {
     name : Text;              // e.g., "walk_down", "attack_left"
     action_type : Text;       // e.g., "walk", "attack", "jump"
     direction : ?Direction;   // Optional direction
-    frame_start : Nat;        // Starting frame index in sheet
+    start_x : Nat;            // X pixel coordinate where this animation starts
+    start_y : Nat;            // Y pixel coordinate where this animation starts
+    frame_start : Nat;        // Starting frame index (for backward compatibility)
     frame_count : Nat;        // Number of frames for this animation
     frame_rate : ?Nat;        // Optional FPS for animation
   };

@@ -17,6 +17,8 @@ type Animation = {
     name: string;
     action_type: string;
     direction: Direction | null;
+    start_x: number;
+    start_y: number;
     frame_start: number;
     frame_count: number;
     frame_rate: number | null;
@@ -120,6 +122,8 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
         name: '',
         action_type: 'idle',
         direction: null,
+        start_x: 0,
+        start_y: 0,
         frame_start: 0,
         frame_count: 1,
         frame_rate: null
@@ -179,6 +183,8 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
                 name: anim.name || '',
                 action_type: anim.action_type || 'idle',
                 direction,
+                start_x: Number(anim.start_x) || 0,
+                start_y: Number(anim.start_y) || 0,
                 frame_start: Number(anim.frame_start) || 0,
                 frame_count: Number(anim.frame_count) || 1,
                 frame_rate
@@ -469,6 +475,8 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
                     name: anim.name,
                     action_type: anim.action_type,
                     direction: candid_direction,
+                    start_x: BigInt(anim.start_x),
+                    start_y: BigInt(anim.start_y),
                     frame_start: BigInt(anim.frame_start),
                     frame_count: BigInt(anim.frame_count),
                     frame_rate: candid_frame_rate
@@ -810,6 +818,8 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
                                                 name: '',
                                                 action_type: 'idle',
                                                 direction: null,
+                                                start_x: 0,
+                                                start_y: 0,
                                                 frame_start: 0,
                                                 frame_count: spriteState.frameCount || 1,
                                                 frame_rate: null
@@ -914,6 +924,35 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
 
                                             <div className="grid grid-cols-2 gap-2">
                                                 <div>
+                                                    <Label className="text-xs">Start X (px)</Label>
+                                                    <Input
+                                                        type="number"
+                                                        min={0}
+                                                        value={newAnimation.start_x}
+                                                        onChange={(e) => setNewAnimation(prev => ({
+                                                            ...prev,
+                                                            start_x: Math.max(0, parseInt(e.target.value) || 0)
+                                                        }))}
+                                                        className="text-xs h-7"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <Label className="text-xs">Start Y (px)</Label>
+                                                    <Input
+                                                        type="number"
+                                                        min={0}
+                                                        value={newAnimation.start_y}
+                                                        onChange={(e) => setNewAnimation(prev => ({
+                                                            ...prev,
+                                                            start_y: Math.max(0, parseInt(e.target.value) || 0)
+                                                        }))}
+                                                        className="text-xs h-7"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <div>
                                                     <Label className="text-xs">Start Frame</Label>
                                                     <Input
                                                         type="number"
@@ -966,6 +1005,8 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
                                                         name: '',
                                                         action_type: 'idle',
                                                         direction: null,
+                                                        start_x: 0,
+                                                        start_y: 0,
                                                         frame_start: 0,
                                                         frame_count: 1,
                                                         frame_rate: null
