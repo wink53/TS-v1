@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useListSpriteSheets, useCreateSpriteSheet, useUploadCharacterSpriteSheet, useDeleteSpriteSheet, useGetCharacterSpriteSheet } from '../hooks/useQueries';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,51 @@ import { toast } from 'sonner';
 import { TagInput } from '../components/TagInput';
 import { analyzeSpriteSheet } from '../utils/spriteSheetAnalyzer';
 import type { SpriteSheet } from '../declarations/backend/backend.did.d.ts';
+
+// Thumbnail component that loads and displays sprite sheet image
+function SpriteThumbnail({ blobId }: { blobId: string }) {
+    const { data: blobData, isLoading } = useGetCharacterSpriteSheet(blobId);
+    const [imageUrl, setImageUrl] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (!blobData) return;
+
+        // Convert blob data to image URL
+        const uint8Array = blobData instanceof Uint8Array ? blobData : new Uint8Array(blobData);
+        const blob = new Blob([uint8Array.buffer as ArrayBuffer], { type: 'image/png' });
+        const url = URL.createObjectURL(blob);
+        setImageUrl(url);
+
+        return () => URL.revokeObjectURL(url);
+    }, [blobData]);
+
+    if (isLoading) {
+        return (
+            <div className="w-full h-32 bg-muted/50 rounded flex items-center justify-center">
+                <div className="animate-pulse text-muted-foreground text-xs">Loading...</div>
+            </div>
+        );
+    }
+
+    if (!imageUrl) {
+        return (
+            <div className="w-full h-32 bg-muted/50 rounded flex items-center justify-center">
+                <ImageIcon className="w-8 h-8 text-muted-foreground" />
+            </div>
+        );
+    }
+
+    return (
+        <div className="w-full h-32 bg-checkerboard rounded overflow-hidden flex items-center justify-center">
+            <img
+                src={imageUrl}
+                alt="Sprite thumbnail"
+                className="max-w-full max-h-full object-contain"
+                style={{ imageRendering: 'pixelated' }}
+            />
+        </div>
+    );
+}
 
 export default function SpritesLibraryView({ onNavigate }: { onNavigate?: (spriteId: string) => void }) {
     const { data: spriteSheets = [], isLoading } = useListSpriteSheets();
@@ -288,16 +333,22 @@ export default function SpritesLibraryView({ onNavigate }: { onNavigate?: (sprit
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                     {filteredSprites.map((sprite: SpriteSheet) => (
                         <Card key={sprite.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                            <CardHeader className="pb-3">
+                            {/* Sprite Thumbnail */}
+                            <div className="p-2">
+                                <SpriteThumbnail blobId={sprite.blob_id} />
+                            </div>
+                            <CardHeader className="pb-2 pt-0">
                                 <CardTitle className="text-lg">{sprite.name}</CardTitle>
                                 {sprite.description && (
                                     <CardDescription className="line-clamp-2">{sprite.description}</CardDescription>
                                 )}
                             </CardHeader>
-                            <CardContent className="space-y-3">
+                            <CardContent className="space-y-3 pt-0">
                                 <div className="text-sm text-muted-foreground">
-                                    <div>Frames: {Number(sprite.total_frames)}</div>
-                                    <div>Size: {Number(sprite.frame_width)}x{Number(sprite.frame_height)}</div>
+                                    <div className="flex gap-4">
+                                        <span>Frames: {Number(sprite.total_frames)}</span>
+                                        <span>{Number(sprite.frame_width)}×{Number(sprite.frame_height)}px</span>
+                                    </div>
                                     <div>Animations: {sprite.animations.length}</div>
                                 </div>
                                 {sprite.tags.length > 0 && (
@@ -331,6 +382,18 @@ export default function SpritesLibraryView({ onNavigate }: { onNavigate?: (sprit
                     ))}
                 </div>
             )}
+
+            <style>{`
+                .bg-checkerboard {
+                    background-image: 
+                        linear-gradient(45deg, #ccc 25%, transparent 25%),
+                        linear-gradient(-45deg, #ccc 25%, transparent 25%),
+                        linear-gradient(45deg, transparent 75%, #ccc 75%),
+                        linear-gradient(-45deg, transparent 75%, #ccc 75%);
+                    background-size: 16px 16px;
+                    background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+                }
+            `}</style>
         </div>
     );
 }

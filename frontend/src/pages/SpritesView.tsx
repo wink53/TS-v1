@@ -547,20 +547,25 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
 
             toast.success(`Sprite "${spriteState.name}" ${spriteId ? 'updated' : 'saved'} successfully!`);
 
-            // Reset form including metadata
-            setSpriteState({
-                name: '',
-                description: '',
-                tags: [],
-                file: null,
-                frameCount: 1,
-                frameWidth: 32,
-                frameHeight: 32,
-            });
-            setProcessedImageBlob(null);
-            setRemoveBackground(false);
-            setPreviewImage(null);
-            setDetectedFrames([]);
+            // Navigate back to library after successful save
+            if (onBack) {
+                onBack();
+            } else {
+                // Reset form including metadata if no navigation callback
+                setSpriteState({
+                    name: '',
+                    description: '',
+                    tags: [],
+                    file: null,
+                    frameCount: 1,
+                    frameWidth: 32,
+                    frameHeight: 32,
+                });
+                setProcessedImageBlob(null);
+                setRemoveBackground(false);
+                setPreviewImage(null);
+                setDetectedFrames([]);
+            }
         } catch (error: any) {
             console.error('Save error:', error);
             if (error.message?.includes('409') || error.message?.includes('already exists')) {
