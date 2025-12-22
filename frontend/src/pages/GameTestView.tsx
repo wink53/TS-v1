@@ -234,9 +234,10 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
     const getAnimationForDirection = useCallback((direction: string, sheet: SpriteSheet) => {
         // Find animation matching direction
         for (const anim of sheet.animations) {
-            const animDir = Array.isArray(anim.direction) && anim.direction.length > 0
-                ? Object.keys(anim.direction[0])[0]
-                : null;
+            let animDir: string | null = null;
+            if (Array.isArray(anim.direction) && anim.direction.length > 0 && anim.direction[0]) {
+                animDir = Object.keys(anim.direction[0] as object)[0];
+            }
 
             if (animDir === direction) {
                 return anim;
