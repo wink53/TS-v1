@@ -1030,8 +1030,12 @@ export function CharactersView() {
                                         {selectedCharacter?.sprite_sheets.map((sheet: SpriteSheet, idx: number) => (
                                             <Card key={idx} className="overflow-hidden">
                                                 <CardHeader className="pb-2">
-                                                    <div className="flex items-start justify-between">
-                                                        <div>
+                                                    <div className="flex items-start justify-between gap-3">
+                                                        {/* Animation Preview */}
+                                                        <CompactAnimationPreview spriteSheet={sheet} />
+
+                                                        {/* Sheet Info */}
+                                                        <div className="flex-1">
                                                             <CardTitle className="text-base">{sheet.name}</CardTitle>
                                                             <CardDescription>
                                                                 {Number(sheet.frame_width)}×{Number(sheet.frame_height)}px • {Number(sheet.total_frames)} frames • {sheet.animations.length} animations
