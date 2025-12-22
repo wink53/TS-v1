@@ -118,6 +118,7 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
     const [animations, setAnimations] = useState<Animation[]>([]);
     const [showAnimationForm, setShowAnimationForm] = useState(false);
     const [editingAnimationIndex, setEditingAnimationIndex] = useState<number | null>(null);
+    const [selectedAnimationIndex, setSelectedAnimationIndex] = useState<number | null>(null); // Track which animation is selected for preview
     const [newAnimation, setNewAnimation] = useState<Animation>({
         name: '',
         action_type: 'idle',
@@ -128,6 +129,40 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
         frame_count: 1,
         frame_rate: null
     });
+
+    // Handler to load animation settings into the preview window
+    const handleSelectAnimation = (index: number) => {
+        const anim = animations[index];
+        if (!anim) return;
+
+        // Update selected animation index
+        setSelectedAnimationIndex(index);
+
+        // Update the preview settings to match the animation
+        setManualOffset({ x: anim.start_x, y: anim.start_y });
+        setSpriteState((prev: {
+            name: string;
+            description: string;
+            tags: string[];
+            file: File | null;
+            frameCount: number;
+            frameWidth: number;
+            frameHeight: number;
+        }) => ({
+            ...prev,
+            frameCount: anim.frame_count
+        }));
+
+        // Reset current frame to the animation's start frame
+        setCurrentFrame(0);
+
+        console.log('🎬 Selected animation for preview:', anim.name, {
+            start_x: anim.start_x,
+            start_y: anim.start_y,
+            frame_count: anim.frame_count,
+            frame_start: anim.frame_start
+        });
+    };
 
     const previewCanvasRef = useRef<HTMLCanvasElement>(null);
     const animationCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -833,18 +868,25 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
                                     </Button>
                                 </div>
 
-                                {/* Animation List */}
+                                {/* Animation List - Click to preview */}
                                 {animations.length > 0 && (
                                     <div className="space-y-1 max-h-32 overflow-y-auto">
                                         {animations.map((anim, index) => (
-                                            <div key={index} className="flex items-center justify-between bg-muted/50 rounded px-2 py-1 text-xs">
+                                            <div
+                                                key={index}
+                                                className={`flex items-center justify-between rounded px-2 py-1 text-xs cursor-pointer transition-colors ${selectedAnimationIndex === index
+                                                    ? 'bg-primary/20 ring-1 ring-primary'
+                                                    : 'bg-muted/50 hover:bg-muted'
+                                                    }`}
+                                                onClick={() => handleSelectAnimation(index)}
+                                            >
                                                 <div className="flex-1 truncate">
                                                     <span className="font-medium">{anim.name}</span>
                                                     <span className="text-muted-foreground ml-1">
                                                         ({anim.action_type}{anim.direction ? `_${anim.direction}` : ''})
                                                     </span>
                                                     <span className="text-muted-foreground ml-1">
-                                                        F{anim.frame_start}-{anim.frame_start + anim.frame_count - 1}
+                                                        @({anim.start_x},{anim.start_y}) F{anim.frame_start}-{anim.frame_start + anim.frame_count - 1}
                                                     </span>
                                                 </div>
                                                 <div className="flex gap-1">
@@ -853,11 +895,13 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
                                                         variant="ghost"
                                                         size="sm"
                                                         className="h-5 w-5 p-0"
-                                                        onClick={() => {
+                                                        onClick={(e: React.MouseEvent) => {
+                                                            e.stopPropagation(); // Prevent row click
                                                             setNewAnimation({ ...anim });
                                                             setEditingAnimationIndex(index);
                                                             setShowAnimationForm(true);
                                                         }}
+                                                        title="Edit animation"
                                                     >
                                                         ✏️
                                                     </Button>
@@ -866,9 +910,18 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
                                                         variant="ghost"
                                                         size="sm"
                                                         className="h-5 w-5 p-0 text-destructive"
-                                                        onClick={() => {
+                                                        onClick={(e: React.MouseEvent) => {
+                                                            e.stopPropagation(); // Prevent row click
                                                             setAnimations(prev => prev.filter((_, i) => i !== index));
+                                                            // Clear selection if the deleted animation was selected
+                                                            if (selectedAnimationIndex === index) {
+                                                                setSelectedAnimationIndex(null);
+                                                            } else if (selectedAnimationIndex !== null && selectedAnimationIndex > index) {
+                                                                // Adjust selection index if a previous animation was deleted
+                                                                setSelectedAnimationIndex(selectedAnimationIndex - 1);
+                                                            }
                                                         }}
+                                                        title="Delete animation"
                                                     >
                                                         <Trash2 className="h-3 w-3" />
                                                     </Button>
