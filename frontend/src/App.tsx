@@ -7,6 +7,7 @@ import { TileSetsView } from './pages/TileSetsView';
 import { PrefabsView } from './pages/PrefabsView';
 import { MapsView } from './pages/MapsView';
 import { EditorView } from './pages/EditorView';
+import { GameTestView } from './pages/GameTestView';
 import { CharactersView } from './pages/CharactersView';
 import SpritesView from './pages/SpritesView';
 import SpritesLibraryView from './pages/SpritesLibraryView';
@@ -14,13 +15,14 @@ import { Dashboard } from './pages/Dashboard';
 import { Toaster } from '@/components/ui/sonner';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
-export type ViewType = 'dashboard' | 'tiles' | 'objects' | 'tileSets' | 'prefabs' | 'maps' | 'editor' | 'characters' | 'sprites' | 'spriteEditor';
+export type ViewType = 'dashboard' | 'tiles' | 'objects' | 'tileSets' | 'prefabs' | 'maps' | 'editor' | 'gameTest' | 'characters' | 'sprites' | 'spriteEditor';
 export type PaletteTab = 'tiles' | 'objects' | 'characters' | 'npcs';
 
 function App() {
   const [currentView, setCurrentView] = useState<ViewType>('dashboard');
   const [selectedMapId, setSelectedMapId] = useState<string | null>(null);
   const [selectedSpriteId, setSelectedSpriteId] = useState<string | null>(null);
+  const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
 
   const handleOpenEditor = (mapId: string) => {
     setSelectedMapId(mapId);
@@ -29,6 +31,18 @@ function App() {
 
   const handleBackFromEditor = () => {
     setSelectedMapId(null);
+    setCurrentView('maps');
+  };
+
+  const handleOpenGameTest = (mapId: string, characterId: string) => {
+    setSelectedMapId(mapId);
+    setSelectedCharacterId(characterId);
+    setCurrentView('gameTest');
+  };
+
+  const handleBackFromGameTest = () => {
+    setSelectedMapId(null);
+    setSelectedCharacterId(null);
     setCurrentView('maps');
   };
 
@@ -45,10 +59,13 @@ function App() {
       case 'prefabs':
         return <PrefabsView />;
       case 'maps':
-        return <MapsView onOpenEditor={handleOpenEditor} />;
+        return <MapsView onOpenEditor={handleOpenEditor} onOpenGameTest={handleOpenGameTest} />;
       case 'editor':
-        if (!selectedMapId) return <MapsView onOpenEditor={handleOpenEditor} />;
+        if (!selectedMapId) return <MapsView onOpenEditor={handleOpenEditor} onOpenGameTest={handleOpenGameTest} />;
         return <EditorView mapId={selectedMapId} onBack={handleBackFromEditor} />;
+      case 'gameTest':
+        if (!selectedMapId || !selectedCharacterId) return <MapsView onOpenEditor={handleOpenEditor} onOpenGameTest={handleOpenGameTest} />;
+        return <GameTestView mapId={selectedMapId} characterId={selectedCharacterId} onBack={handleBackFromGameTest} />;
       case 'characters':
         return <CharactersView />;
       case 'sprites':
@@ -76,10 +93,10 @@ function App() {
 
   return (
     <div className="flex h-screen flex-col bg-background">
-      {currentView !== 'editor' && <Header />}
+      {currentView !== 'editor' && currentView !== 'gameTest' && <Header />}
       <div className="flex flex-1 overflow-hidden">
-        {currentView !== 'editor' && <Sidebar currentView={currentView} onNavigate={setCurrentView} />}
-        <main className={`flex-1 overflow-y-auto ${currentView !== 'editor' ? 'p-6' : ''}`}>
+        {currentView !== 'editor' && currentView !== 'gameTest' && <Sidebar currentView={currentView} onNavigate={setCurrentView} />}
+        <main className={`flex-1 overflow-y-auto ${currentView !== 'editor' && currentView !== 'gameTest' ? 'p-6' : ''}`}>
           {renderView()}
         </main>
       </div>

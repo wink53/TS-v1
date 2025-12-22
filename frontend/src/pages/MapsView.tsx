@@ -1,29 +1,34 @@
 import { useState } from 'react';
-import { useListMaps, useCreateMap, useUpdateMap, useDeleteMap } from '../hooks/useQueries';
+import { useListMaps, useCreateMap, useUpdateMap, useDeleteMap, useListPlayableCharacters } from '../hooks/useQueries';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Map, Pencil, Trash2, Edit3 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Plus, Map, Pencil, Trash2, Edit3, Play } from 'lucide-react';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
-import type { MapData } from '../backend';
+import type { MapData, PlayableCharacter } from '../backend';
 
 interface MapsViewProps {
   onOpenEditor?: (mapId: string) => void;
+  onOpenGameTest?: (mapId: string, characterId: string) => void;
 }
 
-export function MapsView({ onOpenEditor }: MapsViewProps) {
+export function MapsView({ onOpenEditor, onOpenGameTest }: MapsViewProps) {
   const { data: maps, isLoading } = useListMaps();
+  const { data: characters = [] } = useListPlayableCharacters();
   const createMap = useCreateMap();
   const updateMap = useUpdateMap();
   const deleteMap = useDeleteMap();
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isTestDialogOpen, setIsTestDialogOpen] = useState(false);
   const [selectedMap, setSelectedMap] = useState<MapData | null>(null);
+  const [selectedTestCharacterId, setSelectedTestCharacterId] = useState<string>('');
   const [formData, setFormData] = useState({
     id: '',
     name: '',
@@ -135,6 +140,28 @@ export function MapsView({ onOpenEditor }: MapsViewProps) {
         description: error instanceof Error ? error.message : 'Unknown error occurred',
       });
     }
+  };
+
+  const handleOpenTest = (map: MapData) => {
+    setSelectedMap(map);
+    setSelectedTestCharacterId('');
+    setIsTestDialogOpen(true);
+  };
+
+  const handleStartTest = () => {
+    if (!selectedMap || !selectedTestCharacterId) {
+      toast.error('Please select a character');
+      return;
+    }
+    setIsTestDialogOpen(false);
+    onOpenGameTest?.(selectedMap.id, selectedTestCharacterId);
+  };
+
+  // Get characters that have spawn points on the selected map
+  const getSpawnCharacters = () => {
+    if (!selectedMap) return [];
+    const spawnCharacterIds = selectedMap.spawn_points.map((s: any) => s.character_id);
+    return characters.filter((c: PlayableCharacter) => spawnCharacterIds.includes(c.id));
   };
 
   return (
@@ -268,6 +295,50 @@ export function MapsView({ onOpenEditor }: MapsViewProps) {
         </DialogContent>
       </Dialog>
 
+      {/* Test Dialog - Character Selection */}
+      <Dialog open={isTestDialogOpen} onOpenChange={setIsTestDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Test Map: {selectedMap?.name}</DialogTitle>
+            <DialogDescription>
+              Select a character to control during the test
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {getSpawnCharacters().length > 0 ? (
+              <>
+                <div className="space-y-2">
+                  <Label>Character</Label>
+                  <Select value={selectedTestCharacterId} onValueChange={setSelectedTestCharacterId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a character" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {getSpawnCharacters().map((char: PlayableCharacter) => (
+                        <SelectItem key={char.id} value={char.id}>
+                          {char.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button className="w-full" onClick={handleStartTest} disabled={!selectedTestCharacterId}>
+                  <Play className="mr-2 h-4 w-4" />
+                  Start Test
+                </Button>
+              </>
+            ) : (
+              <div className="text-center py-4">
+                <p className="text-muted-foreground mb-2">No spawn points on this map.</p>
+                <p className="text-sm text-muted-foreground">
+                  Add spawn points in the map editor to test character movement.
+                </p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {isLoading ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {[...Array(6)].map((_, i) => (
@@ -304,6 +375,17 @@ export function MapsView({ onOpenEditor }: MapsViewProps) {
                         <Edit3 className="h-4 w-4" />
                       </Button>
                     )}
+                    {onOpenGameTest && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-green-600 hover:text-green-700"
+                        onClick={() => handleOpenTest(map)}
+                        title="Test Map"
+                      >
+                        <Play className="h-4 w-4" />
+                      </Button>
+                    )}
                     <Button
                       variant="ghost"
                       size="icon"
@@ -329,9 +411,10 @@ export function MapsView({ onOpenEditor }: MapsViewProps) {
               </CardHeader>
               <CardContent className="space-y-3">
                 <p className="text-sm text-muted-foreground">{map.description}</p>
-                <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                <div className="grid grid-cols-3 gap-2 text-xs text-muted-foreground">
                   <div>Tiles: {map.tile_instances.length}</div>
                   <div>Objects: {map.object_instances.length}</div>
+                  <div>Spawns: {map.spawn_points?.length || 0}</div>
                 </div>
               </CardContent>
             </Card>
