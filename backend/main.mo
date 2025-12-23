@@ -709,28 +709,7 @@ persistent actor Backend {
     };
     maps := textMap.put(maps, sampleMap.id, sampleMap);
 
-    // Create sample sprite sheet
-    let sampleSpriteSheet : SpriteSheet = {
-      id = "sprite-hero-1";
-      name = "Hero Sprite Sheet";
-      description = "Sample character sprite sheet";
-      tags = ["character", "playable"];
-      blob_id = "sprite-hero-1";
-      frame_width = 32;
-      frame_height = 32;
-      total_frames = 16;
-      animations = [
-        { name = "walk_down"; action_type = "walk"; direction = ?#down; start_x = 0; start_y = 0; frame_start = 0; frame_count = 4; frame_rate = ?8 },
-        { name = "walk_left"; action_type = "walk"; direction = ?#left; start_x = 0; start_y = 32; frame_start = 4; frame_count = 4; frame_rate = ?8 },
-        { name = "walk_right"; action_type = "walk"; direction = ?#right; start_x = 0; start_y = 64; frame_start = 8; frame_count = 4; frame_rate = ?8 },
-        { name = "walk_up"; action_type = "walk"; direction = ?#up; start_x = 0; start_y = 96; frame_start = 12; frame_count = 4; frame_rate = ?8 }
-      ];
-      created_at = now;
-      updated_at = now;
-    };
-    sprite_sheets := textMap.put(sprite_sheets, sampleSpriteSheet.id, sampleSpriteSheet);
-
-    // Create sample character
+    // Create sample character (no sprite sheets - user will manually create and assign)
     let sampleCharacter : PlayableCharacter = {
       id = "char-hero-1";
       name = "Hero";
@@ -743,13 +722,13 @@ persistent actor Backend {
         mana = ?50;
         overshield = null;
       };
-      sprite_sheets = [sampleSpriteSheet];
+      sprite_sheets = [];
       created_at = now;
       updated_at = now;
     };
     playable_characters := textMap.put(playable_characters, sampleCharacter.id, sampleCharacter);
 
-    #ok("Seeded 4 tiles, 1 map, 1 character with sprite sheet")
+    #ok("Seeded 4 tiles, 1 map, 1 character (no sprite sheets)")
   };
 
   // Clear all test data
