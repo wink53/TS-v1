@@ -334,12 +334,15 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
                 timing.frameTime = 0;
             }
 
-            // Update camera
+            // Update camera - account for zoom level
             const canvas = canvasRef.current;
             if (canvas) {
+                // When zoomed, the visible area is smaller, so divide by zoom
+                const viewWidth = canvas.width / zoom;
+                const viewHeight = canvas.height / zoom;
                 setCamera({
-                    x: playerPos.x - canvas.width / 2 + TILE_SIZE / 2,
-                    y: playerPos.y - canvas.height / 2 + TILE_SIZE / 2
+                    x: playerPos.x - viewWidth / 2 + TILE_SIZE / 2,
+                    y: playerPos.y - viewHeight / 2 + TILE_SIZE / 2
                 });
             }
 
@@ -349,7 +352,7 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
         animationId = requestAnimationFrame(gameLoop);
 
         return () => cancelAnimationFrame(animationId);
-    }, [mapData, isPaused, playerPos, playerDirection, moveSpeed]);
+    }, [mapData, isPaused, playerPos, playerDirection, moveSpeed, zoom]);
 
     // Render
     useEffect(() => {
