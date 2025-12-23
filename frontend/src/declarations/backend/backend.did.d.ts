@@ -176,7 +176,7 @@ export interface _SERVICE {
     'uploadObjectImage': ActorMethod<[string, Uint8Array | number[]], Result>,
     'getObjectImage': ActorMethod<[string], [] | [Uint8Array | number[]]>,
     'listPlayableCharacters': ActorMethod<[], Array<PlayableCharacter>>,
-    'getPlayableCharacter': ActorMethod<[string], [] | [PlayableCharacter]>,
+    'getPlayableCharacter': ActorMethod<[string], { 'ok': PlayableCharacter } | { 'err': ValidationError }>,
     'createPlayableCharacter': ActorMethod<[PlayableCharacter], Result>,
     'updatePlayableCharacter': ActorMethod<[string, PlayableCharacter], Result>,
     'deletePlayableCharacter': ActorMethod<[string], Result>,

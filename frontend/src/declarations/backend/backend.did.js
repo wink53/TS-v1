@@ -184,7 +184,7 @@ export const idlFactory = ({ IDL }) => {
         'uploadObjectImage': IDL.Func([IDL.Text, IDL.Vec(IDL.Nat8)], [Result], []),
         'getObjectImage': IDL.Func([IDL.Text], [IDL.Opt(IDL.Vec(IDL.Nat8))], ['query']),
         'listPlayableCharacters': IDL.Func([], [IDL.Vec(PlayableCharacter)], ['query']),
-        'getPlayableCharacter': IDL.Func([IDL.Text], [IDL.Opt(PlayableCharacter)], ['query']),
+        'getPlayableCharacter': IDL.Func([IDL.Text], [IDL.Variant({ 'ok': PlayableCharacter, 'err': ValidationError })], ['query']),
         'createPlayableCharacter': IDL.Func([PlayableCharacter], [Result], []),
         'updatePlayableCharacter': IDL.Func([IDL.Text, PlayableCharacter], [Result], []),
         'deletePlayableCharacter': IDL.Func([IDL.Text], [Result], []),

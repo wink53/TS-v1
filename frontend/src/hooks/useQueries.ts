@@ -466,7 +466,11 @@ export function useGetPlayableCharacter(id: string) {
     queryFn: async () => {
       if (!actor) return null;
       const result = await actor.getPlayableCharacter(id);
-      return unwrap(result);
+      // Handle Result type: { ok: PlayableCharacter } | { err: ValidationError }
+      if ('ok' in result) {
+        return result.ok;
+      }
+      return null;
     },
     enabled: !!actor && !isFetching && !!id,
   });
