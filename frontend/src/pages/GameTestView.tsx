@@ -50,6 +50,10 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
     // Keys pressed
     const keysPressed = useRef<Set<string>>(new Set());
 
+    // Animation timing refs (persist across effect re-runs)
+    const animationTimingRef = useRef({ lastTime: 0, frameTime: 0 });
+    const animationFPSRef = useRef(animationFPS);
+
     // Image caches
     const [tileImages, setTileImages] = useState<Record<string, HTMLImageElement>>({});
     const [objectImages, setObjectImages] = useState<Record<string, HTMLImageElement>>({});
@@ -264,18 +268,22 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
         return sheet.animations[0];
     }, []);
 
+    // Keep FPS ref in sync with state
+    useEffect(() => {
+        animationFPSRef.current = animationFPS;
+    }, [animationFPS]);
+
     // Game loop
     useEffect(() => {
         if (!mapData || isPaused) return;
 
         let animationId: number;
-        let lastTime = 0;
-        let frameTime = 0;
 
         const gameLoop = (time: number) => {
-            const deltaTime = time - lastTime;
-            lastTime = time;
-            frameTime += deltaTime;
+            const timing = animationTimingRef.current;
+            const deltaTime = time - timing.lastTime;
+            timing.lastTime = time;
+            timing.frameTime += deltaTime;
 
             // Movement
             let dx = 0, dy = 0;
@@ -319,10 +327,11 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
                 setIsMoving(false);
             }
 
-            // Animation frame update
-            if (frameTime > 1000 / animationFPS) {
+            // Animation frame update - use ref for current FPS value
+            const currentFPS = animationFPSRef.current;
+            if (timing.frameTime > 1000 / currentFPS) {
                 setCurrentFrame(prev => prev + 1);
-                frameTime = 0;
+                timing.frameTime = 0;
             }
 
             // Update camera
@@ -340,7 +349,7 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
         animationId = requestAnimationFrame(gameLoop);
 
         return () => cancelAnimationFrame(animationId);
-    }, [mapData, isPaused, playerPos, playerDirection, moveSpeed, animationFPS]);
+    }, [mapData, isPaused, playerPos, playerDirection, moveSpeed]);
 
     // Render
     useEffect(() => {
