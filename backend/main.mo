@@ -709,7 +709,28 @@ persistent actor Backend {
     };
     maps := textMap.put(maps, sampleMap.id, sampleMap);
 
-    // Create sample character (no sprite sheets - user will manually create and assign)
+    // Create "nude dude" sprite sheet with correct animation coordinates
+    let nudeDudeSprite : SpriteSheet = {
+      id = "sprite_1766505666321_446k7phry";
+      name = "nude dude";
+      description = "";
+      tags = [];
+      blob_id = "sprite_1766505666321_446k7phry_blob";
+      frame_width = 32;
+      frame_height = 64;
+      total_frames = 8;
+      animations = [
+        { name = "nd i"; action_type = "walk"; direction = ?#up; start_x = 0; start_y = 0; frame_start = 0; frame_count = 5; frame_rate = null },
+        { name = "nd ii"; action_type = "walk"; direction = ?#down; start_x = 0; start_y = 66; frame_start = 0; frame_count = 5; frame_rate = null },
+        { name = "nd iii"; action_type = "walk"; direction = ?#right; start_x = 0; start_y = 131; frame_start = 0; frame_count = 8; frame_rate = null },
+        { name = "nd iiii"; action_type = "walk"; direction = ?#left; start_x = 0; start_y = 194; frame_start = 0; frame_count = 8; frame_rate = null }
+      ];
+      created_at = now;
+      updated_at = now;
+    };
+    sprite_sheets := textMap.put(sprite_sheets, nudeDudeSprite.id, nudeDudeSprite);
+
+    // Create sample character with the nude dude sprite sheet
     let sampleCharacter : PlayableCharacter = {
       id = "char-hero-1";
       name = "Hero";
@@ -722,13 +743,13 @@ persistent actor Backend {
         mana = ?50;
         overshield = null;
       };
-      sprite_sheets = [];
+      sprite_sheets = [nudeDudeSprite];
       created_at = now;
       updated_at = now;
     };
     playable_characters := textMap.put(playable_characters, sampleCharacter.id, sampleCharacter);
 
-    #ok("Seeded 4 tiles, 1 map, 1 character (no sprite sheets)")
+    #ok("Seeded 4 tiles, 1 map, 1 character with nude dude sprite sheet")
   };
 
   // Clear all test data
