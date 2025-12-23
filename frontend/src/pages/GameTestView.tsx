@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useActor } from '../hooks/useActor';
 import { useGetCharacterSpriteSheet, useListPlayableCharacters } from '../hooks/useQueries';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Play, Pause, ZoomIn, ZoomOut, Gauge } from 'lucide-react';
+import { ArrowLeft, Play, Pause, ZoomIn, ZoomOut, Gauge, Film } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { toast } from 'sonner';
 import type { PlayableCharacter, SpriteSheet } from '../backend';
@@ -16,7 +16,17 @@ interface GameTestViewProps {
 
 const TILE_SIZE = 32;
 const DEFAULT_MOVE_SPEED = 4; // pixels per frame
-const ANIMATION_FRAME_RATE = 8; // fps
+const DEFAULT_ANIMATION_FPS = 8; // fps
+
+// Tile color fallback map for when images are missing
+const TILE_COLOR_MAP: Record<string, string> = {
+    'grass': '#4ade80',  // green
+    'dirt': '#a16207',   // brown
+    'stone': '#6b7280',  // grey
+    'water': '#3b82f6',  // blue
+    'sand': '#fcd34d',   // yellow
+    'default': '#333',   // dark grey
+};
 
 export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) {
     const { actor } = useActor();
@@ -32,6 +42,7 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
     // Controls state
     const [zoom, setZoom] = useState(2); // 1 = 100%, 2 = 200%, etc.
     const [moveSpeed, setMoveSpeed] = useState(DEFAULT_MOVE_SPEED);
+    const [animationFPS, setAnimationFPS] = useState(DEFAULT_ANIMATION_FPS);
 
     // Camera state
     const [camera, setCamera] = useState({ x: 0, y: 0 });
@@ -309,7 +320,7 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
             }
 
             // Animation frame update
-            if (frameTime > 1000 / ANIMATION_FRAME_RATE) {
+            if (frameTime > 1000 / animationFPS) {
                 setCurrentFrame(prev => prev + 1);
                 frameTime = 0;
             }
@@ -329,7 +340,7 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
         animationId = requestAnimationFrame(gameLoop);
 
         return () => cancelAnimationFrame(animationId);
-    }, [mapData, isPaused, playerPos, playerDirection, moveSpeed]);
+    }, [mapData, isPaused, playerPos, playerDirection, moveSpeed, animationFPS]);
 
     // Render
     useEffect(() => {
@@ -357,8 +368,20 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
             if (img) {
                 ctx.drawImage(img, x, y, TILE_SIZE, TILE_SIZE);
             } else {
-                ctx.fillStyle = '#333';
+                // Use smart color based on tile name
+                const tileId = instance.tileId.toLowerCase();
+                let color = TILE_COLOR_MAP['default'];
+                for (const [key, value] of Object.entries(TILE_COLOR_MAP)) {
+                    if (tileId.includes(key)) {
+                        color = value;
+                        break;
+                    }
+                }
+                ctx.fillStyle = color;
                 ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+                // Add subtle border for tile separation
+                ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+                ctx.strokeRect(x, y, TILE_SIZE, TILE_SIZE);
             }
         });
 
@@ -415,7 +438,7 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
         ctx.font = '14px sans-serif';
         ctx.fillText(`Character: ${selectedCharacter?.name || 'Unknown'}`, 20, 30);
         ctx.fillText(`Position: (${Math.floor(playerPos.x / TILE_SIZE)}, ${Math.floor(playerPos.y / TILE_SIZE)})`, 20, 50);
-        ctx.fillText(`Zoom: ${zoom}x | Speed: ${moveSpeed}`, 20, 70);
+        ctx.fillText(`Zoom: ${zoom}x | Speed: ${moveSpeed} | FPS: ${animationFPS}`, 20, 70);
         ctx.fillText('Press ESC to pause', 20, 90);
 
         if (isPaused) {
@@ -481,6 +504,20 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
                         className="w-24"
                     />
                     <span className="text-sm text-muted-foreground w-8">{moveSpeed}</span>
+                </div>
+
+                {/* Animation FPS Control */}
+                <div className="flex items-center gap-2 px-4 py-2 bg-muted/50 rounded-lg">
+                    <Film className="h-4 w-4 text-muted-foreground" />
+                    <Slider
+                        value={[animationFPS]}
+                        min={1}
+                        max={30}
+                        step={1}
+                        onValueChange={(value: number[]) => setAnimationFPS(value[0])}
+                        className="w-24"
+                    />
+                    <span className="text-sm text-muted-foreground w-12">{animationFPS} fps</span>
                 </div>
 
                 <Button
