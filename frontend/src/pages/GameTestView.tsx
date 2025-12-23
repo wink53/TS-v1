@@ -391,9 +391,6 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
                 }
                 ctx.fillStyle = color;
                 ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
-                // Add subtle border for tile separation
-                ctx.strokeStyle = 'rgba(0,0,0,0.2)';
-                ctx.strokeRect(x, y, TILE_SIZE, TILE_SIZE);
             }
         });
 
