@@ -29,11 +29,44 @@ export function Dashboard({ onNavigate }: DashboardProps) {
     if (!actor) return;
     setIsSeeding(true);
     try {
+      // Step 1: Create metadata (tiles, map, character, sprite sheet)
       const result = await (actor as any).seedTestData();
       if ('ok' in result) {
-        toast.success('Test data seeded successfully!', {
-          description: result.ok,
-        });
+        // Step 2: Upload the bundled sprite sheet image
+        try {
+          const imageResponse = await fetch('/seed-assets/nude-dude.png');
+          if (imageResponse.ok) {
+            const imageBlob = await imageResponse.blob();
+            const imageBuffer = await imageBlob.arrayBuffer();
+            const imageData = new Uint8Array(imageBuffer);
+
+            // Upload to the canister using the same blob_id as created in seed
+            const uploadResult = await (actor as any).uploadCharacterSpriteSheet(
+              'sprite_1766505666321_446k7phry_blob',
+              imageData
+            );
+
+            if ('ok' in uploadResult) {
+              toast.success('Test data seeded with sprite sheet!', {
+                description: result.ok + ' (image uploaded)',
+              });
+            } else {
+              toast.success('Test data seeded!', {
+                description: result.ok + ' (but image upload failed)',
+              });
+            }
+          } else {
+            toast.success('Test data seeded!', {
+              description: result.ok + ' (sprite image not found in bundle)',
+            });
+          }
+        } catch (imageError) {
+          console.warn('Failed to upload sprite image:', imageError);
+          toast.success('Test data seeded!', {
+            description: result.ok,
+          });
+        }
+
         // Invalidate all queries to refresh data
         queryClient.invalidateQueries();
       } else {
