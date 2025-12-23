@@ -3,7 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import { useActor } from '../hooks/useActor';
 import { useGetCharacterSpriteSheet, useListPlayableCharacters } from '../hooks/useQueries';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Play, Pause } from 'lucide-react';
+import { ArrowLeft, Play, Pause, ZoomIn, ZoomOut, Gauge } from 'lucide-react';
+import { Slider } from '@/components/ui/slider';
 import { toast } from 'sonner';
 import type { PlayableCharacter, SpriteSheet } from '../backend';
 
@@ -14,7 +15,7 @@ interface GameTestViewProps {
 }
 
 const TILE_SIZE = 32;
-const MOVE_SPEED = 4; // pixels per frame
+const DEFAULT_MOVE_SPEED = 4; // pixels per frame
 const ANIMATION_FRAME_RATE = 8; // fps
 
 export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) {
@@ -27,6 +28,10 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
     const [isMoving, setIsMoving] = useState(false);
     const [currentFrame, setCurrentFrame] = useState(0);
     const [isPaused, setIsPaused] = useState(false);
+
+    // Controls state
+    const [zoom, setZoom] = useState(2); // 1 = 100%, 2 = 200%, etc.
+    const [moveSpeed, setMoveSpeed] = useState(DEFAULT_MOVE_SPEED);
 
     // Camera state
     const [camera, setCamera] = useState({ x: 0, y: 0 });
@@ -269,22 +274,22 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
             const keys = keysPressed.current;
 
             if (keys.has('w') || keys.has('arrowup')) {
-                dy = -MOVE_SPEED;
+                dy = -moveSpeed;
                 newDirection = 'up';
                 moving = true;
             }
             if (keys.has('s') || keys.has('arrowdown')) {
-                dy = MOVE_SPEED;
+                dy = moveSpeed;
                 newDirection = 'down';
                 moving = true;
             }
             if (keys.has('a') || keys.has('arrowleft')) {
-                dx = -MOVE_SPEED;
+                dx = -moveSpeed;
                 newDirection = 'left';
                 moving = true;
             }
             if (keys.has('d') || keys.has('arrowright')) {
-                dx = MOVE_SPEED;
+                dx = moveSpeed;
                 newDirection = 'right';
                 moving = true;
             }
@@ -324,7 +329,7 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
         animationId = requestAnimationFrame(gameLoop);
 
         return () => cancelAnimationFrame(animationId);
-    }, [mapData, isPaused, playerPos, playerDirection]);
+    }, [mapData, isPaused, playerPos, playerDirection, moveSpeed]);
 
     // Render
     useEffect(() => {
@@ -338,8 +343,9 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
         ctx.fillStyle = '#1a1a2e';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Apply camera
+        // Apply camera and zoom
         ctx.save();
+        ctx.scale(zoom, zoom);
         ctx.translate(-camera.x, -camera.y);
 
         // Draw tiles
@@ -404,12 +410,13 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
 
         // Draw UI overlay
         ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        ctx.fillRect(10, 10, 200, 60);
+        ctx.fillRect(10, 10, 220, 80);
         ctx.fillStyle = '#fff';
         ctx.font = '14px sans-serif';
         ctx.fillText(`Character: ${selectedCharacter?.name || 'Unknown'}`, 20, 30);
         ctx.fillText(`Position: (${Math.floor(playerPos.x / TILE_SIZE)}, ${Math.floor(playerPos.y / TILE_SIZE)})`, 20, 50);
-        ctx.fillText('Press ESC to pause', 20, 70);
+        ctx.fillText(`Zoom: ${zoom}x | Speed: ${moveSpeed}`, 20, 70);
+        ctx.fillText('Press ESC to pause', 20, 90);
 
         if (isPaused) {
             ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
@@ -423,7 +430,7 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
             ctx.textAlign = 'left';
         }
 
-    }, [mapData, camera, playerPos, playerDirection, currentFrame, isMoving, tileImages, objectImages, characterImage, spriteSheet, isPaused, selectedCharacter]);
+    }, [mapData, camera, playerPos, playerDirection, currentFrame, isMoving, tileImages, objectImages, characterImage, spriteSheet, isPaused, selectedCharacter, zoom, moveSpeed]);
 
     if (isMapLoading) {
         return <div className="flex items-center justify-center h-screen">Loading map...</div>;
@@ -446,6 +453,36 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
                 </Button>
                 <h2 className="font-semibold">Game Test: {mapData.name}</h2>
                 <div className="flex-1" />
+
+                {/* Zoom Control */}
+                <div className="flex items-center gap-2 px-4 py-2 bg-muted/50 rounded-lg">
+                    <ZoomOut className="h-4 w-4 text-muted-foreground" />
+                    <Slider
+                        value={[zoom]}
+                        min={0.5}
+                        max={3}
+                        step={0.5}
+                        onValueChange={(value) => setZoom(value[0])}
+                        className="w-24"
+                    />
+                    <ZoomIn className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground w-12">{zoom}x</span>
+                </div>
+
+                {/* Speed Control */}
+                <div className="flex items-center gap-2 px-4 py-2 bg-muted/50 rounded-lg">
+                    <Gauge className="h-4 w-4 text-muted-foreground" />
+                    <Slider
+                        value={[moveSpeed]}
+                        min={1}
+                        max={10}
+                        step={1}
+                        onValueChange={(value) => setMoveSpeed(value[0])}
+                        className="w-24"
+                    />
+                    <span className="text-sm text-muted-foreground w-8">{moveSpeed}</span>
+                </div>
+
                 <Button
                     variant={isPaused ? "default" : "outline"}
                     size="sm"
