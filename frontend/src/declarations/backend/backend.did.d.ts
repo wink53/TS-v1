@@ -189,4 +189,6 @@ export interface _SERVICE {
     'deleteSpriteSheet': ActorMethod<[string], Result>,
     'addAnimationToSheet': ActorMethod<[string, Animation], Result>,
     'removeAnimationFromSheet': ActorMethod<[string, string], Result>,
+    'seedTestData': ActorMethod<[], Result>,
+    'clearAllData': ActorMethod<[], Result>,
 }

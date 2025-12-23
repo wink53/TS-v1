@@ -197,6 +197,8 @@ export const idlFactory = ({ IDL }) => {
         'deleteSpriteSheet': IDL.Func([IDL.Text], [Result], []),
         'addAnimationToSheet': IDL.Func([IDL.Text, Animation], [Result], []),
         'removeAnimationFromSheet': IDL.Func([IDL.Text, IDL.Text], [Result], []),
+        'seedTestData': IDL.Func([], [Result], []),
+        'clearAllData': IDL.Func([], [Result], []),
     });
 };
 export const init = ({ IDL }) => { return []; };
