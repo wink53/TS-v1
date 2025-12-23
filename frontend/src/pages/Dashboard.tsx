@@ -1,20 +1,79 @@
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useListTiles, useListObjects, useListTileSets, useListPrefabs, useListMaps } from '../hooks/useQueries';
-import { Square, Box, Layers, Package, Map, ArrowRight } from 'lucide-react';
+import { Square, Box, Layers, Package, Map, ArrowRight, Database, Trash2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { ViewType } from '../App';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useActor } from '../hooks/useActor';
+import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface DashboardProps {
   onNavigate: (view: ViewType) => void;
 }
 
 export function Dashboard({ onNavigate }: DashboardProps) {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  const [isSeeding, setIsSeeding] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
+
   const { data: tiles, isLoading: tilesLoading } = useListTiles();
   const { data: objects, isLoading: objectsLoading } = useListObjects();
   const { data: tileSets, isLoading: tileSetsLoading } = useListTileSets();
   const { data: prefabs, isLoading: prefabsLoading } = useListPrefabs();
   const { data: maps, isLoading: mapsLoading } = useListMaps();
+
+  const handleSeedData = async () => {
+    if (!actor) return;
+    setIsSeeding(true);
+    try {
+      const result = await (actor as any).seedTestData();
+      if ('ok' in result) {
+        toast.success('Test data seeded successfully!', {
+          description: result.ok,
+        });
+        // Invalidate all queries to refresh data
+        queryClient.invalidateQueries();
+      } else {
+        toast.error('Failed to seed data', {
+          description: result.err?.message || 'Unknown error',
+        });
+      }
+    } catch (error: any) {
+      toast.error('Error seeding data', {
+        description: error.message || 'Unknown error',
+      });
+    } finally {
+      setIsSeeding(false);
+    }
+  };
+
+  const handleClearData = async () => {
+    if (!actor) return;
+    if (!confirm('Are you sure you want to clear ALL data? This cannot be undone.')) {
+      return;
+    }
+    setIsClearing(true);
+    try {
+      const result = await (actor as any).clearAllData();
+      if ('ok' in result) {
+        toast.success('All data cleared!');
+        queryClient.invalidateQueries();
+      } else {
+        toast.error('Failed to clear data', {
+          description: result.err?.message || 'Unknown error',
+        });
+      }
+    } catch (error: any) {
+      toast.error('Error clearing data', {
+        description: error.message || 'Unknown error',
+      });
+    } finally {
+      setIsClearing(false);
+    }
+  };
 
   const stats = [
     {
@@ -117,6 +176,46 @@ export function Dashboard({ onNavigate }: DashboardProps) {
               <li>• Event hooks for interactive game elements</li>
             </ul>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Developer Tools */}
+      <Card className="border-dashed border-2 border-muted">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Database className="h-5 w-5" />
+            Developer Tools
+          </CardTitle>
+          <CardDescription>
+            Quick actions for testing and development
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex gap-4">
+          <Button
+            onClick={handleSeedData}
+            disabled={isSeeding || isClearing}
+            className="flex items-center gap-2"
+          >
+            {isSeeding ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Database className="h-4 w-4" />
+            )}
+            Seed Test Data
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={handleClearData}
+            disabled={isSeeding || isClearing}
+            className="flex items-center gap-2"
+          >
+            {isClearing ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Trash2 className="h-4 w-4" />
+            )}
+            Clear All Data
+          </Button>
         </CardContent>
       </Card>
 

@@ -642,6 +642,134 @@ persistent actor Backend {
   };
 
 
+  // Seed Test Data - Creates sample tiles, a map, and a character for testing
+  public func seedTestData() : async {
+    #ok : Text;
+    #err : ValidationError;
+  } {
+    // Check if data already exists
+    let existingTiles = Iter.toArray(textMap.vals(tiles));
+    if (existingTiles.size() > 0) {
+      return #err({ code = "ALREADY_SEEDED"; message = "Test data already exists"; fix_attempted = false });
+    };
+
+    let now : Int = 0; // Placeholder timestamp
+
+    // Create sample tiles
+    let sampleTiles : [TileMetadata] = [
+      { id = "tile-grass-1"; name = "Grass"; description = "Green grass tile"; tags = ["ground", "nature"]; blob_id = "tile-grass-1"; created_at = now; updated_at = now },
+      { id = "tile-dirt-1"; name = "Dirt"; description = "Brown dirt tile"; tags = ["ground"]; blob_id = "tile-dirt-1"; created_at = now; updated_at = now },
+      { id = "tile-stone-1"; name = "Stone"; description = "Gray stone tile"; tags = ["ground", "path"]; blob_id = "tile-stone-1"; created_at = now; updated_at = now },
+      { id = "tile-water-1"; name = "Water"; description = "Blue water tile"; tags = ["water", "obstacle"]; blob_id = "tile-water-1"; created_at = now; updated_at = now }
+    ];
+
+    for (tile in sampleTiles.vals()) {
+      tiles := textMap.put(tiles, tile.id, tile);
+    };
+
+    // Create sample map with tile instances
+    var tileInstances : [TileInstance] = [];
+    var row : Nat = 0;
+    while (row < 10) {
+      var col : Nat = 0;
+      while (col < 10) {
+        // Create a pattern: water border, grass interior, stone path
+        let tileId : Text = if (row == 0 or row == 9 or col == 0 or col == 9) {
+          "tile-water-1"
+        } else if (col == 5) {
+          "tile-stone-1"
+        } else if (row == 3 or row == 7) {
+          "tile-dirt-1"
+        } else {
+          "tile-grass-1"
+        };
+        tileInstances := Array.append<TileInstance>(tileInstances, [{ tile_id = tileId; position = { x = col; y = row } }]);
+        col += 1;
+      };
+      row += 1;
+    };
+
+    let sampleMap : MapData = {
+      id = "map-test-1";
+      name = "Test Map";
+      description = "A sample 10x10 map for testing character movement";
+      width = 10;
+      height = 10;
+      tile_instances = tileInstances;
+      object_instances = [];
+      spawn_points = [{
+        id = "spawn-1";
+        name = "Player Start";
+        x = 5;
+        y = 5;
+        character_id = "char-hero-1";
+      }];
+      created_at = now;
+      updated_at = now;
+    };
+    maps := textMap.put(maps, sampleMap.id, sampleMap);
+
+    // Create sample sprite sheet
+    let sampleSpriteSheet : SpriteSheet = {
+      id = "sprite-hero-1";
+      name = "Hero Sprite Sheet";
+      description = "Sample character sprite sheet";
+      tags = ["character", "playable"];
+      blob_id = "sprite-hero-1";
+      frame_width = 32;
+      frame_height = 32;
+      total_frames = 16;
+      animations = [
+        { name = "walk_down"; action_type = "walk"; direction = ?#down; start_x = 0; start_y = 0; frame_start = 0; frame_count = 4; frame_rate = ?8 },
+        { name = "walk_left"; action_type = "walk"; direction = ?#left; start_x = 0; start_y = 32; frame_start = 4; frame_count = 4; frame_rate = ?8 },
+        { name = "walk_right"; action_type = "walk"; direction = ?#right; start_x = 0; start_y = 64; frame_start = 8; frame_count = 4; frame_rate = ?8 },
+        { name = "walk_up"; action_type = "walk"; direction = ?#up; start_x = 0; start_y = 96; frame_start = 12; frame_count = 4; frame_rate = ?8 }
+      ];
+      created_at = now;
+      updated_at = now;
+    };
+    sprite_sheets := textMap.put(sprite_sheets, sampleSpriteSheet.id, sampleSpriteSheet);
+
+    // Create sample character
+    let sampleCharacter : PlayableCharacter = {
+      id = "char-hero-1";
+      name = "Hero";
+      description = "The main playable character";
+      tags = ["player", "hero"];
+      stats = {
+        health = ?100;
+        speed = ?5;
+        strength = ?10;
+        mana = ?50;
+        overshield = null;
+      };
+      sprite_sheets = [sampleSpriteSheet];
+      created_at = now;
+      updated_at = now;
+    };
+    playable_characters := textMap.put(playable_characters, sampleCharacter.id, sampleCharacter);
+
+    #ok("Seeded 4 tiles, 1 map, 1 character with sprite sheet")
+  };
+
+  // Clear all test data
+  public func clearAllData() : async {
+    #ok : Text;
+    #err : ValidationError;
+  } {
+    tiles := textMap.empty<TileMetadata>();
+    objects := textMap.empty<ObjectMetadata>();
+    tile_sets := textMap.empty<TileSet>();
+    prefabs := textMap.empty<Prefab>();
+    maps := textMap.empty<MapData>();
+    tile_images := textMap.empty<Blob>();
+    object_images := textMap.empty<Blob>();
+    playable_characters := textMap.empty<PlayableCharacter>();
+    character_sprite_sheets := textMap.empty<Blob>();
+    sprite_sheets := textMap.empty<SpriteSheet>();
+    #ok("All data cleared")
+  };
+
   // System upgrade hooks for stable memory persistence
   system func preupgrade() {
     // Save all data to stable variables before upgrade
