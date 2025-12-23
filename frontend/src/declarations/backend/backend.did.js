@@ -97,11 +97,11 @@ export const idlFactory = ({ IDL }) => {
         'fix_attempted': IDL.Bool,
     });
     const CharacterStats = IDL.Record({
-        'health': IDL.Opt(IDL.Int),
-        'speed': IDL.Opt(IDL.Int),
-        'strength': IDL.Opt(IDL.Int),
-        'mana': IDL.Opt(IDL.Int),
-        'overshield': IDL.Opt(IDL.Int),
+        'health': IDL.Opt(IDL.Nat),
+        'speed': IDL.Opt(IDL.Nat),
+        'strength': IDL.Opt(IDL.Nat),
+        'mana': IDL.Opt(IDL.Nat),
+        'overshield': IDL.Opt(IDL.Nat),
     });
     const AnimationState = IDL.Variant({
         'idle': IDL.Null,
