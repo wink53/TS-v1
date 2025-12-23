@@ -462,7 +462,7 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
                         min={0.5}
                         max={3}
                         step={0.5}
-                        onValueChange={(value) => setZoom(value[0])}
+                        onValueChange={(value: number[]) => setZoom(value[0])}
                         className="w-24"
                     />
                     <ZoomIn className="h-4 w-4 text-muted-foreground" />
@@ -477,7 +477,7 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
                         min={1}
                         max={10}
                         step={1}
-                        onValueChange={(value) => setMoveSpeed(value[0])}
+                        onValueChange={(value: number[]) => setMoveSpeed(value[0])}
                         className="w-24"
                     />
                     <span className="text-sm text-muted-foreground w-8">{moveSpeed}</span>
