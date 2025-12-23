@@ -450,9 +450,20 @@ export function useListPlayableCharacters() {
   return useQuery({
     queryKey: ['playableCharacters'],
     queryFn: async () => {
-      if (!actor) return [];
-      const result = await actor.listPlayableCharacters();
-      return result;
+      console.log('🔍 listPlayableCharacters: Query starting, actor:', !!actor);
+      if (!actor) {
+        console.log('🔍 listPlayableCharacters: No actor, returning []');
+        return [];
+      }
+      try {
+        console.log('🔍 listPlayableCharacters: Calling backend...');
+        const result = await actor.listPlayableCharacters();
+        console.log('🔍 listPlayableCharacters: Result:', result);
+        return result;
+      } catch (error) {
+        console.error('🔍 listPlayableCharacters: Error:', error);
+        return [];
+      }
     },
     enabled: !!actor && !isFetching,
   });

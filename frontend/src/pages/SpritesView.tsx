@@ -172,8 +172,9 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
     useEffect(() => {
         console.log('🔍 useEffect TRIGGERED - existingSprite:', existingSprite ? 'YES' : 'NO', 'spriteImageBlob:', spriteImageBlob ? 'YES' : 'NO', 'initialDataLoaded:', initialDataLoaded.current);
 
-        if (!existingSprite || !spriteImageBlob) {
-            console.log('🔍 useEffect EARLY RETURN - no sprite or blob');
+        // Only require existingSprite to load metadata (not the blob)
+        if (!existingSprite) {
+            console.log('🔍 useEffect EARLY RETURN - no sprite metadata');
             return;
         }
 
@@ -257,34 +258,40 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
         // Load existing animations
         setAnimations(safeAnimations as Animation[]);
 
-        // Load the image from blob
-        const uint8Array = spriteImageBlob instanceof Uint8Array ? spriteImageBlob : new Uint8Array(spriteImageBlob);
-        const blob = new Blob([uint8Array.buffer as ArrayBuffer], { type: 'image/png' });
+        // Only load image if we have the blob data
+        if (spriteImageBlob) {
+            console.log('🔍 Loading sprite image from blob');
+            const uint8Array = spriteImageBlob instanceof Uint8Array ? spriteImageBlob : new Uint8Array(spriteImageBlob);
+            const blob = new Blob([uint8Array.buffer as ArrayBuffer], { type: 'image/png' });
 
-        // Create a File from the blob for BackgroundRemover
-        const file = new File([blob], existingSprite.name || 'sprite.png', { type: 'image/png' });
-        setExistingSpriteFile(file);
+            // Create a File from the blob for BackgroundRemover
+            const file = new File([blob], existingSprite.name || 'sprite.png', { type: 'image/png' });
+            setExistingSpriteFile(file);
 
-        const url = URL.createObjectURL(blob);
-        const img = new Image();
-        img.onload = async () => {
-            setPreviewImage(img);
+            const url = URL.createObjectURL(blob);
+            const img = new Image();
+            img.onload = async () => {
+                setPreviewImage(img);
 
-            // Analyze the loaded sprite sheet
-            const analysis = await analyzeSpriteSheet(img, {
-                expectedFrameWidth: Number(existingSprite.frame_width),
-                expectedFrameHeight: Number(existingSprite.frame_height),
-                expectedFrameCount: Number(existingSprite.total_frames),
-                detectionMode: detectionMode,
-                manualOffsetX: manualOffset.x,
-                manualOffsetY: manualOffset.y,
-            });
+                // Analyze the loaded sprite sheet
+                const analysis = await analyzeSpriteSheet(img, {
+                    expectedFrameWidth: Number(existingSprite.frame_width),
+                    expectedFrameHeight: Number(existingSprite.frame_height),
+                    expectedFrameCount: Number(existingSprite.total_frames),
+                    detectionMode: detectionMode,
+                    manualOffsetX: manualOffset.x,
+                    manualOffsetY: manualOffset.y,
+                });
 
-            setDetectedFrames(analysis.frames);
-        };
-        img.src = url;
+                setDetectedFrames(analysis.frames);
+            };
+            img.src = url;
 
-        return () => URL.revokeObjectURL(url);
+            return () => URL.revokeObjectURL(url);
+        } else {
+            console.log('⚠️ No sprite image blob available - sprite has metadata but no uploaded image');
+            toast.info('This sprite sheet has no image uploaded. Please upload an image to preview and animate.', { duration: 5000 });
+        }
     }, [existingSprite, spriteImageBlob]);
 
     // Create a safe version of existingSprite with animations guaranteed to be an array
