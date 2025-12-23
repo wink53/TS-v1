@@ -49,6 +49,7 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
     // FIXED: Always call hooks unconditionally (React rules of hooks)
     const blobQuery = useGetCharacterSpriteSheet(existingSprite?.blob_id || '');
     const spriteImageBlob = existingSprite ? blobQuery.data : null;
+    const isLoadingBlob = existingSprite?.blob_id ? blobQuery.isLoading : false;
 
     console.log('🔍 Data loaded:', {
         existingSprite: existingSprite ? 'YES' : 'NO',
@@ -639,8 +640,8 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
     };
 
 
-    // Show loading state while fetching sprite data OR sprite image
-    if (isLoadingSprite || (spriteId && !spriteImageBlob)) {
+    // Show loading state while fetching sprite data OR sprite image (only while queries are loading, not forever)
+    if (isLoadingSprite || isLoadingBlob) {
         return (
             <div className="p-6 max-w-[1800px] mx-auto">
                 <div className="text-center py-12">
