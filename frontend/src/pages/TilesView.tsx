@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Square, Pencil, Trash2, Upload } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Plus, Square, Pencil, Trash2, Ban } from 'lucide-react';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -28,6 +29,7 @@ export function TilesView() {
     description: '',
     tags: '',
     blob_id: '',
+    is_solid: false,
   });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
@@ -46,6 +48,7 @@ export function TilesView() {
       description: formData.description,
       tags: formData.tags.split(',').map(t => t.trim()).filter(Boolean),
       blob_id: formData.blob_id || (selectedFile ? `blob_${formData.id}` : ''),
+      is_solid: formData.is_solid,
       created_at: BigInt(Date.now()),
       updated_at: BigInt(Date.now()),
     };
@@ -66,7 +69,7 @@ export function TilesView() {
 
         toast.success('Tile created successfully');
         setIsCreateDialogOpen(false);
-        setFormData({ id: '', name: '', description: '', tags: '', blob_id: '' });
+        setFormData({ id: '', name: '', description: '', tags: '', blob_id: '', is_solid: false });
         setSelectedFile(null);
       } else {
         toast.error(`Error: ${result.err.message}`, {
@@ -89,6 +92,7 @@ export function TilesView() {
       description: tile.description,
       tags: tile.tags.join(', '),
       blob_id: tile.blob_id,
+      is_solid: tile.is_solid ?? false,
     });
     setSelectedFile(null);
     setIsEditDialogOpen(true);
@@ -104,6 +108,7 @@ export function TilesView() {
       description: formData.description,
       tags: formData.tags.split(',').map(t => t.trim()).filter(Boolean),
       blob_id: formData.blob_id,
+      is_solid: formData.is_solid,
       updated_at: BigInt(Date.now()),
     };
 
@@ -124,7 +129,7 @@ export function TilesView() {
         toast.success('Tile updated successfully');
         setIsEditDialogOpen(false);
         setSelectedTile(null);
-        setFormData({ id: '', name: '', description: '', tags: '', blob_id: '' });
+        setFormData({ id: '', name: '', description: '', tags: '', blob_id: '', is_solid: false });
         setSelectedFile(null);
       } else {
         toast.error(`Error: ${result.err.message}`, {
@@ -224,6 +229,16 @@ export function TilesView() {
                   placeholder="grass, outdoor, nature"
                 />
               </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="create-solid"
+                  checked={formData.is_solid}
+                  onChange={(e) => setFormData({ ...formData, is_solid: e.target.checked })}
+                />
+                <Label htmlFor="create-solid" className="text-sm font-normal">
+                  Solid (blocks character movement)
+                </Label>
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="create-image">Tile Image (PNG)</Label>
                 <Input
@@ -287,6 +302,16 @@ export function TilesView() {
                 value={formData.tags}
                 onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
               />
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="edit-solid"
+                checked={formData.is_solid}
+                onChange={(e) => setFormData({ ...formData, is_solid: e.target.checked })}
+              />
+              <Label htmlFor="edit-solid" className="text-sm font-normal">
+                Solid (blocks character movement)
+              </Label>
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-image">Update Image (Optional)</Label>
@@ -360,6 +385,12 @@ export function TilesView() {
                       </Badge>
                     ))}
                   </div>
+                )}
+                {tile.is_solid && (
+                  <Badge variant="destructive" className="text-xs">
+                    <Ban className="h-3 w-3 mr-1" />
+                    Solid
+                  </Badge>
                 )}
                 <div className="text-xs text-muted-foreground">
                   Blob: {tile.blob_id || 'None'}

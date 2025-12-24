@@ -5,6 +5,7 @@ export const idlFactory = ({ IDL }) => {
         'description': IDL.Text,
         'tags': IDL.Vec(IDL.Text),
         'blob_id': IDL.Text,
+        'is_solid': IDL.Bool,
         'created_at': IDL.Int,
         'updated_at': IDL.Int,
     });

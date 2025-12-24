@@ -74,6 +74,7 @@ export interface TileMetadata {
     'description': string,
     'tags': Array<string>,
     'blob_id': string,
+    'is_solid': boolean,
     'created_at': bigint,
     'updated_at': bigint,
 }

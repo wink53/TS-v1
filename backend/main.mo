@@ -31,6 +31,7 @@ persistent actor Backend {
     description : Text;
     tags : [Text];
     blob_id : Text;
+    is_solid : Bool;  // True = blocks character/NPC movement
     created_at : Int;
     updated_at : Int;
   };
@@ -657,10 +658,10 @@ persistent actor Backend {
 
     // Create sample tiles
     let sampleTiles : [TileMetadata] = [
-      { id = "tile-grass-1"; name = "Grass"; description = "Green grass tile"; tags = ["ground", "nature"]; blob_id = "tile-grass-1"; created_at = now; updated_at = now },
-      { id = "tile-dirt-1"; name = "Dirt"; description = "Brown dirt tile"; tags = ["ground"]; blob_id = "tile-dirt-1"; created_at = now; updated_at = now },
-      { id = "tile-stone-1"; name = "Stone"; description = "Gray stone tile"; tags = ["ground", "path"]; blob_id = "tile-stone-1"; created_at = now; updated_at = now },
-      { id = "tile-water-1"; name = "Water"; description = "Blue water tile"; tags = ["water", "obstacle"]; blob_id = "tile-water-1"; created_at = now; updated_at = now }
+      { id = "tile-grass-1"; name = "Grass"; description = "Green grass tile"; tags = ["ground", "nature"]; blob_id = "tile-grass-1"; is_solid = false; created_at = now; updated_at = now },
+      { id = "tile-dirt-1"; name = "Dirt"; description = "Brown dirt tile"; tags = ["ground"]; blob_id = "tile-dirt-1"; is_solid = false; created_at = now; updated_at = now },
+      { id = "tile-stone-1"; name = "Stone"; description = "Gray stone tile"; tags = ["ground", "wall"]; blob_id = "tile-stone-1"; is_solid = true; created_at = now; updated_at = now },
+      { id = "tile-water-1"; name = "Water"; description = "Blue water tile"; tags = ["water"]; blob_id = "tile-water-1"; is_solid = false; created_at = now; updated_at = now }
     ];
 
     for (tile in sampleTiles.vals()) {

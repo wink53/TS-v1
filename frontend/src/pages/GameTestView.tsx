@@ -59,6 +59,9 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
     const [objectImages, setObjectImages] = useState<Record<string, HTMLImageElement>>({});
     const [characterImage, setCharacterImage] = useState<HTMLImageElement | null>(null);
 
+    // Collision map - set of "x,y" grid positions that are solid
+    const [collisionMap, setCollisionMap] = useState<Set<string>>(new Set());
+
     // Queries
     const { data: mapData, isLoading: isMapLoading } = useQuery({
         queryKey: ['map', mapId],
@@ -99,7 +102,7 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
         queryKey: ['tiles'],
         queryFn: async () => {
             if (!actor) return [];
-            return (actor as any).getTiles();
+            return (actor as any).listTiles();
         },
         enabled: !!actor,
     });
@@ -156,6 +159,31 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
             });
         }
     }, [mapData, characterId]);
+
+    // Build collision map when map data and tiles are loaded
+    useEffect(() => {
+        if (!mapData || tiles.length === 0) return;
+
+        const newCollisionMap = new Set<string>();
+
+        // Create a lookup map for tiles by ID
+        const tileById: Record<string, any> = {};
+        for (const tile of tiles) {
+            tileById[tile.id] = tile;
+        }
+
+        // Check each tile instance on the map
+        for (const instance of mapData.tile_instances) {
+            const tile = tileById[instance.tileId];
+            if (tile?.is_solid) {
+                // Add this grid position to collision map
+                newCollisionMap.add(`${instance.x},${instance.y}`);
+            }
+        }
+
+        setCollisionMap(newCollisionMap);
+        console.log('Collision map built:', newCollisionMap.size, 'solid tiles');
+    }, [mapData, tiles]);
 
     // Load tile images
     useEffect(() => {
@@ -317,10 +345,21 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
                 setPlayerDirection(newDirection);
                 setIsMoving(true);
 
-                // Apply movement with bounds check
+                // Apply movement with bounds and collision check
                 setPlayerPos(prev => {
                     const newX = Math.max(0, Math.min(prev.x + dx, (mapData.width - 1) * TILE_SIZE));
                     const newY = Math.max(0, Math.min(prev.y + dy, (mapData.height - 1) * TILE_SIZE));
+
+                    // Check collision - get the grid position we're trying to move to
+                    const gridX = Math.floor(newX / TILE_SIZE);
+                    const gridY = Math.floor(newY / TILE_SIZE);
+                    const collisionKey = `${gridX},${gridY}`;
+
+                    // If the destination is solid, don't move there
+                    if (collisionMap.has(collisionKey)) {
+                        return prev; // Block movement
+                    }
+
                     return { x: newX, y: newY };
                 });
             } else {
@@ -352,7 +391,7 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
         animationId = requestAnimationFrame(gameLoop);
 
         return () => cancelAnimationFrame(animationId);
-    }, [mapData, isPaused, playerPos, playerDirection, moveSpeed, zoom]);
+    }, [mapData, isPaused, playerPos, playerDirection, moveSpeed, zoom, collisionMap]);
 
     // Render
     useEffect(() => {
