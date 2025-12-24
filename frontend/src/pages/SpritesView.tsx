@@ -10,6 +10,7 @@ import { BackgroundRemover } from '../components/BackgroundRemover';
 import { SpriteSelector } from '../components/SpriteSelector';
 import { TagInput } from '../components/TagInput';
 import { analyzeSpriteSheet } from '../utils/spriteSheetAnalyzer';
+import { drawHitboxOverlay } from '../components/sprites/hitboxOverlay';
 import {
     type Animation,
     type Direction,
@@ -88,6 +89,7 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
     const [detectedFrames, setDetectedFrames] = useState<any[]>([]);
     const [isAnimating, setIsAnimating] = useState(true);
     const [currentFrame, setCurrentFrame] = useState(0);
+    const [showHitbox, setShowHitbox] = useState(false);
 
     // Manual selection drawing state
     const [isDrawing, setIsDrawing] = useState(false);
@@ -448,7 +450,17 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
             frame.x, frame.y, frame.width, frame.height,
             0, 0, frame.width, frame.height
         );
-    }, [previewImage, safeDetectedFrames, currentFrame]);
+
+        // Draw hitbox overlay if enabled
+        if (showHitbox) {
+            drawHitboxOverlay(ctx, {
+                offsetX: spriteState.hitboxOffsetX,
+                offsetY: spriteState.hitboxOffsetY,
+                width: spriteState.hitboxWidth,
+                height: spriteState.hitboxHeight
+            });
+        }
+    }, [previewImage, safeDetectedFrames, currentFrame, showHitbox, spriteState.hitboxOffsetX, spriteState.hitboxOffsetY, spriteState.hitboxWidth, spriteState.hitboxHeight]);
 
     const handleSpriteUpload = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -1232,6 +1244,13 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
                                             >
                                                 {isAnimating ? <Pause className="h-4 w-4 mr-2" /> : <Play className="h-4 w-4 mr-2" />}
                                                 {isAnimating ? 'Pause' : 'Play'}
+                                            </Button>
+                                            <Button
+                                                variant={showHitbox ? 'default' : 'outline'}
+                                                size="sm"
+                                                onClick={() => setShowHitbox(!showHitbox)}
+                                            >
+                                                {showHitbox ? 'Hide Hitbox' : 'Show Hitbox'}
                                             </Button>
                                             <div className="text-xs text-muted-foreground">
                                                 {spriteState.frameWidth} × {spriteState.frameHeight}px per frame
