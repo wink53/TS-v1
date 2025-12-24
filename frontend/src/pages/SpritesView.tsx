@@ -249,10 +249,15 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
             frameCount: Number(existingSprite.total_frames) || 1,
             frameWidth: Number(existingSprite.frame_width) || 32,
             frameHeight: Number(existingSprite.frame_height) || 32,
-            hitboxOffsetX: 8,
-            hitboxOffsetY: 40,
-            hitboxWidth: 16,
-            hitboxHeight: 24,
+            // Load hitbox from existing sprite or use defaults
+            hitboxOffsetX: existingSprite.hitbox && existingSprite.hitbox.length > 0
+                ? Number(existingSprite.hitbox[0]?.offset_x) || 8 : 8,
+            hitboxOffsetY: existingSprite.hitbox && existingSprite.hitbox.length > 0
+                ? Number(existingSprite.hitbox[0]?.offset_y) || 40 : 40,
+            hitboxWidth: existingSprite.hitbox && existingSprite.hitbox.length > 0
+                ? Number(existingSprite.hitbox[0]?.width) || 16 : 16,
+            hitboxHeight: existingSprite.hitbox && existingSprite.hitbox.length > 0
+                ? Number(existingSprite.hitbox[0]?.height) || 24 : 24,
         };
 
         console.log('🔍 Setting sprite state with tags:', newState.tags, 'isArray:', Array.isArray(newState.tags));
@@ -811,6 +816,56 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
                                         value={spriteState.frameHeight}
                                         onChange={(e) => setSpriteState({ ...spriteState, frameHeight: parseInt(e.target.value) || 32 })}
                                     />
+                                </div>
+                            </div>
+
+                            {/* Collision Hitbox Configuration */}
+                            <div className="space-y-2 border-t pt-3 mt-3">
+                                <Label className="text-xs font-medium">Collision Hitbox</Label>
+                                <p className="text-xs text-muted-foreground">
+                                    Define the collision area relative to the sprite. Default values work for 32x64 character sprites.
+                                </p>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div className="space-y-1">
+                                        <Label className="text-xs">Offset X</Label>
+                                        <Input
+                                            type="number"
+                                            min="0"
+                                            className="text-xs h-8"
+                                            value={spriteState.hitboxOffsetX}
+                                            onChange={(e) => setSpriteState({ ...spriteState, hitboxOffsetX: parseInt(e.target.value) || 0 })}
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label className="text-xs">Offset Y</Label>
+                                        <Input
+                                            type="number"
+                                            min="0"
+                                            className="text-xs h-8"
+                                            value={spriteState.hitboxOffsetY}
+                                            onChange={(e) => setSpriteState({ ...spriteState, hitboxOffsetY: parseInt(e.target.value) || 0 })}
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label className="text-xs">Width</Label>
+                                        <Input
+                                            type="number"
+                                            min="1"
+                                            className="text-xs h-8"
+                                            value={spriteState.hitboxWidth}
+                                            onChange={(e) => setSpriteState({ ...spriteState, hitboxWidth: parseInt(e.target.value) || 16 })}
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label className="text-xs">Height</Label>
+                                        <Input
+                                            type="number"
+                                            min="1"
+                                            className="text-xs h-8"
+                                            value={spriteState.hitboxHeight}
+                                            onChange={(e) => setSpriteState({ ...spriteState, hitboxHeight: parseInt(e.target.value) || 24 })}
+                                        />
+                                    </div>
                                 </div>
                             </div>
 
