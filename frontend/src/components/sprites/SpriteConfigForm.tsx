@@ -81,15 +81,6 @@ export function SpriteConfigForm({
                     </Button>
                     <Button
                         type="button"
-                        variant={detectionMode === 'grid' ? 'default' : 'outline'}
-                        size="sm"
-                        className="text-xs flex-1"
-                        onClick={() => setDetectionMode('grid')}
-                    >
-                        Grid
-                    </Button>
-                    <Button
-                        type="button"
                         variant={detectionMode === 'manual' ? 'default' : 'outline'}
                         size="sm"
                         className="text-xs flex-1"
