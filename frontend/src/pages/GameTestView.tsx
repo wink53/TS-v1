@@ -363,12 +363,14 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
                     let hitbox = DEFAULT_HITBOX;
                     if (spriteSheet?.hitbox && Array.isArray(spriteSheet.hitbox) && spriteSheet.hitbox.length > 0) {
                         const sheetHitbox = spriteSheet.hitbox[0];
-                        hitbox = {
-                            offsetX: Number(sheetHitbox.offset_x),
-                            offsetY: Number(sheetHitbox.offset_y),
-                            width: Number(sheetHitbox.width),
-                            height: Number(sheetHitbox.height)
-                        };
+                        if (sheetHitbox) {
+                            hitbox = {
+                                offsetX: Number(sheetHitbox.offset_x),
+                                offsetY: Number(sheetHitbox.offset_y),
+                                width: Number(sheetHitbox.width),
+                                height: Number(sheetHitbox.height)
+                            };
+                        }
                     }
 
                     // Calculate hitbox corners in world coordinates

@@ -149,15 +149,7 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
 
         // Update the preview settings to match the animation
         setManualOffset({ x: anim.start_x, y: anim.start_y });
-        setSpriteState((prev: {
-            name: string;
-            description: string;
-            tags: string[];
-            file: File | null;
-            frameCount: number;
-            frameWidth: number;
-            frameHeight: number;
-        }) => ({
+        setSpriteState((prev) => ({
             ...prev,
             frameCount: anim.frame_count
         }));
@@ -253,10 +245,14 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
             name: existingSprite.name || '',
             description: existingSprite.description || '',
             tags: safeTags,
-            file: null, // We don't have the original file, just the blob
+            file: null as File | null, // We don't have the original file, just the blob
             frameCount: Number(existingSprite.total_frames) || 1,
             frameWidth: Number(existingSprite.frame_width) || 32,
             frameHeight: Number(existingSprite.frame_height) || 32,
+            hitboxOffsetX: 8,
+            hitboxOffsetY: 40,
+            hitboxWidth: 16,
+            hitboxHeight: 24,
         };
 
         console.log('🔍 Setting sprite state with tags:', newState.tags, 'isArray:', Array.isArray(newState.tags));
@@ -582,6 +578,10 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
                     frameCount: 1,
                     frameWidth: 32,
                     frameHeight: 32,
+                    hitboxOffsetX: 8,
+                    hitboxOffsetY: 40,
+                    hitboxWidth: 16,
+                    hitboxHeight: 24,
                 });
                 setProcessedImageBlob(null);
                 setRemoveBackground(false);
