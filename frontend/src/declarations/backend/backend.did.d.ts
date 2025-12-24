@@ -111,6 +111,12 @@ export interface Animation {
     'frame_count': bigint,
     'frame_rate': [] | [bigint],
 }
+export interface Hitbox {
+    'offset_x': bigint,
+    'offset_y': bigint,
+    'width': bigint,
+    'height': bigint,
+}
 export interface SpriteSheet {
     'id': string,
     'name': string,
@@ -121,6 +127,7 @@ export interface SpriteSheet {
     'frame_height': bigint,
     'total_frames': bigint,
     'animations': Array<Animation>,
+    'hitbox': [] | [Hitbox],
     'created_at': bigint,
     'updated_at': bigint,
 }

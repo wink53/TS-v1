@@ -160,6 +160,14 @@ persistent actor Backend {
     frame_rate : ?Nat;        // Optional FPS for animation
   };
 
+  // Hitbox defines the collision bounds relative to the sprite position
+  type Hitbox = {
+    offset_x : Nat;   // Pixels from sprite left edge to hitbox left
+    offset_y : Nat;   // Pixels from sprite top edge to hitbox top
+    width : Nat;      // Hitbox width in pixels
+    height : Nat;     // Hitbox height in pixels
+  };
+
   type SpriteSheet = {
     id : Text;                // Unique sheet ID
     name : Text;              // User-friendly name
@@ -170,6 +178,7 @@ persistent actor Backend {
     frame_height : Nat;
     total_frames : Nat;       // Total frames in the sheet
     animations : [Animation]; // Multiple animations defined on this sheet
+    hitbox : ?Hitbox;         // Optional collision bounds (defaults to full frame if not set)
     created_at : Int;
     updated_at : Int;
   };
@@ -604,6 +613,7 @@ persistent actor Backend {
               frame_height = sheet.frame_height;
               total_frames = sheet.total_frames;
               animations = updatedAnimations;
+              hitbox = sheet.hitbox;
               created_at = sheet.created_at;
               updated_at = sheet.updated_at;
             };
@@ -633,6 +643,7 @@ persistent actor Backend {
           frame_height = sheet.frame_height;
           total_frames = sheet.total_frames;
           animations = updatedAnimations;
+          hitbox = sheet.hitbox;
           created_at = sheet.created_at;
           updated_at = sheet.updated_at;
         };
@@ -726,6 +737,7 @@ persistent actor Backend {
         { name = "nd iii"; action_type = "walk"; direction = ?#right; start_x = 0; start_y = 131; frame_start = 0; frame_count = 8; frame_rate = null },
         { name = "nd iiii"; action_type = "walk"; direction = ?#left; start_x = 0; start_y = 194; frame_start = 0; frame_count = 8; frame_rate = null }
       ];
+      hitbox = ?{ offset_x = 8; offset_y = 40; width = 16; height = 24 };  // Centered at feet
       created_at = now;
       updated_at = now;
     };

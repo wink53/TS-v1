@@ -68,6 +68,10 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
         frameCount: number;
         frameWidth: number;
         frameHeight: number;
+        hitboxOffsetX: number;
+        hitboxOffsetY: number;
+        hitboxWidth: number;
+        hitboxHeight: number;
     }>({
         name: '',
         description: '',
@@ -76,6 +80,10 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
         frameCount: 1,
         frameWidth: 32,
         frameHeight: 32,
+        hitboxOffsetX: 8,
+        hitboxOffsetY: 40,
+        hitboxWidth: 16,
+        hitboxHeight: 24,
     });
 
     // Ensure tags is always an array (defensive programming)
@@ -536,6 +544,12 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
                 frame_height: BigInt(spriteState.frameHeight),
                 total_frames: BigInt(spriteState.frameCount),
                 animations: candid_animations, // Use converted animations for Candid compatibility
+                hitbox: [{
+                    offset_x: BigInt(spriteState.hitboxOffsetX),
+                    offset_y: BigInt(spriteState.hitboxOffsetY),
+                    width: BigInt(spriteState.hitboxWidth),
+                    height: BigInt(spriteState.hitboxHeight)
+                }],
                 created_at: existingSprite?.created_at || BigInt(Date.now() * 1000000), // Preserve original timestamp when editing
                 updated_at: BigInt(Date.now() * 1000000)
             };

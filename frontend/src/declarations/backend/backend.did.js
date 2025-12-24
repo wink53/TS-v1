@@ -126,6 +126,12 @@ export const idlFactory = ({ IDL }) => {
         'frame_count': IDL.Nat,
         'frame_rate': IDL.Opt(IDL.Nat),
     });
+    const Hitbox = IDL.Record({
+        'offset_x': IDL.Nat,
+        'offset_y': IDL.Nat,
+        'width': IDL.Nat,
+        'height': IDL.Nat,
+    });
     const SpriteSheet = IDL.Record({
         'id': IDL.Text,
         'name': IDL.Text,
@@ -136,6 +142,7 @@ export const idlFactory = ({ IDL }) => {
         'frame_height': IDL.Nat,
         'total_frames': IDL.Nat,
         'animations': IDL.Vec(Animation),
+        'hitbox': IDL.Opt(Hitbox),
         'created_at': IDL.Int,
         'updated_at': IDL.Int,
     });

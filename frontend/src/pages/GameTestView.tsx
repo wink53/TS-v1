@@ -18,9 +18,9 @@ const TILE_SIZE = 32;
 const DEFAULT_MOVE_SPEED = 4; // pixels per frame
 const DEFAULT_ANIMATION_FPS = 8; // fps
 
-// Character hitbox - defines the collidable area relative to sprite position
+// Default character hitbox - used as fallback if sprite sheet doesn't define one
 // This accounts for transparent space around the character sprite
-const CHARACTER_HITBOX = {
+const DEFAULT_HITBOX = {
     offsetX: 8,   // Pixels from left edge of sprite to hitbox left
     offsetY: 40,  // Pixels from top of sprite to hitbox top (for 64px tall sprite, this puts hitbox at feet)
     width: 16,    // Hitbox width in pixels
@@ -359,11 +359,23 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
                     const newX = Math.max(0, Math.min(prev.x + dx, (mapData.width - 1) * TILE_SIZE));
                     const newY = Math.max(0, Math.min(prev.y + dy, (mapData.height - 1) * TILE_SIZE));
 
+                    // Get hitbox from sprite sheet or use defaults
+                    let hitbox = DEFAULT_HITBOX;
+                    if (spriteSheet?.hitbox && Array.isArray(spriteSheet.hitbox) && spriteSheet.hitbox.length > 0) {
+                        const sheetHitbox = spriteSheet.hitbox[0];
+                        hitbox = {
+                            offsetX: Number(sheetHitbox.offset_x),
+                            offsetY: Number(sheetHitbox.offset_y),
+                            width: Number(sheetHitbox.width),
+                            height: Number(sheetHitbox.height)
+                        };
+                    }
+
                     // Calculate hitbox corners in world coordinates
-                    const hitboxLeft = newX + CHARACTER_HITBOX.offsetX;
-                    const hitboxTop = newY + CHARACTER_HITBOX.offsetY;
-                    const hitboxRight = hitboxLeft + CHARACTER_HITBOX.width - 1;
-                    const hitboxBottom = hitboxTop + CHARACTER_HITBOX.height - 1;
+                    const hitboxLeft = newX + hitbox.offsetX;
+                    const hitboxTop = newY + hitbox.offsetY;
+                    const hitboxRight = hitboxLeft + hitbox.width - 1;
+                    const hitboxBottom = hitboxTop + hitbox.height - 1;
 
                     // Check all four corners of the hitbox against collision map
                     const corners = [
