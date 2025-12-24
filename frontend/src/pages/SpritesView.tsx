@@ -9,23 +9,18 @@ import { useUploadCharacterSpriteSheet, useCreateSpriteSheet, useUpdateSpriteShe
 import { BackgroundRemover } from '../components/BackgroundRemover';
 import { SpriteSelector } from '../components/SpriteSelector';
 import { TagInput } from '../components/TagInput';
-import { analyzeSpriteSheet, type DetectionMode } from '../utils/spriteSheetAnalyzer';
+import { analyzeSpriteSheet } from '../utils/spriteSheetAnalyzer';
+import {
+    type Animation,
+    type Direction,
+    type SpriteState,
+    type DetectionMode,
+    ACTION_TYPES,
+    DIRECTIONS,
+    DEFAULT_SPRITE_STATE,
+    DEFAULT_ANIMATION
+} from '../components/sprites/types';
 
-// Animation type matching backend schema
-type Direction = 'up' | 'down' | 'left' | 'right';
-type Animation = {
-    name: string;
-    action_type: string;
-    direction: Direction | null;
-    start_x: number;
-    start_y: number;
-    frame_start: number;
-    frame_count: number;
-    frame_rate: number | null;
-};
-
-const ACTION_TYPES = ['walk', 'run', 'attack', 'idle', 'jump', 'die', 'cast', 'hurt', 'block'] as const;
-const DIRECTIONS: (Direction | null)[] = [null, 'up', 'down', 'left', 'right'];
 
 export default function SpritesView({ spriteId, onBack }: { spriteId?: string; onBack?: () => void }) {
     console.log('🔍 SpritesView RENDER - spriteId:', spriteId);
@@ -60,31 +55,7 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
         existingSpriteTagsIsArray: Array.isArray(existingSprite?.tags)
     });
 
-    const [spriteState, setSpriteState] = useState<{
-        name: string;
-        description: string;
-        tags: string[];
-        file: File | null;
-        frameCount: number;
-        frameWidth: number;
-        frameHeight: number;
-        hitboxOffsetX: number;
-        hitboxOffsetY: number;
-        hitboxWidth: number;
-        hitboxHeight: number;
-    }>({
-        name: '',
-        description: '',
-        tags: [],
-        file: null,
-        frameCount: 1,
-        frameWidth: 32,
-        frameHeight: 32,
-        hitboxOffsetX: 8,
-        hitboxOffsetY: 40,
-        hitboxWidth: 16,
-        hitboxHeight: 24,
-    });
+    const [spriteState, setSpriteState] = useState<SpriteState>(DEFAULT_SPRITE_STATE);
 
     // Ensure tags is always an array (defensive programming)
     const safeSpriteStateTags = Array.isArray(spriteState.tags) ? spriteState.tags : [];
