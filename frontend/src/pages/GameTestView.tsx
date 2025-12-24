@@ -18,6 +18,15 @@ const TILE_SIZE = 32;
 const DEFAULT_MOVE_SPEED = 4; // pixels per frame
 const DEFAULT_ANIMATION_FPS = 8; // fps
 
+// Character hitbox - defines the collidable area relative to sprite position
+// This accounts for transparent space around the character sprite
+const CHARACTER_HITBOX = {
+    offsetX: 8,   // Pixels from left edge of sprite to hitbox left
+    offsetY: 40,  // Pixels from top of sprite to hitbox top (for 64px tall sprite, this puts hitbox at feet)
+    width: 16,    // Hitbox width in pixels
+    height: 24    // Hitbox height in pixels
+};
+
 // Tile color fallback map for when images are missing
 const TILE_COLOR_MAP: Record<string, string> = {
     'grass': '#4ade80',  // green
@@ -350,14 +359,26 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
                     const newX = Math.max(0, Math.min(prev.x + dx, (mapData.width - 1) * TILE_SIZE));
                     const newY = Math.max(0, Math.min(prev.y + dy, (mapData.height - 1) * TILE_SIZE));
 
-                    // Check collision - get the grid position we're trying to move to
-                    const gridX = Math.floor(newX / TILE_SIZE);
-                    const gridY = Math.floor(newY / TILE_SIZE);
-                    const collisionKey = `${gridX},${gridY}`;
+                    // Calculate hitbox corners in world coordinates
+                    const hitboxLeft = newX + CHARACTER_HITBOX.offsetX;
+                    const hitboxTop = newY + CHARACTER_HITBOX.offsetY;
+                    const hitboxRight = hitboxLeft + CHARACTER_HITBOX.width - 1;
+                    const hitboxBottom = hitboxTop + CHARACTER_HITBOX.height - 1;
 
-                    // If the destination is solid, don't move there
-                    if (collisionMap.has(collisionKey)) {
-                        return prev; // Block movement
+                    // Check all four corners of the hitbox against collision map
+                    const corners = [
+                        { x: Math.floor(hitboxLeft / TILE_SIZE), y: Math.floor(hitboxTop / TILE_SIZE) },     // top-left
+                        { x: Math.floor(hitboxRight / TILE_SIZE), y: Math.floor(hitboxTop / TILE_SIZE) },    // top-right
+                        { x: Math.floor(hitboxLeft / TILE_SIZE), y: Math.floor(hitboxBottom / TILE_SIZE) },  // bottom-left
+                        { x: Math.floor(hitboxRight / TILE_SIZE), y: Math.floor(hitboxBottom / TILE_SIZE) }, // bottom-right
+                    ];
+
+                    // If any corner overlaps a solid tile, block movement
+                    for (const corner of corners) {
+                        const collisionKey = `${corner.x},${corner.y}`;
+                        if (collisionMap.has(collisionKey)) {
+                            return prev; // Block movement
+                        }
                     }
 
                     return { x: newX, y: newY };
