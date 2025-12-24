@@ -379,19 +379,20 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
                     const hitboxRight = hitboxLeft + hitbox.width - 1;
                     const hitboxBottom = hitboxTop + hitbox.height - 1;
 
-                    // Check all four corners of the hitbox against collision map
-                    const corners = [
-                        { x: Math.floor(hitboxLeft / TILE_SIZE), y: Math.floor(hitboxTop / TILE_SIZE) },     // top-left
-                        { x: Math.floor(hitboxRight / TILE_SIZE), y: Math.floor(hitboxTop / TILE_SIZE) },    // top-right
-                        { x: Math.floor(hitboxLeft / TILE_SIZE), y: Math.floor(hitboxBottom / TILE_SIZE) },  // bottom-left
-                        { x: Math.floor(hitboxRight / TILE_SIZE), y: Math.floor(hitboxBottom / TILE_SIZE) }, // bottom-right
-                    ];
+                    // Check all tiles the hitbox overlaps - not just corners
+                    // This prevents slipping through walls when hitbox spans multiple tiles
+                    const tileStartX = Math.floor(hitboxLeft / TILE_SIZE);
+                    const tileEndX = Math.floor(hitboxRight / TILE_SIZE);
+                    const tileStartY = Math.floor(hitboxTop / TILE_SIZE);
+                    const tileEndY = Math.floor(hitboxBottom / TILE_SIZE);
 
-                    // If any corner overlaps a solid tile, block movement
-                    for (const corner of corners) {
-                        const collisionKey = `${corner.x},${corner.y}`;
-                        if (collisionMap.has(collisionKey)) {
-                            return prev; // Block movement
+                    // Check every tile the hitbox touches
+                    for (let tileX = tileStartX; tileX <= tileEndX; tileX++) {
+                        for (let tileY = tileStartY; tileY <= tileEndY; tileY++) {
+                            const collisionKey = `${tileX},${tileY}`;
+                            if (collisionMap.has(collisionKey)) {
+                                return prev; // Block movement
+                            }
                         }
                     }
 
