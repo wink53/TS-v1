@@ -177,21 +177,30 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
 
         // Create a lookup map for tiles by ID
         const tileById: Record<string, any> = {};
+        const tileDebugInfo: { id: string, name: string, is_solid: boolean }[] = [];
         for (const tile of tiles) {
             tileById[tile.id] = tile;
-            // Debug: log each tile and its is_solid status
-            console.log('🧱 Tile:', tile.id, 'name:', tile.name, 'is_solid:', tile.is_solid);
+            tileDebugInfo.push({ id: tile.id, name: tile.name, is_solid: tile.is_solid });
         }
 
+        // Log tile solid status as a table
+        console.log('=== TILE SOLID STATUS ===');
+        console.table(tileDebugInfo);
+
         // Check each tile instance on the map
+        const solidPositions: { x: number, y: number, tileId: string, name: string }[] = [];
         for (const instance of mapData.tile_instances) {
             const tile = tileById[instance.tileId];
             if (tile?.is_solid) {
                 // Add this grid position to collision map
                 newCollisionMap.add(`${instance.x},${instance.y}`);
-                console.log('🚧 Solid tile at:', instance.x, instance.y, 'tileId:', instance.tileId, 'name:', tile.name);
+                solidPositions.push({ x: instance.x, y: instance.y, tileId: instance.tileId, name: tile.name });
             }
         }
+
+        // Log solid tile positions as a table
+        console.log('=== SOLID TILE POSITIONS ===');
+        console.table(solidPositions);
 
         setCollisionMap(newCollisionMap);
         console.log('Collision map built:', newCollisionMap.size, 'solid tiles out of', mapData.tile_instances.length, 'total instances');
