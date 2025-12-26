@@ -179,6 +179,8 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
         const tileById: Record<string, any> = {};
         for (const tile of tiles) {
             tileById[tile.id] = tile;
+            // Debug: log each tile and its is_solid status
+            console.log('🧱 Tile:', tile.id, 'name:', tile.name, 'is_solid:', tile.is_solid);
         }
 
         // Check each tile instance on the map
@@ -187,11 +189,12 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
             if (tile?.is_solid) {
                 // Add this grid position to collision map
                 newCollisionMap.add(`${instance.x},${instance.y}`);
+                console.log('🚧 Solid tile at:', instance.x, instance.y, 'tileId:', instance.tileId, 'name:', tile.name);
             }
         }
 
         setCollisionMap(newCollisionMap);
-        console.log('Collision map built:', newCollisionMap.size, 'solid tiles');
+        console.log('Collision map built:', newCollisionMap.size, 'solid tiles out of', mapData.tile_instances.length, 'total instances');
     }, [mapData, tiles]);
 
     // Load tile images
