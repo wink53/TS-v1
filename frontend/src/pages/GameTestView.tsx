@@ -139,9 +139,9 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
     // Use fresh data if available, otherwise fall back to embedded copy
     const spriteSheet = freshSpriteSheet || embeddedSpriteSheet;
 
-    // DEBUG: Log hitbox values from sprite sheet
+    // DEBUG: Log hitbox values from sprite sheet (only when hitbox overlay is enabled)
     useEffect(() => {
-        if (spriteSheet) {
+        if (showCharacterHitbox && spriteSheet) {
             console.log('🎯 SPRITE SHEET HITBOX DATA:', {
                 hasHitbox: !!spriteSheet.hitbox,
                 hitboxArray: spriteSheet.hitbox,
@@ -153,7 +153,7 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
                 height: spriteSheet.hitbox?.[0]?.height,
             });
         }
-    }, [spriteSheet]);
+    }, [spriteSheet, showCharacterHitbox]);
 
     // Load sprite sheet image
     const { data: spriteSheetBlob } = useGetCharacterSpriteSheet(spriteSheet?.blob_id || '');
@@ -207,9 +207,11 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
             tileDebugInfo.push({ id: tile.id, name: tile.name, is_solid: tile.is_solid });
         }
 
-        // Log tile solid status as a table
-        console.log('=== TILE SOLID STATUS ===');
-        console.table(tileDebugInfo);
+        // Log tile solid status as a table (only when debug is enabled)
+        if (showCollisionDebug) {
+            console.log('=== TILE SOLID STATUS ===');
+            console.table(tileDebugInfo);
+        }
 
         // Check each tile instance on the map
         const solidPositions: { x: number, y: number, tileId: string, name: string }[] = [];
@@ -229,19 +231,23 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
             }
         }
 
-        // Log solid tile positions as a table
-        console.log('=== SOLID TILE POSITIONS ===');
-        console.table(solidPositions);
+        // Log solid tile positions as a table (only when debug is enabled)
+        if (showCollisionDebug) {
+            console.log('=== SOLID TILE POSITIONS ===');
+            console.table(solidPositions);
+        }
 
-        // Log orphan instances (if any)
-        if (orphanInstances.length > 0) {
+        // Log orphan instances (if any, and only when debug is enabled)
+        if (showCollisionDebug && orphanInstances.length > 0) {
             console.log('⚠️ === ORPHAN TILE INSTANCES (unknown tile IDs) ===');
             console.table(orphanInstances);
         }
 
         setCollisionMap(newCollisionMap);
-        console.log('Collision map built:', newCollisionMap.size, 'solid tiles out of', mapData.tile_instances.length, 'total instances', 'orphans:', orphanInstances.length);
-    }, [mapData, tiles]);
+        if (showCollisionDebug) {
+            console.log('Collision map built:', newCollisionMap.size, 'solid tiles out of', mapData.tile_instances.length, 'total instances', 'orphans:', orphanInstances.length);
+        }
+    }, [mapData, tiles, showCollisionDebug]);
 
     // Load tile images
     useEffect(() => {
