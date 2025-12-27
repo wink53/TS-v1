@@ -47,6 +47,7 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
     const [isMoving, setIsMoving] = useState(false);
     const [currentFrame, setCurrentFrame] = useState(0);
     const [isPaused, setIsPaused] = useState(false);
+    const [showCollisionDebug, setShowCollisionDebug] = useState(true); // DEBUG: show collision map overlay
 
     // Controls state
     const [zoom, setZoom] = useState(2); // 1 = 100%, 2 = 200%, etc.
@@ -189,8 +190,15 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
 
         // Check each tile instance on the map
         const solidPositions: { x: number, y: number, tileId: string, name: string }[] = [];
+        const orphanInstances: { x: number, y: number, tileId: string }[] = [];
+
         for (const instance of mapData.tile_instances) {
             const tile = tileById[instance.tileId];
+            if (!tile) {
+                // Tile instance references unknown tile ID
+                orphanInstances.push({ x: instance.x, y: instance.y, tileId: instance.tileId });
+                continue;
+            }
             if (tile?.is_solid) {
                 // Add this grid position to collision map
                 newCollisionMap.add(`${instance.x},${instance.y}`);
@@ -202,8 +210,14 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
         console.log('=== SOLID TILE POSITIONS ===');
         console.table(solidPositions);
 
+        // Log orphan instances (if any)
+        if (orphanInstances.length > 0) {
+            console.log('⚠️ === ORPHAN TILE INSTANCES (unknown tile IDs) ===');
+            console.table(orphanInstances);
+        }
+
         setCollisionMap(newCollisionMap);
-        console.log('Collision map built:', newCollisionMap.size, 'solid tiles out of', mapData.tile_instances.length, 'total instances');
+        console.log('Collision map built:', newCollisionMap.size, 'solid tiles out of', mapData.tile_instances.length, 'total instances', 'orphans:', orphanInstances.length);
     }, [mapData, tiles]);
 
     // Load tile images
@@ -485,6 +499,25 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
                 ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
             }
         });
+
+        // DEBUG: Draw collision map overlay
+        if (showCollisionDebug) {
+            ctx.fillStyle = 'rgba(255, 0, 0, 0.3)';
+            ctx.strokeStyle = 'rgba(255, 0, 0, 0.8)';
+            ctx.lineWidth = 2;
+            collisionMap.forEach((key) => {
+                const [tx, ty] = key.split(',').map(Number);
+                const x = tx * TILE_SIZE;
+                const y = ty * TILE_SIZE;
+                ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+                ctx.strokeRect(x, y, TILE_SIZE, TILE_SIZE);
+                // Draw coordinate text
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 10px sans-serif';
+                ctx.fillText(`${tx},${ty}`, x + 2, y + 12);
+                ctx.fillStyle = 'rgba(255, 0, 0, 0.3)';
+            });
+        }
 
         // Draw objects
         mapData.object_instances.forEach((instance: any) => {
