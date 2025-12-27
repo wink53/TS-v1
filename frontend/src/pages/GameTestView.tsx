@@ -403,6 +403,11 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
                         for (let tileY = tileStartY; tileY <= tileEndY; tileY++) {
                             const collisionKey = `${tileX},${tileY}`;
                             if (collisionMap.has(collisionKey)) {
+                                // Debug: Log when collision is detected
+                                console.log('🛑 BLOCKED at tile:', collisionKey,
+                                    'playerPos:', Math.round(newX), Math.round(newY),
+                                    'hitbox:', Math.round(hitboxLeft), Math.round(hitboxTop), '->', Math.round(hitboxRight), Math.round(hitboxBottom),
+                                    'tiles:', tileStartX, tileStartY, '->', tileEndX, tileEndY);
                                 return prev; // Block movement
                             }
                         }
