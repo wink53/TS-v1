@@ -564,6 +564,25 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
                 srcX, srcY, frameWidth, frameHeight,
                 playerPos.x, playerPos.y, TILE_SIZE, TILE_SIZE
             );
+
+            // DEBUG: Draw character hitbox overlay
+            if (showCollisionDebug && spriteSheet?.hitbox && Array.isArray(spriteSheet.hitbox) && spriteSheet.hitbox.length > 0) {
+                const sheetHitbox = spriteSheet.hitbox[0];
+                if (sheetHitbox) {
+                    const scaleX = TILE_SIZE / frameWidth;
+                    const scaleY = TILE_SIZE / frameHeight;
+                    const hitboxX = playerPos.x + Number(sheetHitbox.offset_x) * scaleX;
+                    const hitboxY = playerPos.y + Number(sheetHitbox.offset_y) * scaleY;
+                    const hitboxW = Number(sheetHitbox.width) * scaleX;
+                    const hitboxH = Number(sheetHitbox.height) * scaleY;
+
+                    ctx.strokeStyle = 'cyan';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(hitboxX, hitboxY, hitboxW, hitboxH);
+                    ctx.fillStyle = 'rgba(0, 255, 255, 0.2)';
+                    ctx.fillRect(hitboxX, hitboxY, hitboxW, hitboxH);
+                }
+            }
         } else {
             // Fallback - draw a circle
             ctx.fillStyle = '#4ade80';
