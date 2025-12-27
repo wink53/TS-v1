@@ -390,11 +390,20 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
                     if (spriteSheet?.hitbox && Array.isArray(spriteSheet.hitbox) && spriteSheet.hitbox.length > 0) {
                         const sheetHitbox = spriteSheet.hitbox[0];
                         if (sheetHitbox) {
+                            // Get sprite frame dimensions for scaling
+                            const frameWidth = Number(spriteSheet.frame_width) || TILE_SIZE;
+                            const frameHeight = Number(spriteSheet.frame_height) || TILE_SIZE;
+
+                            // Scale hitbox from sprite frame coordinates to TILE_SIZE
+                            // The sprite is drawn scaled from frameWidth×frameHeight to TILE_SIZE×TILE_SIZE
+                            const scaleX = TILE_SIZE / frameWidth;
+                            const scaleY = TILE_SIZE / frameHeight;
+
                             hitbox = {
-                                offsetX: Number(sheetHitbox.offset_x),
-                                offsetY: Number(sheetHitbox.offset_y),
-                                width: Number(sheetHitbox.width),
-                                height: Number(sheetHitbox.height)
+                                offsetX: Number(sheetHitbox.offset_x) * scaleX,
+                                offsetY: Number(sheetHitbox.offset_y) * scaleY,
+                                width: Number(sheetHitbox.width) * scaleX,
+                                height: Number(sheetHitbox.height) * scaleY
                             };
                         }
                     }
