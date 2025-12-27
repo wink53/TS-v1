@@ -132,6 +132,22 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
     const selectedCharacter = characters.find((c: PlayableCharacter) => c.id === characterId);
     const spriteSheet = selectedCharacter?.sprite_sheets[0];
 
+    // DEBUG: Log hitbox values from sprite sheet
+    useEffect(() => {
+        if (spriteSheet) {
+            console.log('🎯 SPRITE SHEET HITBOX DATA:', {
+                hasHitbox: !!spriteSheet.hitbox,
+                hitboxArray: spriteSheet.hitbox,
+                hitboxLength: spriteSheet.hitbox?.length || 0,
+                firstHitbox: spriteSheet.hitbox?.[0],
+                offset_x: spriteSheet.hitbox?.[0]?.offset_x,
+                offset_y: spriteSheet.hitbox?.[0]?.offset_y,
+                width: spriteSheet.hitbox?.[0]?.width,
+                height: spriteSheet.hitbox?.[0]?.height,
+            });
+        }
+    }, [spriteSheet]);
+
     // Load sprite sheet image
     const { data: spriteSheetBlob } = useGetCharacterSpriteSheet(spriteSheet?.blob_id || '');
 
