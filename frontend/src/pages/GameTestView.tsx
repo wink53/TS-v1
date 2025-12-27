@@ -276,7 +276,7 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
             }
 
             if (Object.keys(newImages).length > 0) {
-                setTileImages(prev => ({ ...prev, ...newImages }));
+                setTileImages((prev: Record<string, HTMLImageElement>) => ({ ...prev, ...newImages }));
             }
         };
 
@@ -310,7 +310,7 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
             }
 
             if (Object.keys(newImages).length > 0) {
-                setObjectImages(prev => ({ ...prev, ...newImages }));
+                setObjectImages((prev: Record<string, HTMLImageElement>) => ({ ...prev, ...newImages }));
             }
         };
 
@@ -325,7 +325,7 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
                 keysPressed.current.add(e.key.toLowerCase());
             }
             if (e.key === 'Escape') {
-                setIsPaused(p => !p);
+                setIsPaused((p: boolean) => !p);
             }
         };
 
@@ -410,7 +410,7 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
                 setIsMoving(true);
 
                 // Apply movement with bounds and collision check
-                setPlayerPos(prev => {
+                setPlayerPos((prev: { x: number; y: number }) => {
                     const newX = Math.max(0, Math.min(prev.x + dx, (mapData.width - 1) * TILE_SIZE));
                     const newY = Math.max(0, Math.min(prev.y + dy, (mapData.height - 1) * TILE_SIZE));
 
@@ -474,7 +474,7 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
             // Animation frame update - use ref for current FPS value
             const currentFPS = animationFPSRef.current;
             if (timing.frameTime > 1000 / currentFPS) {
-                setCurrentFrame(prev => prev + 1);
+                setCurrentFrame((prev: number) => prev + 1);
                 timing.frameTime = 0;
             }
 
@@ -543,7 +543,7 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
             ctx.fillStyle = 'rgba(255, 0, 0, 0.3)';
             ctx.strokeStyle = 'rgba(255, 0, 0, 0.8)';
             ctx.lineWidth = 2;
-            collisionMap.forEach((key) => {
+            collisionMap.forEach((key: string) => {
                 const [tx, ty] = key.split(',').map(Number);
                 const x = tx * TILE_SIZE;
                 const y = ty * TILE_SIZE;
@@ -714,7 +714,7 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
                 <Button
                     variant={isPaused ? "default" : "outline"}
                     size="sm"
-                    onClick={() => setIsPaused(p => !p)}
+                    onClick={() => setIsPaused((p: boolean) => !p)}
                 >
                     {isPaused ? <Play className="h-4 w-4 mr-2" /> : <Pause className="h-4 w-4 mr-2" />}
                     {isPaused ? 'Resume' : 'Pause'}
@@ -725,7 +725,7 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
                     <Button
                         variant={showCollisionDebug ? "default" : "outline"}
                         size="sm"
-                        onClick={() => setShowCollisionDebug(prev => !prev)}
+                        onClick={() => setShowCollisionDebug((prev: boolean) => !prev)}
                         title="Toggle solid tile collision overlay"
                     >
                         {showCollisionDebug ? '🟥 Tiles On' : '⬜ Tiles Off'}
@@ -733,7 +733,7 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
                     <Button
                         variant={showCharacterHitbox ? "default" : "outline"}
                         size="sm"
-                        onClick={() => setShowCharacterHitbox(prev => !prev)}
+                        onClick={() => setShowCharacterHitbox((prev: boolean) => !prev)}
                         title="Toggle character hitbox overlay"
                     >
                         {showCharacterHitbox ? '🟦 Hitbox On' : '⬜ Hitbox Off'}

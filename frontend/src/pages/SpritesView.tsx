@@ -98,7 +98,7 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
 
         // Update the preview settings to match the animation
         setManualOffset({ x: anim.start_x, y: anim.start_y });
-        setSpriteState((prev) => ({
+        setSpriteState((prev: SpriteState) => ({
             ...prev,
             frameCount: anim.frame_count
         }));
@@ -610,7 +610,7 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
         const height = Math.abs(drawEnd.y - drawStart.y);
 
         setManualOffset({ x: Math.round(x), y: Math.round(y) });
-        setSpriteState(prev => ({
+        setSpriteState((prev: SpriteState) => ({
             ...prev,
             frameWidth: Math.round(width),
             frameHeight: Math.round(height),
@@ -965,7 +965,7 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
                                                         className="h-5 w-5 p-0 text-destructive"
                                                         onClick={(e: React.MouseEvent) => {
                                                             e.stopPropagation(); // Prevent row click
-                                                            setAnimations(prev => prev.filter((_, i) => i !== index));
+                                                            setAnimations((prev: Animation[]) => prev.filter((_: Animation, i: number) => i !== index));
                                                             // Clear selection if the deleted animation was selected
                                                             if (selectedAnimationIndex === index) {
                                                                 setSelectedAnimationIndex(null);
