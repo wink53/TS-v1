@@ -47,7 +47,8 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
     const [isMoving, setIsMoving] = useState(false);
     const [currentFrame, setCurrentFrame] = useState(0);
     const [isPaused, setIsPaused] = useState(false);
-    const [showCollisionDebug, setShowCollisionDebug] = useState(true); // DEBUG: show collision map overlay
+    const [showCollisionDebug, setShowCollisionDebug] = useState(false); // Show solid tile overlay (red boxes)
+    const [showCharacterHitbox, setShowCharacterHitbox] = useState(false); // Show character hitbox overlay
 
     // Controls state
     const [zoom, setZoom] = useState(2); // 1 = 100%, 2 = 200%, etc.
@@ -588,7 +589,7 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
             );
 
             // DEBUG: Draw character hitbox overlay
-            if (showCollisionDebug && spriteSheet?.hitbox && Array.isArray(spriteSheet.hitbox) && spriteSheet.hitbox.length > 0) {
+            if (showCharacterHitbox && spriteSheet?.hitbox && Array.isArray(spriteSheet.hitbox) && spriteSheet.hitbox.length > 0) {
                 const sheetHitbox = spriteSheet.hitbox[0];
                 if (sheetHitbox) {
                     const scaleX = TILE_SIZE / frameWidth;
@@ -637,7 +638,7 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
             ctx.textAlign = 'left';
         }
 
-    }, [mapData, camera, playerPos, playerDirection, currentFrame, isMoving, tileImages, objectImages, characterImage, spriteSheet, isPaused, selectedCharacter, zoom, moveSpeed]);
+    }, [mapData, camera, playerPos, playerDirection, currentFrame, isMoving, tileImages, objectImages, characterImage, spriteSheet, isPaused, selectedCharacter, zoom, moveSpeed, showCollisionDebug, showCharacterHitbox]);
 
     if (isMapLoading) {
         return <div className="flex items-center justify-center h-screen">Loading map...</div>;
@@ -712,6 +713,26 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
                     {isPaused ? <Play className="h-4 w-4 mr-2" /> : <Pause className="h-4 w-4 mr-2" />}
                     {isPaused ? 'Resume' : 'Pause'}
                 </Button>
+
+                {/* Debug Toggle Buttons */}
+                <div className="flex items-center gap-2 ml-4">
+                    <Button
+                        variant={showCollisionDebug ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setShowCollisionDebug(prev => !prev)}
+                        title="Toggle solid tile collision overlay"
+                    >
+                        {showCollisionDebug ? '🟥 Tiles On' : '⬜ Tiles Off'}
+                    </Button>
+                    <Button
+                        variant={showCharacterHitbox ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setShowCharacterHitbox(prev => !prev)}
+                        title="Toggle character hitbox overlay"
+                    >
+                        {showCharacterHitbox ? '🟦 Hitbox On' : '⬜ Hitbox Off'}
+                    </Button>
+                </div>
             </div>
 
             {/* Canvas */}
