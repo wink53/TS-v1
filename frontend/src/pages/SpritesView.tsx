@@ -223,14 +223,15 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
             frameWidth: Number(existingSprite.frame_width) || 32,
             frameHeight: Number(existingSprite.frame_height) || 32,
             // Load hitbox from existing sprite or use defaults
-            hitboxOffsetX: existingSprite.hitbox && existingSprite.hitbox.length > 0
-                ? Number(existingSprite.hitbox[0]?.offset_x) || 8 : 8,
-            hitboxOffsetY: existingSprite.hitbox && existingSprite.hitbox.length > 0
-                ? Number(existingSprite.hitbox[0]?.offset_y) || 40 : 40,
-            hitboxWidth: existingSprite.hitbox && existingSprite.hitbox.length > 0
-                ? Number(existingSprite.hitbox[0]?.width) || 16 : 16,
-            hitboxHeight: existingSprite.hitbox && existingSprite.hitbox.length > 0
-                ? Number(existingSprite.hitbox[0]?.height) || 24 : 24,
+            // Use nullish coalescing (??) instead of || to properly handle 0 values
+            hitboxOffsetX: existingSprite.hitbox && existingSprite.hitbox.length > 0 && existingSprite.hitbox[0]?.offset_x !== undefined
+                ? Number(existingSprite.hitbox[0].offset_x) : 8,
+            hitboxOffsetY: existingSprite.hitbox && existingSprite.hitbox.length > 0 && existingSprite.hitbox[0]?.offset_y !== undefined
+                ? Number(existingSprite.hitbox[0].offset_y) : 40,
+            hitboxWidth: existingSprite.hitbox && existingSprite.hitbox.length > 0 && existingSprite.hitbox[0]?.width !== undefined
+                ? Number(existingSprite.hitbox[0].width) : 16,
+            hitboxHeight: existingSprite.hitbox && existingSprite.hitbox.length > 0 && existingSprite.hitbox[0]?.height !== undefined
+                ? Number(existingSprite.hitbox[0].height) : 24,
         };
 
         console.log('🔍 Setting sprite state with tags:', newState.tags, 'isArray:', Array.isArray(newState.tags));
