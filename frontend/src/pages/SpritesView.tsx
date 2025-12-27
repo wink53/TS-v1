@@ -24,7 +24,6 @@ import {
 
 
 export default function SpritesView({ spriteId, onBack }: { spriteId?: string; onBack?: () => void }) {
-    console.log('🔍 SpritesView RENDER - spriteId:', spriteId);
 
     const uploadSpriteSheet = useUploadCharacterSpriteSheet();
     const createSpriteSheet = useCreateSpriteSheet();
@@ -46,34 +45,11 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
     const blobQuery = useGetCharacterSpriteSheet(existingSprite?.blob_id || '');
     const spriteImageBlob = existingSprite ? blobQuery.data : null;
     const isLoadingBlob = existingSprite?.blob_id ? blobQuery.isLoading : false;
-
-    console.log('🔍 Data loaded:', {
-        existingSprite: existingSprite ? 'YES' : 'NO',
-        spriteImageBlob: spriteImageBlob ? 'YES' : 'NO',
-        isLoadingSprite,
-        existingSpriteTags: existingSprite?.tags,
-        existingSpriteTagsType: typeof existingSprite?.tags,
-        existingSpriteTagsIsArray: Array.isArray(existingSprite?.tags)
-    });
-
     const [spriteState, setSpriteState] = useState<SpriteState>(DEFAULT_SPRITE_STATE);
 
     // Ensure tags is always an array (defensive programming)
     const safeSpriteStateTags = Array.isArray(spriteState.tags) ? spriteState.tags : [];
 
-    console.log('🔍 spriteState.tags:', spriteState.tags, 'type:', typeof spriteState.tags, 'isArray:', Array.isArray(spriteState.tags));
-    console.log('🔍 safeSpriteStateTags:', safeSpriteStateTags, 'type:', typeof safeSpriteStateTags, 'isArray:', Array.isArray(safeSpriteStateTags));
-
-    // Debug: Track spriteState changes
-    useEffect(() => {
-        console.log('🔍 spriteState CHANGED:', {
-            tags: spriteState.tags,
-            tagsType: typeof spriteState.tags,
-            tagsIsArray: Array.isArray(spriteState.tags),
-            name: spriteState.name,
-            description: spriteState.description
-        });
-    }, [spriteState]);
 
     const [detectionMode, setDetectionMode] = useState<DetectionMode>('alpha');
     const [manualOffset, setManualOffset] = useState({ x: 0, y: 0 });
