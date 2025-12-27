@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useActor } from '../hooks/useActor';
-import { useGetCharacterSpriteSheet, useListPlayableCharacters } from '../hooks/useQueries';
+import { useGetCharacterSpriteSheet, useListPlayableCharacters, useGetSpriteSheet } from '../hooks/useQueries';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Play, Pause, ZoomIn, ZoomOut, Gauge, Film } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
@@ -130,7 +130,13 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
 
     // Get selected character
     const selectedCharacter = characters.find((c: PlayableCharacter) => c.id === characterId);
-    const spriteSheet = selectedCharacter?.sprite_sheets[0];
+    // Get sprite sheet ID from character, then fetch fresh data from sprite_sheets table
+    // (character's embedded copy may have stale hitbox data)
+    const embeddedSpriteSheet = selectedCharacter?.sprite_sheets[0];
+    const spriteSheetId = embeddedSpriteSheet?.id || '';
+    const { data: freshSpriteSheet } = useGetSpriteSheet(spriteSheetId);
+    // Use fresh data if available, otherwise fall back to embedded copy
+    const spriteSheet = freshSpriteSheet || embeddedSpriteSheet;
 
     // DEBUG: Log hitbox values from sprite sheet
     useEffect(() => {
