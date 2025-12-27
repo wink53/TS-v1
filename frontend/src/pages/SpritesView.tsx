@@ -479,7 +479,8 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
 
         // Generate auto-generated immutable sprite ID (only for new sprites)
         const newSpriteId = spriteId || `sprite_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        const blobId = `${newSpriteId}_blob`;
+        // Use existing blob_id when editing, or generate new one for new sprites
+        const blobId = existingSprite?.blob_id || `${newSpriteId}_blob`;
 
         try {
             // Step 1: Upload sprite sheet image blob (only if we have a new file or processed image)
@@ -538,6 +539,16 @@ export default function SpritesView({ spriteId, onBack }: { spriteId?: string; o
                 created_at: existingSprite?.created_at || BigInt(Date.now() * 1000000), // Preserve original timestamp when editing
                 updated_at: BigInt(Date.now() * 1000000)
             };
+
+            // DEBUG: Log hitbox values being saved
+            console.log('💾 SAVING SPRITE SHEET - HITBOX VALUES:', {
+                hitboxOffsetX: spriteState.hitboxOffsetX,
+                hitboxOffsetY: spriteState.hitboxOffsetY,
+                hitboxWidth: spriteState.hitboxWidth,
+                hitboxHeight: spriteState.hitboxHeight,
+                spriteId,
+                blobId
+            });
 
             let result;
             if (spriteId) {
