@@ -7,6 +7,9 @@ import { ArrowLeft, Play, Pause, ZoomIn, ZoomOut, Gauge, Film } from 'lucide-rea
 import { Slider } from '@/components/ui/slider';
 import { toast } from 'sonner';
 import type { PlayableCharacter, SpriteSheet } from '../backend';
+import type { NPC } from '../types/npc';
+import { createOldManNPC } from '../utils/npcPresets';
+import { interactWithNPC, endInteraction, requestStateChange } from '../utils/npcController';
 
 interface GameTestViewProps {
     mapId: string;
@@ -72,6 +75,10 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
 
     // Collision map - set of "x,y" grid positions that are solid
     const [collisionMap, setCollisionMap] = useState<Set<string>>(new Set());
+
+    // NPC state
+    const [npcs, setNpcs] = useState<NPC[]>([]);
+    const [interactionMessage, setInteractionMessage] = useState<string | null>(null);
 
     // Queries
     const { data: mapData, isLoading: isMapLoading } = useQuery({
@@ -191,7 +198,14 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
                 y: spawn.y * TILE_SIZE - (canvasRef.current?.height || 600) / 2
             });
         }
-    }, [mapData, characterId]);
+
+        // Initialize test NPCs
+        if (npcs.length === 0) {
+            const testNPC = createOldManNPC(5, 5, 'Hello, traveler! Beware the dangers ahead.');
+            setNpcs([testNPC]);
+            console.log('🧙 Test NPC spawned:', testNPC);
+        }
+    }, [mapData, characterId, npcs.length]);
 
     // Build collision map when map data and tiles are loaded
     useEffect(() => {
@@ -327,6 +341,10 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
             if (e.key === 'Escape') {
                 setIsPaused((p: boolean) => !p);
             }
+            // E key for NPC interaction
+            if (e.key === 'e' || e.key === 'E') {
+                handleNPCInteraction();
+            }
         };
 
         const handleKeyUp = (e: KeyboardEvent) => {
@@ -341,6 +359,62 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
             window.removeEventListener('keyup', handleKeyUp);
         };
     }, []);
+
+    // Handle NPC interaction when E key is pressed
+    const handleNPCInteraction = useCallback(() => {
+        // Check each NPC for proximity
+        const INTERACTION_DISTANCE = TILE_SIZE * 1.5; // 1.5 tiles
+        const playerCenterX = playerPos.x + TILE_SIZE / 2;
+        const playerCenterY = playerPos.y + TILE_SIZE / 2;
+
+        for (let i = 0; i < npcs.length; i++) {
+            const npc = npcs[i];
+            const npcPixelX = npc.position.x * TILE_SIZE + TILE_SIZE / 2;
+            const npcPixelY = npc.position.y * TILE_SIZE + TILE_SIZE / 2;
+
+            const distance = Math.sqrt(
+                Math.pow(playerCenterX - npcPixelX, 2) +
+                Math.pow(playerCenterY - npcPixelY, 2)
+            );
+
+            if (distance <= INTERACTION_DISTANCE) {
+                // Found an NPC within range
+                console.log(`🎯 Attempting interaction with NPC: ${npc.metadata.name} (state: ${npc.state})`);
+
+                // If already interacting, end interaction
+                if (npc.state === 'interacting') {
+                    const updatedNpc = endInteraction(npc);
+                    const newNpcs = [...npcs];
+                    newNpcs[i] = updatedNpc;
+                    setNpcs(newNpcs);
+                    setInteractionMessage(null);
+                    console.log(`✅ Ended interaction. NPC state: ${updatedNpc.state}`);
+                    return;
+                }
+
+                // Start interaction
+                const result = interactWithNPC(npc);
+                console.log('💬 Interaction result:', result);
+
+                if (result.handled && result.response) {
+                    setInteractionMessage(result.response);
+
+                    // Update NPC state if interaction returned a new state
+                    if (result.newState) {
+                        const newNpcs = [...npcs];
+                        newNpcs[i] = { ...npc, state: result.newState };
+                        setNpcs(newNpcs);
+                        console.log(`✅ NPC state changed: ${npc.state} → ${result.newState}`);
+                    }
+                } else {
+                    console.log('❌ NPC did not respond to interaction');
+                }
+                return; // Only interact with one NPC at a time
+            }
+        }
+
+        console.log('❌ No NPC in range for interaction');
+    }, [npcs, playerPos]);
 
     // Get animation for direction
     const getAnimationForDirection = useCallback((direction: string, sheet: SpriteSheet) => {
@@ -568,6 +642,41 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
             }
         });
 
+        // Draw NPCs
+        npcs.forEach((npc: NPC) => {
+            const npcX = npc.position.x * TILE_SIZE;
+            const npcY = npc.position.y * TILE_SIZE;
+
+            // Draw NPC as a colored circle (placeholder until we have NPC sprites)
+            ctx.fillStyle = npc.state === 'interacting' ? '#fbbf24' : '#8b5cf6'; // Yellow when interacting, purple otherwise
+            ctx.beginPath();
+            ctx.arc(npcX + TILE_SIZE / 2, npcY + TILE_SIZE / 2, TILE_SIZE / 3, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Draw NPC name above
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 10px sans-serif';
+            ctx.textAlign = 'center';
+            const name = npc.metadata.name || 'NPC';
+            ctx.fillText(name, npcX + TILE_SIZE / 2, npcY - 4);
+            ctx.textAlign = 'left'; // Reset alignment
+
+            // Draw interaction hint when player is near
+            const playerCenterX = playerPos.x + TILE_SIZE / 2;
+            const playerCenterY = playerPos.y + TILE_SIZE / 2;
+            const npcCenterX = npcX + TILE_SIZE / 2;
+            const npcCenterY = npcY + TILE_SIZE / 2;
+            const distance = Math.sqrt(Math.pow(playerCenterX - npcCenterX, 2) + Math.pow(playerCenterY - npcCenterY, 2));
+
+            if (distance <= TILE_SIZE * 1.5 && npc.state !== 'interacting') {
+                ctx.fillStyle = '#22c55e'; // Green
+                ctx.font = 'bold 12px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('[E] Talk', npcX + TILE_SIZE / 2, npcY - 16);
+                ctx.textAlign = 'left';
+            }
+        });
+
         // Draw character
         if (characterImage && spriteSheet) {
             const animation = getAnimationForDirection(playerDirection, spriteSheet);
@@ -644,7 +753,33 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
             ctx.textAlign = 'left';
         }
 
-    }, [mapData, camera, playerPos, playerDirection, currentFrame, isMoving, tileImages, objectImages, characterImage, spriteSheet, isPaused, selectedCharacter, zoom, moveSpeed, showCollisionDebug, showCharacterHitbox]);
+        // Draw dialogue box if interacting with NPC
+        if (interactionMessage) {
+            const boxWidth = 400;
+            const boxHeight = 80;
+            const boxX = (canvas.width - boxWidth) / 2;
+            const boxY = canvas.height - boxHeight - 40;
+
+            // Box background
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+            ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
+            ctx.strokeStyle = '#8b5cf6';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
+
+            // Dialogue text
+            ctx.fillStyle = '#fff';
+            ctx.font = '14px sans-serif';
+            ctx.textAlign = 'left';
+            ctx.fillText(interactionMessage, boxX + 15, boxY + 30);
+
+            // Close hint
+            ctx.fillStyle = '#9ca3af';
+            ctx.font = '12px sans-serif';
+            ctx.fillText('Press [E] to close', boxX + 15, boxY + 60);
+        }
+
+    }, [mapData, camera, playerPos, playerDirection, currentFrame, isMoving, tileImages, objectImages, characterImage, spriteSheet, isPaused, selectedCharacter, zoom, moveSpeed, showCollisionDebug, showCharacterHitbox, npcs, interactionMessage]);
 
     if (isMapLoading) {
         return <div className="flex items-center justify-center h-screen">Loading map...</div>;
