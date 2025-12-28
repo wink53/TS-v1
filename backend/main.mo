@@ -712,8 +712,8 @@ persistent actor Backend {
       spawn_points = [{
         id = "spawn-1";
         name = "Player Start";
-        x = 5;
-        y = 5;
+        x = 4;
+        y = 4;
         character_id = "char-hero-1";
       }];
       created_at = now;

@@ -201,7 +201,7 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
 
         // Initialize test NPCs
         if (npcs.length === 0) {
-            const testNPC = createOldManNPC(5, 5, 'Hello, traveler! Beware the dangers ahead.');
+            const testNPC = createOldManNPC(6, 4, 'Hello, traveler! Beware the dangers ahead.');
             setNpcs([testNPC]);
             console.log('🧙 Test NPC spawned:', testNPC);
         }
@@ -331,35 +331,6 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
         loadImages();
     }, [objects, actor]);
 
-    // Keyboard handlers
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (['w', 'a', 's', 'd', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
-                e.preventDefault();
-                keysPressed.current.add(e.key.toLowerCase());
-            }
-            if (e.key === 'Escape') {
-                setIsPaused((p: boolean) => !p);
-            }
-            // E key for NPC interaction
-            if (e.key === 'e' || e.key === 'E') {
-                handleNPCInteraction();
-            }
-        };
-
-        const handleKeyUp = (e: KeyboardEvent) => {
-            keysPressed.current.delete(e.key.toLowerCase());
-        };
-
-        window.addEventListener('keydown', handleKeyDown);
-        window.addEventListener('keyup', handleKeyUp);
-
-        return () => {
-            window.removeEventListener('keydown', handleKeyDown);
-            window.removeEventListener('keyup', handleKeyUp);
-        };
-    }, []);
-
     // Handle NPC interaction when E key is pressed
     const handleNPCInteraction = useCallback(() => {
         // Check each NPC for proximity
@@ -415,6 +386,35 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
 
         console.log('❌ No NPC in range for interaction');
     }, [npcs, playerPos]);
+
+    // Keyboard handlers
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (['w', 'a', 's', 'd', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                e.preventDefault();
+                keysPressed.current.add(e.key.toLowerCase());
+            }
+            if (e.key === 'Escape') {
+                setIsPaused((p: boolean) => !p);
+            }
+            // E key for NPC interaction
+            if (e.key === 'e' || e.key === 'E') {
+                handleNPCInteraction();
+            }
+        };
+
+        const handleKeyUp = (e: KeyboardEvent) => {
+            keysPressed.current.delete(e.key.toLowerCase());
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        window.addEventListener('keyup', handleKeyUp);
+
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+            window.removeEventListener('keyup', handleKeyUp);
+        };
+    }, [handleNPCInteraction]);
 
     // Get animation for direction
     const getAnimationForDirection = useCallback((direction: string, sheet: SpriteSheet) => {
