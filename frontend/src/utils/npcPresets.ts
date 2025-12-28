@@ -10,6 +10,7 @@ import { createNPC } from './npcController';
 import {
     createStaticMovement,
     createPatrolMovement,
+    createWanderMovement,
     createDialogueInteraction,
     createScriptedDialogue,
     createShopInteraction,
@@ -81,16 +82,59 @@ export function createOldManNPC(
 }
 
 // =============================================================================
+// Guard Dialogue Script
+// =============================================================================
+
+const GUARD_DIALOGUE: DialogueScript = {
+    lines: [
+        { speaker: 'Guard', text: 'Halt! State your business.' },
+        {
+            speaker: 'Guard',
+            text: 'Are you a citizen of this town?',
+            choices: [
+                { text: 'Yes, I live here', nextLineIndex: 2 },
+                { text: 'Just passing through', nextLineIndex: 4 }
+            ]
+        },
+        { speaker: 'Guard', text: 'Very well. Keep to the main roads.' },
+        { speaker: 'Guard', text: 'And stay out of trouble.', isEnding: true },
+        { speaker: 'Guard', text: 'Travelers must register at the gate.' },
+        { speaker: 'Guard', text: 'Move along now.', isEnding: true }
+    ]
+};
+
+// =============================================================================
+// Shopkeeper Dialogue Script
+// =============================================================================
+
+const SHOPKEEPER_DIALOGUE: DialogueScript = {
+    lines: [
+        { speaker: 'Shopkeeper', text: 'Welcome to my humble shop!' },
+        { speaker: 'Shopkeeper', text: 'Take a look around. Finest goods in town!' },
+        {
+            speaker: 'Shopkeeper',
+            text: 'Can I help you with something?',
+            choices: [
+                { text: 'What do you sell?', nextLineIndex: 3 },
+                { text: 'Just browsing', nextLineIndex: 5 }
+            ]
+        },
+        { speaker: 'Shopkeeper', text: 'Potions, weapons, armor... you name it!' },
+        { speaker: 'Shopkeeper', text: 'Come back when you have coin!', isEnding: true },
+        { speaker: 'Shopkeeper', text: 'Let me know if you need anything.', isEnding: true }
+    ]
+};
+
+// =============================================================================
 // Additional Preset NPCs
 // =============================================================================
 
 /**
- * Create a shopkeeper NPC.
+ * Create a shopkeeper NPC with scripted dialogue.
  */
 export function createShopkeeperNPC(
     x: number,
-    y: number,
-    shopId?: string
+    y: number
 ): NPC {
     const config: NPCConfig = {
         position: { x, y },
@@ -98,7 +142,7 @@ export function createShopkeeperNPC(
         initialState: 'idle',
         modules: [
             createStaticMovement(),
-            createShopInteraction(shopId),
+            createScriptedDialogue(SHOPKEEPER_DIALOGUE),
             createNoCombat(),
             createNoAuthority(),
         ],
@@ -113,7 +157,7 @@ export function createShopkeeperNPC(
 }
 
 /**
- * Create a guard NPC.
+ * Create a guard NPC with scripted dialogue.
  */
 export function createGuardNPC(
     x: number,
@@ -128,7 +172,7 @@ export function createGuardNPC(
             patrolWaypoints && patrolWaypoints.length > 0
                 ? createPatrolMovement(patrolWaypoints)
                 : createStaticMovement(),
-            createDialogueInteraction('Move along, citizen.'),
+            createScriptedDialogue(GUARD_DIALOGUE),
             createBasicCombat(),
             createGuardAuthority(5),
         ],
@@ -136,6 +180,35 @@ export function createGuardNPC(
             name: 'Guard',
             faction: 'guard',
             tags: ['neutral', 'npc', 'authority'],
+        },
+    };
+
+    return createNPC(config);
+}
+
+/**
+ * Create a hostile wanderer NPC (tests Combat state).
+ * Wanders randomly and enters Combat when player is near.
+ */
+export function createHostileWandererNPC(
+    x: number,
+    y: number,
+    radius: number = 2
+): NPC {
+    const config: NPCConfig = {
+        position: { x, y },
+        direction: 'down',
+        initialState: 'idle',
+        modules: [
+            createWanderMovement({ x, y }, radius),
+            createDialogueInteraction('*snarls*'),
+            createBasicCombat(),
+            createNoAuthority(),
+        ],
+        metadata: {
+            name: 'Hostile',
+            faction: 'enemy',
+            tags: ['hostile', 'enemy'],
         },
     };
 

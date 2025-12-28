@@ -8,8 +8,8 @@ import { Slider } from '@/components/ui/slider';
 import { toast } from 'sonner';
 import type { PlayableCharacter, SpriteSheet } from '../backend';
 import type { NPC, DialogueState, DialogueInteractionModule } from '../types/npc';
-import { createOldManNPC } from '../utils/npcPresets';
-import { interactWithNPC, endInteraction, getModule } from '../utils/npcController';
+import { createOldManNPC, createGuardNPC, createShopkeeperNPC, createHostileWandererNPC } from '../utils/npcPresets';
+import { interactWithNPC, endInteraction, getModule, updateNPC } from '../utils/npcController';
 
 interface GameTestViewProps {
     mapId: string;
@@ -199,11 +199,27 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
             });
         }
 
-        // Initialize test NPCs
+        // Initialize reference NPCs for testing state priority
         if (npcs.length === 0) {
-            const testNPC = createOldManNPC(6, 4);
-            setNpcs([testNPC]);
-            console.log('🧙 Test NPC spawned:', testNPC);
+            // NPC A: Static Dialogue (baseline) - tests idle ↔ interacting
+            const oldMan = createOldManNPC(6, 4);
+
+            // NPC B: Patrol Guard with waypoints - tests Alert state
+            const patrolGuard = createGuardNPC(3, 6, [
+                { x: 3, y: 6 },
+                { x: 3, y: 8 },
+                { x: 6, y: 8 },
+                { x: 6, y: 6 }
+            ]);
+
+            // NPC C: Hostile Wanderer - tests Combat state
+            const hostile = createHostileWandererNPC(8, 7, 2);
+
+            // Also keep shopkeeper for dialogue variety
+            const shopkeeper = createShopkeeperNPC(7, 2);
+
+            setNpcs([oldMan, patrolGuard, hostile, shopkeeper]);
+            console.log('🧙 Reference NPCs spawned:', { oldMan, patrolGuard, hostile, shopkeeper });
         }
     }, [mapData, characterId, npcs.length]);
 
@@ -480,6 +496,35 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
         };
     }, [handleNPCInteraction]);
 
+    // NPC update loop - runs every frame for movement and state triggers
+    useEffect(() => {
+        if (isPaused || npcs.length === 0) return;
+
+        const updateInterval = setInterval(() => {
+            // Get player position in tiles
+            const playerTileX = Math.floor(playerPos.x / TILE_SIZE);
+            const playerTileY = Math.floor(playerPos.y / TILE_SIZE);
+
+            // Update all NPCs with player context
+            const updatedNpcs = npcs.map((npc: NPC) =>
+                updateNPC(npc, 16, { x: playerTileX, y: playerTileY })
+            );
+
+            // Only update state if something changed
+            const hasChanges = updatedNpcs.some((npc: NPC, i: number) =>
+                npc.position.x !== npcs[i].position.x ||
+                npc.position.y !== npcs[i].position.y ||
+                npc.state !== npcs[i].state
+            );
+
+            if (hasChanges) {
+                setNpcs(updatedNpcs);
+            }
+        }, 100); // 10Hz update rate for NPCs
+
+        return () => clearInterval(updateInterval);
+    }, [isPaused, npcs, playerPos]);
+
     // Get animation for direction
     const getAnimationForDirection = useCallback((direction: string, sheet: SpriteSheet) => {
         // Find animation matching direction
@@ -711,28 +756,40 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
             const npcX = npc.position.x * TILE_SIZE;
             const npcY = npc.position.y * TILE_SIZE;
 
+            // State-based color for NPC
+            const stateColors: Record<string, string> = {
+                idle: '#8b5cf6',       // Purple
+                interacting: '#fbbf24', // Yellow
+                alert: '#f97316',       // Orange
+                combat: '#ef4444',      // Red
+                disabled: '#6b7280',    // Gray
+            };
+            const npcColor = stateColors[npc.state] || stateColors.idle;
+
             // Draw NPC as a colored circle (placeholder until we have NPC sprites)
-            ctx.fillStyle = npc.state === 'interacting' ? '#fbbf24' : '#8b5cf6'; // Yellow when interacting, purple otherwise
+            ctx.fillStyle = npcColor;
             ctx.beginPath();
             ctx.arc(npcX + TILE_SIZE / 2, npcY + TILE_SIZE / 2, TILE_SIZE / 3, 0, Math.PI * 2);
             ctx.fill();
 
-            // Draw NPC name above
+            // Draw NPC name and state above
             ctx.fillStyle = 'white';
             ctx.font = 'bold 10px sans-serif';
             ctx.textAlign = 'center';
             const name = npc.metadata.name || 'NPC';
-            ctx.fillText(name, npcX + TILE_SIZE / 2, npcY - 4);
+            const stateLabel = npc.state !== 'idle' ? ` [${npc.state.toUpperCase()}]` : '';
+            ctx.fillText(name + stateLabel, npcX + TILE_SIZE / 2, npcY - 4);
             ctx.textAlign = 'left'; // Reset alignment
 
-            // Draw interaction hint when player is near
+            // Draw interaction hint when player is near and can interact
             const playerCenterX = playerPos.x + TILE_SIZE / 2;
             const playerCenterY = playerPos.y + TILE_SIZE / 2;
             const npcCenterX = npcX + TILE_SIZE / 2;
             const npcCenterY = npcY + TILE_SIZE / 2;
             const distance = Math.sqrt(Math.pow(playerCenterX - npcCenterX, 2) + Math.pow(playerCenterY - npcCenterY, 2));
 
-            if (distance <= TILE_SIZE * 1.5 && npc.state !== 'interacting') {
+            // Only show interaction prompt for idle/alert states (not combat/interacting)
+            if (distance <= TILE_SIZE * 1.5 && (npc.state === 'idle' || npc.state === 'alert')) {
                 ctx.fillStyle = '#22c55e'; // Green
                 ctx.font = 'bold 12px sans-serif';
                 ctx.textAlign = 'center';
