@@ -202,30 +202,69 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
             });
         }
 
-        // Initialize reference NPCs for testing state priority
+        // Initialize NPCs from map data and reference NPCs
         if (npcs.length === 0) {
-            // NPC A: Static Dialogue (baseline) - tests idle ↔ interacting
-            const oldMan = createOldManNPC(6, 4);
+            const allNpcs: NPC[] = [];
 
-            // NPC B: Patrol Guard with waypoints - tests Alert state
-            const patrolGuard = createGuardNPC(3, 6, [
-                { x: 3, y: 6 },
-                { x: 3, y: 8 },
-                { x: 6, y: 8 },
-                { x: 6, y: 6 }
-            ]);
+            // Spawn NPCs from map data (editor-placed NPCs)
+            if (mapData.npc_instances && Array.isArray(mapData.npc_instances)) {
+                for (const npcInstance of mapData.npc_instances) {
+                    const x = Number(npcInstance.x ?? npcInstance.position?.x ?? 0);
+                    const y = Number(npcInstance.y ?? npcInstance.position?.y ?? 0);
+                    const presetId = npcInstance.preset_id || npcInstance.presetId;
 
-            // NPC C: Hostile Wanderer - tests Combat state
-            const hostile = createHostileWandererNPC(8, 7, 2);
+                    // Create NPC based on preset type
+                    switch (presetId) {
+                        case 'villager':
+                            allNpcs.push(createOldManNPC(x, y));
+                            break;
+                        case 'guard':
+                            // Guard with a simple patrol around spawn point
+                            allNpcs.push(createGuardNPC(x, y, [
+                                { x, y },
+                                { x: x + 2, y },
+                                { x: x + 2, y: y + 2 },
+                                { x, y: y + 2 }
+                            ]));
+                            break;
+                        case 'shopkeeper':
+                            allNpcs.push(createShopkeeperNPC(x, y));
+                            break;
+                        case 'quest_giver':
+                            allNpcs.push(createQuestGiverNPC(x, y));
+                            break;
+                        case 'hostile':
+                            allNpcs.push(createHostileWandererNPC(x, y, 2));
+                            break;
+                        default:
+                            // Default to villager for unknown presets
+                            allNpcs.push(createOldManNPC(x, y));
+                    }
+                }
+                console.log('🏠 Spawned NPCs from map data:', allNpcs.length);
+            }
 
-            // Shopkeeper for dialogue variety
-            const shopkeeper = createShopkeeperNPC(7, 2);
+            // Only add hardcoded reference NPCs if no map NPCs exist (for testing)
+            if (allNpcs.length === 0) {
+                // NPC A: Static Dialogue (baseline) - tests idle ↔ interacting
+                allNpcs.push(createOldManNPC(6, 4));
+                // NPC B: Patrol Guard with waypoints - tests Alert state
+                allNpcs.push(createGuardNPC(3, 6, [
+                    { x: 3, y: 6 },
+                    { x: 3, y: 8 },
+                    { x: 6, y: 8 },
+                    { x: 6, y: 6 }
+                ]));
+                // NPC C: Hostile Wanderer - tests Combat state
+                allNpcs.push(createHostileWandererNPC(8, 7, 2));
+                // Shopkeeper for dialogue variety
+                allNpcs.push(createShopkeeperNPC(7, 2));
+                // Quest Giver (Elder) - tests quest dialogue system
+                allNpcs.push(createQuestGiverNPC(2, 4));
+                console.log('🧙 Reference NPCs spawned (no map NPCs found)');
+            }
 
-            // Quest Giver (Elder) - tests quest dialogue system
-            const elder = createQuestGiverNPC(2, 4);
-
-            setNpcs([oldMan, patrolGuard, hostile, shopkeeper, elder]);
-            console.log('🧙 Reference NPCs spawned:', { oldMan, patrolGuard, hostile, shopkeeper, elder });
+            setNpcs(allNpcs);
         }
     }, [mapData, characterId, npcs.length]);
 

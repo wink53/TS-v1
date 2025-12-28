@@ -829,6 +829,13 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
                 character_id: s.characterId,
                 x: BigInt(s.x),
                 y: BigInt(s.y)
+            })),
+            npc_instances: (localMapData.npc_instances || []).map((n: any) => ({
+                id: n.id,
+                preset_id: n.presetId,
+                name: n.name,
+                x: BigInt(n.x),
+                y: BigInt(n.y)
             }))
         };
 
