@@ -133,6 +133,7 @@ export interface DialogueLine {
     speaker?: string;           // Speaker name (defaults to NPC name if not set)
     text: string;               // The dialogue text
     choices?: DialogueChoice[]; // Optional choices at this line
+    isEnding?: boolean;         // If true, dialogue ends after this line
 }
 
 /** A complete dialogue script with multiple lines */

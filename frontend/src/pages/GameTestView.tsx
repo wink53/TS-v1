@@ -366,7 +366,18 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
                 return; // Choices require explicit selection, not E to continue
             }
 
-            // No choices - E advances to next line
+            // No choices - E advances to next line (or ends if isEnding)
+            if (currentLine.isEnding) {
+                // This line is marked as ending - close dialogue
+                const updatedNpc = endInteraction(npc);
+                const newNpcs = [...npcs];
+                newNpcs[npcIndex] = updatedNpc;
+                setNpcs(newNpcs);
+                setDialogueState(null);
+                console.log('✅ Dialogue ended (isEnding flag)');
+                return;
+            }
+
             const nextIndex = dialogueState.currentLineIndex + 1;
             if (nextIndex >= dialogueState.script.lines.length) {
                 // End dialogue
@@ -851,8 +862,8 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
                 // Show continue hint
                 ctx.fillStyle = '#9ca3af';
                 ctx.font = '12px sans-serif';
-                const isLastLine = dialogueState.currentLineIndex >= dialogueState.script.lines.length - 1;
-                ctx.fillText(isLastLine ? '[E] Close' : '[E] Continue', boxX + 15, boxY + 70);
+                const isEnding = currentLine.isEnding || dialogueState.currentLineIndex >= dialogueState.script.lines.length - 1;
+                ctx.fillText(isEnding ? '[E] Close' : '[E] Continue', boxX + 15, boxY + 70);
             }
         }
 

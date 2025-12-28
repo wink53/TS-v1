@@ -36,8 +36,8 @@ const OLD_MAN_DIALOGUE: DialogueScript = {
             ]
         },
         { speaker: 'Old Man', text: 'Beware the stone path! It blocks your way.' },
-        { speaker: 'Old Man', text: 'Good luck on your journey, friend.' },
-        { speaker: 'Old Man', text: 'Very well. Safe travels.' }
+        { speaker: 'Old Man', text: 'Good luck on your journey, friend.', isEnding: true },
+        { speaker: 'Old Man', text: 'Very well. Safe travels.', isEnding: true }
     ]
 };
 
