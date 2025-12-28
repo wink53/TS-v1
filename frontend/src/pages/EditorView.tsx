@@ -143,6 +143,13 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
                     characterId: s.character_id,
                     x: Number(s.x),
                     y: Number(s.y)
+                })),
+                npc_instances: (mapData.npc_instances || []).map((n: any) => ({
+                    id: n.id,
+                    presetId: n.preset_id,
+                    name: n.name,
+                    x: Number(n.x),
+                    y: Number(n.y)
                 }))
             };
             setLocalMapData(localData);
@@ -441,6 +448,59 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
             }
         }
 
+        // Draw NPC Instances
+        if (localMapData.npc_instances) {
+            for (const npc of localMapData.npc_instances) {
+                const x = (npc.x * 32 * zoom) + pan.x;
+                const y = (npc.y * 32 * zoom) + pan.y;
+                const size = 32 * zoom;
+
+                // Check if visible
+                if (x + size < 0 || x > canvas.width || y + size < 0 || y > canvas.height) continue;
+
+                // Get color based on preset
+                let color = 'rgba(128, 128, 128, 0.8)';
+                let label = 'N';
+                const preset = NPC_PRESETS.find((p: NPCPreset) => p.id === npc.presetId);
+                if (preset) {
+                    switch (preset.id) {
+                        case 'guard': color = 'rgba(59, 130, 246, 0.8)'; label = 'G'; break; // Blue
+                        case 'shopkeeper': color = 'rgba(234, 179, 8, 0.8)'; label = 'S'; break; // Yellow
+                        case 'quest_giver': color = 'rgba(168, 85, 247, 0.8)'; label = 'Q'; break; // Purple
+                        case 'hostile': color = 'rgba(239, 68, 68, 0.8)'; label = 'H'; break; // Red
+                        case 'villager': color = 'rgba(34, 197, 94, 0.8)'; label = 'V'; break; // Green
+                    }
+                }
+
+                // Draw NPC marker (square with rounded corners)
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                const r = 4 * zoom;
+                ctx.roundRect(x + 2 * zoom, y + 2 * zoom, size - 4 * zoom, size - 4 * zoom, r);
+                ctx.fill();
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2 * zoom;
+                ctx.stroke();
+
+                // Draw letter label
+                ctx.fillStyle = '#fff';
+                ctx.font = `bold ${16 * zoom}px sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(label, x + size / 2, y + size / 2);
+
+                // Draw NPC Name if zoomed in enough
+                if (zoom > 0.8) {
+                    ctx.fillStyle = '#fff';
+                    ctx.font = `${10 * zoom}px sans-serif`;
+                    ctx.strokeStyle = '#000';
+                    ctx.lineWidth = 2;
+                    ctx.strokeText(npc.name, x + size / 2, y - 5);
+                    ctx.fillText(npc.name, x + size / 2, y - 5);
+                }
+            }
+        }
+
         // Draw Map Border
         ctx.strokeStyle = '#666';
         ctx.lineWidth = 2 / zoom;
@@ -507,7 +567,9 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
         const newMapData = {
             ...localMapData,
             tile_instances: [...localMapData.tile_instances],
-            object_instances: [...localMapData.object_instances]
+            object_instances: [...localMapData.object_instances],
+            spawn_points: [...(localMapData.spawn_points || [])],
+            npc_instances: [...(localMapData.npc_instances || [])]
         };
         let changed = false;
 
@@ -551,6 +613,24 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
                 y: pos.y
             });
             changed = true;
+        } else if (activeTool === 'spawn' && selectedNpcId) {
+            // Find NPC preset
+            const preset = NPC_PRESETS.find((p: NPCPreset) => p.id === selectedNpcId);
+            if (preset) {
+                // Remove existing NPC at this position
+                newMapData.npc_instances = newMapData.npc_instances.filter(
+                    (n: any) => !(n.x === pos.x && n.y === pos.y)
+                );
+                // Add new NPC instance
+                newMapData.npc_instances.push({
+                    id: crypto.randomUUID(),
+                    presetId: selectedNpcId,
+                    name: preset.name,
+                    x: pos.x,
+                    y: pos.y
+                });
+                changed = true;
+            }
         } else if (activeTool === 'erase') {
             const beforeTileLength = newMapData.tile_instances.length;
             const beforeObjectLength = newMapData.object_instances.length;
@@ -571,10 +651,17 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
                 (s: any) => !(s.x === pos.x && s.y === pos.y)
             );
 
+            // Remove NPC at this position
+            const beforeNpcLength = newMapData.npc_instances.length;
+            newMapData.npc_instances = newMapData.npc_instances.filter(
+                (n: any) => !(n.x === pos.x && n.y === pos.y)
+            );
+
             if (
                 beforeTileLength !== newMapData.tile_instances.length ||
                 beforeObjectLength !== newMapData.object_instances.length ||
-                beforeSpawnLength !== newMapData.spawn_points.length
+                beforeSpawnLength !== newMapData.spawn_points.length ||
+                beforeNpcLength !== newMapData.npc_instances.length
             ) {
                 changed = true;
             }
@@ -650,7 +737,8 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
                 ...localMapData,
                 tile_instances: [...localMapData.tile_instances],
                 object_instances: [...localMapData.object_instances],
-                spawn_points: [...(localMapData.spawn_points || [])]
+                spawn_points: [...(localMapData.spawn_points || [])],
+                npc_instances: [...(localMapData.npc_instances || [])]
             };
             let changed = false;
 
@@ -894,8 +982,8 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
                                             setActiveTool('spawn');
                                         }}
                                         className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors flex items-center gap-3 ${selectedNpcId === preset.id
-                                                ? 'bg-primary text-primary-foreground shadow-sm'
-                                                : 'hover:bg-accent'
+                                            ? 'bg-primary text-primary-foreground shadow-sm'
+                                            : 'hover:bg-accent'
                                             }`}
                                     >
                                         <div className="flex-shrink-0">
