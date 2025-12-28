@@ -830,7 +830,7 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
                 x: BigInt(s.x),
                 y: BigInt(s.y)
             })),
-            npc_instances: (localMapData.npc_instances || []).map((n: any) => ({
+            npc_instances: (Array.isArray(localMapData.npc_instances) ? localMapData.npc_instances : []).map((n: any) => ({
                 id: n.id,
                 preset_id: n.presetId,
                 name: n.name,
