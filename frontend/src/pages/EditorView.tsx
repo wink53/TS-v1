@@ -22,9 +22,14 @@ import {
     Redo,
     Square,
     Circle,
-    User
+    User,
+    Shield,
+    Store,
+    Scroll,
+    Skull
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { NPC_PRESETS, type NPCPreset } from '@/components/editor/Palette';
 
 // Types
 type Tool = 'select' | 'paint' | 'erase' | 'pan' | 'rectangle' | 'circle' | 'spawn';
@@ -43,6 +48,7 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
     const [selectedTileId, setSelectedTileId] = useState<string | null>(null);
     const [selectedObjectId, setSelectedObjectId] = useState<string | null>(null);
     const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
+    const [selectedNpcId, setSelectedNpcId] = useState<string | null>(null);
     const [zoom, setZoom] = useState(1);
     const [pan, setPan] = useState({ x: 0, y: 0 });
     const [showGrid, setShowGrid] = useState(true);
@@ -781,7 +787,13 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
                             value="characters"
                             className="relative h-9 rounded-none border-b-2 border-b-transparent bg-transparent px-4 pb-3 pt-2 font-semibold text-muted-foreground shadow-none transition-none data-[state=active]:border-b-primary data-[state=active]:text-foreground data-[state=active]:shadow-none"
                         >
-                            Characters
+                            Chars
+                        </TabsTrigger>
+                        <TabsTrigger
+                            value="npcs"
+                            className="relative h-9 rounded-none border-b-2 border-b-transparent bg-transparent px-4 pb-3 pt-2 font-semibold text-muted-foreground shadow-none transition-none data-[state=active]:border-b-primary data-[state=active]:text-foreground data-[state=active]:shadow-none"
+                        >
+                            NPCs
                         </TabsTrigger>
                     </TabsList>
 
@@ -862,6 +874,41 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
                                     >
                                         <User className="w-8 h-8 text-muted-foreground" />
                                         <span className="text-xs truncate w-full text-center">{char.name}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </ScrollArea>
+                    </TabsContent>
+
+                    <TabsContent value="npcs" className="mt-0 h-full">
+                        <ScrollArea className="h-full">
+                            <div className="space-y-1 p-4">
+                                {NPC_PRESETS.map((preset: NPCPreset) => (
+                                    <button
+                                        key={preset.id}
+                                        onClick={() => {
+                                            setSelectedNpcId(preset.id);
+                                            setSelectedTileId(null);
+                                            setSelectedObjectId(null);
+                                            setSelectedCharacterId(null);
+                                            setActiveTool('spawn');
+                                        }}
+                                        className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors flex items-center gap-3 ${selectedNpcId === preset.id
+                                                ? 'bg-primary text-primary-foreground shadow-sm'
+                                                : 'hover:bg-accent'
+                                            }`}
+                                    >
+                                        <div className="flex-shrink-0">
+                                            {preset.id === 'guard' && <Shield className="w-5 h-5" />}
+                                            {preset.id === 'shopkeeper' && <Store className="w-5 h-5" />}
+                                            {preset.id === 'quest_giver' && <Scroll className="w-5 h-5" />}
+                                            {preset.id === 'hostile' && <Skull className="w-5 h-5" />}
+                                            {preset.id === 'villager' && <User className="w-5 h-5" />}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="font-medium truncate">{preset.name}</div>
+                                            <div className="text-xs opacity-70">{preset.description}</div>
+                                        </div>
                                     </button>
                                 ))}
                             </div>
