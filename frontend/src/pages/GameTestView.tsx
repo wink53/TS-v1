@@ -7,8 +7,8 @@ import { ArrowLeft, Play, Pause, ZoomIn, ZoomOut, Gauge, Film } from 'lucide-rea
 import { Slider } from '@/components/ui/slider';
 import { toast } from 'sonner';
 import type { PlayableCharacter, SpriteSheet } from '../backend';
-import type { NPC, DialogueState, DialogueInteractionModule } from '../types/npc';
-import { createOldManNPC, createGuardNPC, createShopkeeperNPC, createHostileWandererNPC } from '../utils/npcPresets';
+import type { NPC, DialogueState, DialogueInteractionModule, QuestInteractionModule, QuestState } from '../types/npc';
+import { createOldManNPC, createGuardNPC, createShopkeeperNPC, createHostileWandererNPC, createQuestGiverNPC } from '../utils/npcPresets';
 import { interactWithNPC, endInteraction, getModule, updateNPC } from '../utils/npcController';
 
 interface GameTestViewProps {
@@ -79,6 +79,9 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
     // NPC state
     const [npcs, setNpcs] = useState<NPC[]>([]);
     const [dialogueState, setDialogueState] = useState<DialogueState | null>(null);
+
+    // Quest state tracking (keyed by quest id)
+    const [questStates, setQuestStates] = useState<Record<string, QuestState>>({});
 
     // Queries
     const { data: mapData, isLoading: isMapLoading } = useQuery({
@@ -215,11 +218,14 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
             // NPC C: Hostile Wanderer - tests Combat state
             const hostile = createHostileWandererNPC(8, 7, 2);
 
-            // Also keep shopkeeper for dialogue variety
+            // Shopkeeper for dialogue variety
             const shopkeeper = createShopkeeperNPC(7, 2);
 
-            setNpcs([oldMan, patrolGuard, hostile, shopkeeper]);
-            console.log('🧙 Reference NPCs spawned:', { oldMan, patrolGuard, hostile, shopkeeper });
+            // Quest Giver (Elder) - tests quest dialogue system
+            const elder = createQuestGiverNPC(2, 4);
+
+            setNpcs([oldMan, patrolGuard, hostile, shopkeeper, elder]);
+            console.log('🧙 Reference NPCs spawned:', { oldMan, patrolGuard, hostile, shopkeeper, elder });
         }
     }, [mapData, characterId, npcs.length]);
 
@@ -366,6 +372,17 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
                     const choice = currentLine.choices[choiceIndex];
                     const nextIndex = choice.nextLineIndex ?? dialogueState.currentLineIndex + 1;
 
+                    // Check for quest acceptance (choice 0 typically = accept)
+                    const interactionModule = getModule(npc, 'interaction');
+                    if (interactionModule?.type === 'quest' && choiceIndex === 0) {
+                        const questModule = interactionModule as QuestInteractionModule;
+                        const currentQuestState = questStates[questModule.questId];
+                        if (!currentQuestState || currentQuestState === 'available') {
+                            setQuestStates((prev: Record<string, QuestState>) => ({ ...prev, [questModule.questId]: 'active' }));
+                            console.log(`🎯 Quest accepted: ${questModule.questId}`);
+                        }
+                    }
+
                     if (nextIndex >= dialogueState.script.lines.length) {
                         // End dialogue
                         const updatedNpc = endInteraction(npc);
@@ -428,9 +445,43 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
             if (distance <= INTERACTION_DISTANCE) {
                 console.log(`🎯 Starting interaction with NPC: ${npc.metadata.name}`);
 
-                // Get dialogue module
-                const dialogueModule = getModule(npc, 'interaction') as DialogueInteractionModule | undefined;
+                // Get interaction module
+                const interactionModule = getModule(npc, 'interaction');
 
+                // Handle quest module
+                if (interactionModule?.type === 'quest') {
+                    const questModule = interactionModule as QuestInteractionModule;
+                    const currentQuestState = questStates[questModule.questId] || 'available';
+
+                    // Pick dialogue based on quest state
+                    let script;
+                    switch (currentQuestState) {
+                        case 'active':
+                            script = questModule.dialogueActive;
+                            break;
+                        case 'completed':
+                        case 'turned_in':
+                            script = questModule.dialogueComplete;
+                            break;
+                        default: // 'available'
+                            script = questModule.dialogueAvailable;
+                            break;
+                    }
+
+                    const newNpcs = [...npcs];
+                    newNpcs[i] = { ...npc, state: 'interacting' };
+                    setNpcs(newNpcs);
+                    setDialogueState({
+                        npcId: npc.id,
+                        script: script,
+                        currentLineIndex: 0
+                    });
+                    console.log(`📜 Started quest dialogue (state: ${currentQuestState})`);
+                    return;
+                }
+
+                // Handle dialogue module
+                const dialogueModule = interactionModule as DialogueInteractionModule | undefined;
                 if (dialogueModule?.dialogueScript) {
                     // Multi-line script
                     const newNpcs = [...npcs];
@@ -442,6 +493,12 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
                         currentLineIndex: 0
                     });
                     console.log('📜 Started scripted dialogue');
+
+                    // Check if talking to Old Man completes a quest
+                    if (npc.metadata.name === 'Old Man' && questStates['tutorial_speak'] === 'active') {
+                        setQuestStates((prev: Record<string, QuestState>) => ({ ...prev, 'tutorial_speak': 'completed' }));
+                        console.log('🎯 Quest objective complete: talked to Old Man');
+                    }
                 } else if (dialogueModule?.dialogueText) {
                     // Simple legacy dialogue - wrap in script
                     const newNpcs = [...npcs];
@@ -461,7 +518,7 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
         }
 
         console.log('❌ No NPC in range');
-    }, [npcs, playerPos, dialogueState]);
+    }, [npcs, playerPos, dialogueState, questStates]);
 
     // Keyboard handlers
     useEffect(() => {

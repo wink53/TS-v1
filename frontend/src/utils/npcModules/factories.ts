@@ -18,6 +18,7 @@ import {
     DialogueInteractionModule,
     ShopInteractionModule,
     CraftingInteractionModule,
+    QuestInteractionModule,
     // Combat modules
     NoCombatModule,
     BasicCombatModule,
@@ -127,6 +128,24 @@ export function createCraftingInteraction(
         type: 'crafting',
         handlesStates: ['idle', 'interacting'] as NPCState[],
         craftingType,
+    };
+}
+
+/** Create a quest interaction module for quest givers */
+export function createQuestInteraction(
+    questId: string,
+    dialogueAvailable: DialogueScript,
+    dialogueActive: DialogueScript,
+    dialogueComplete: DialogueScript
+): QuestInteractionModule {
+    return {
+        category: 'interaction',
+        type: 'quest',
+        handlesStates: ['idle', 'interacting'] as NPCState[],
+        questId,
+        dialogueAvailable,
+        dialogueActive,
+        dialogueComplete,
     };
 }
 

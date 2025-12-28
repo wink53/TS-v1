@@ -64,7 +64,7 @@ export interface NPC {
 
 /** Module category types */
 export type MovementType = 'static' | 'patrol' | 'wander' | 'flee';
-export type InteractionType = 'dialogue' | 'shop' | 'crafting';
+export type InteractionType = 'dialogue' | 'shop' | 'crafting' | 'quest';
 export type CombatType = 'none' | 'basic';
 export type AuthorityType = 'none' | 'guard';
 
@@ -174,7 +174,46 @@ export interface CraftingInteractionModule extends InteractionModule {
 }
 
 // =============================================================================
-// Combat Modules
+// Quest System Types
+// =============================================================================
+
+/** A single quest objective */
+export interface QuestObjective {
+    id: string;
+    description: string;
+    type: 'talk' | 'collect' | 'kill' | 'visit';
+    target: string;       // NPC id, item id, location id
+    required: number;     // How many needed
+    current: number;      // Current progress
+}
+
+/** Optional quest rewards */
+export interface QuestReward {
+    experience?: number;
+    gold?: number;
+    items?: string[];     // Item IDs
+}
+
+/** A complete quest definition */
+export interface Quest {
+    id: string;
+    title: string;
+    description: string;
+    objectives: QuestObjective[];
+    rewards?: QuestReward;
+}
+
+/** Quest progress state */
+export type QuestState = 'available' | 'active' | 'completed' | 'turned_in';
+
+/** Quest interaction module for quest givers */
+export interface QuestInteractionModule extends InteractionModule {
+    type: 'quest';
+    questId: string;
+    dialogueAvailable: DialogueScript;  // Quest offer
+    dialogueActive: DialogueScript;     // Quest in progress
+    dialogueComplete: DialogueScript;   // Quest turn-in
+}
 // =============================================================================
 
 export interface CombatModule extends NPCModuleInstance {

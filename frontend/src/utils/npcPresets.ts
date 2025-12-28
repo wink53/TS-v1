@@ -14,6 +14,7 @@ import {
     createDialogueInteraction,
     createScriptedDialogue,
     createShopInteraction,
+    createQuestInteraction,
     createNoCombat,
     createBasicCombat,
     createNoAuthority,
@@ -209,6 +210,73 @@ export function createHostileWandererNPC(
             name: 'Hostile',
             faction: 'enemy',
             tags: ['hostile', 'enemy'],
+        },
+    };
+
+    return createNPC(config);
+}
+
+// =============================================================================
+// Quest Giver NPC
+// =============================================================================
+
+/** Quest dialogue - when quest is available */
+const QUEST_AVAILABLE: DialogueScript = {
+    lines: [
+        { speaker: 'Elder', text: 'Greetings, young one.' },
+        { speaker: 'Elder', text: 'I have a task for you, if you are willing.' },
+        {
+            speaker: 'Elder',
+            text: 'Will you speak to the Old Man by the stone wall?',
+            choices: [
+                { text: 'I accept this task', nextLineIndex: 3 },
+                { text: 'Not right now', nextLineIndex: 4 }
+            ]
+        },
+        { speaker: 'Elder', text: 'Wonderful! Return when you have spoken to him.', isEnding: true },
+        { speaker: 'Elder', text: 'Come back when you are ready.', isEnding: true }
+    ]
+};
+
+/** Quest dialogue - when quest is active */
+const QUEST_ACTIVE: DialogueScript = {
+    lines: [
+        { speaker: 'Elder', text: 'Have you spoken to the Old Man yet?' },
+        { speaker: 'Elder', text: 'He waits by the stone wall to the east.', isEnding: true }
+    ]
+};
+
+/** Quest dialogue - when quest is complete */
+const QUEST_COMPLETE: DialogueScript = {
+    lines: [
+        { speaker: 'Elder', text: 'You have returned!' },
+        { speaker: 'Elder', text: 'The Old Man told me of your visit.' },
+        { speaker: 'Elder', text: 'You have proven yourself. Thank you, adventurer.', isEnding: true }
+    ]
+};
+
+/**
+ * Create a quest giver NPC.
+ */
+export function createQuestGiverNPC(
+    x: number,
+    y: number,
+    questId: string = 'tutorial_speak'
+): NPC {
+    const config: NPCConfig = {
+        position: { x, y },
+        direction: 'down',
+        initialState: 'idle',
+        modules: [
+            createStaticMovement(),
+            createQuestInteraction(questId, QUEST_AVAILABLE, QUEST_ACTIVE, QUEST_COMPLETE),
+            createNoCombat(),
+            createNoAuthority(),
+        ],
+        metadata: {
+            name: 'Elder',
+            faction: 'villager',
+            tags: ['friendly', 'npc', 'quest'],
         },
     };
 

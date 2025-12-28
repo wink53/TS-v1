@@ -15,6 +15,7 @@ export {
     createScriptedDialogue,
     createShopInteraction,
     createCraftingInteraction,
+    createQuestInteraction,
     // Combat
     createNoCombat,
     createBasicCombat,
