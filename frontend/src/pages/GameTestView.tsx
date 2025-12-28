@@ -7,9 +7,9 @@ import { ArrowLeft, Play, Pause, ZoomIn, ZoomOut, Gauge, Film } from 'lucide-rea
 import { Slider } from '@/components/ui/slider';
 import { toast } from 'sonner';
 import type { PlayableCharacter, SpriteSheet } from '../backend';
-import type { NPC } from '../types/npc';
+import type { NPC, DialogueState, DialogueInteractionModule } from '../types/npc';
 import { createOldManNPC } from '../utils/npcPresets';
-import { interactWithNPC, endInteraction, requestStateChange } from '../utils/npcController';
+import { interactWithNPC, endInteraction, getModule } from '../utils/npcController';
 
 interface GameTestViewProps {
     mapId: string;
@@ -78,7 +78,7 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
 
     // NPC state
     const [npcs, setNpcs] = useState<NPC[]>([]);
-    const [interactionMessage, setInteractionMessage] = useState<string | null>(null);
+    const [dialogueState, setDialogueState] = useState<DialogueState | null>(null);
 
     // Queries
     const { data: mapData, isLoading: isMapLoading } = useQuery({
@@ -201,7 +201,7 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
 
         // Initialize test NPCs
         if (npcs.length === 0) {
-            const testNPC = createOldManNPC(6, 4, 'Hello, traveler! Beware the dangers ahead.');
+            const testNPC = createOldManNPC(6, 4);
             setNpcs([testNPC]);
             console.log('🧙 Test NPC spawned:', testNPC);
         }
@@ -332,9 +332,59 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
     }, [objects, actor]);
 
     // Handle NPC interaction when E key is pressed
-    const handleNPCInteraction = useCallback(() => {
-        // Check each NPC for proximity
-        const INTERACTION_DISTANCE = TILE_SIZE * 1.5; // 1.5 tiles
+    const handleNPCInteraction = useCallback((choiceIndex?: number) => {
+        // If already in dialogue, handle progression
+        if (dialogueState) {
+            const npcIndex = npcs.findIndex((n: NPC) => n.id === dialogueState.npcId);
+            if (npcIndex === -1) {
+                setDialogueState(null);
+                return;
+            }
+
+            const npc = npcs[npcIndex];
+            const currentLine = dialogueState.script.lines[dialogueState.currentLineIndex];
+
+            // If current line has choices and choiceIndex provided, handle choice
+            if (currentLine.choices && currentLine.choices.length > 0) {
+                if (choiceIndex !== undefined && choiceIndex < currentLine.choices.length) {
+                    const choice = currentLine.choices[choiceIndex];
+                    const nextIndex = choice.nextLineIndex ?? dialogueState.currentLineIndex + 1;
+
+                    if (nextIndex >= dialogueState.script.lines.length) {
+                        // End dialogue
+                        const updatedNpc = endInteraction(npc);
+                        const newNpcs = [...npcs];
+                        newNpcs[npcIndex] = updatedNpc;
+                        setNpcs(newNpcs);
+                        setDialogueState(null);
+                        console.log('✅ Dialogue ended via choice');
+                    } else {
+                        setDialogueState({ ...dialogueState, currentLineIndex: nextIndex });
+                        console.log(`➡️ Choice selected, jumping to line ${nextIndex}`);
+                    }
+                }
+                return; // Choices require explicit selection, not E to continue
+            }
+
+            // No choices - E advances to next line
+            const nextIndex = dialogueState.currentLineIndex + 1;
+            if (nextIndex >= dialogueState.script.lines.length) {
+                // End dialogue
+                const updatedNpc = endInteraction(npc);
+                const newNpcs = [...npcs];
+                newNpcs[npcIndex] = updatedNpc;
+                setNpcs(newNpcs);
+                setDialogueState(null);
+                console.log('✅ Dialogue completed');
+            } else {
+                setDialogueState({ ...dialogueState, currentLineIndex: nextIndex });
+                console.log(`➡️ Advanced to line ${nextIndex}`);
+            }
+            return;
+        }
+
+        // Not in dialogue - check for nearby NPC
+        const INTERACTION_DISTANCE = TILE_SIZE * 1.5;
         const playerCenterX = playerPos.x + TILE_SIZE / 2;
         const playerCenterY = playerPos.y + TILE_SIZE / 2;
 
@@ -349,43 +399,42 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
             );
 
             if (distance <= INTERACTION_DISTANCE) {
-                // Found an NPC within range
-                console.log(`🎯 Attempting interaction with NPC: ${npc.metadata.name} (state: ${npc.state})`);
+                console.log(`🎯 Starting interaction with NPC: ${npc.metadata.name}`);
 
-                // If already interacting, end interaction
-                if (npc.state === 'interacting') {
-                    const updatedNpc = endInteraction(npc);
+                // Get dialogue module
+                const dialogueModule = getModule(npc, 'interaction') as DialogueInteractionModule | undefined;
+
+                if (dialogueModule?.dialogueScript) {
+                    // Multi-line script
                     const newNpcs = [...npcs];
-                    newNpcs[i] = updatedNpc;
+                    newNpcs[i] = { ...npc, state: 'interacting' };
                     setNpcs(newNpcs);
-                    setInteractionMessage(null);
-                    console.log(`✅ Ended interaction. NPC state: ${updatedNpc.state}`);
-                    return;
-                }
-
-                // Start interaction
-                const result = interactWithNPC(npc);
-                console.log('💬 Interaction result:', result);
-
-                if (result.handled && result.response) {
-                    setInteractionMessage(result.response);
-
-                    // Update NPC state if interaction returned a new state
-                    if (result.newState) {
-                        const newNpcs = [...npcs];
-                        newNpcs[i] = { ...npc, state: result.newState };
-                        setNpcs(newNpcs);
-                        console.log(`✅ NPC state changed: ${npc.state} → ${result.newState}`);
-                    }
+                    setDialogueState({
+                        npcId: npc.id,
+                        script: dialogueModule.dialogueScript,
+                        currentLineIndex: 0
+                    });
+                    console.log('📜 Started scripted dialogue');
+                } else if (dialogueModule?.dialogueText) {
+                    // Simple legacy dialogue - wrap in script
+                    const newNpcs = [...npcs];
+                    newNpcs[i] = { ...npc, state: 'interacting' };
+                    setNpcs(newNpcs);
+                    setDialogueState({
+                        npcId: npc.id,
+                        script: { lines: [{ speaker: npc.metadata.name, text: dialogueModule.dialogueText }] },
+                        currentLineIndex: 0
+                    });
+                    console.log('💬 Started simple dialogue');
                 } else {
-                    console.log('❌ NPC did not respond to interaction');
+                    console.log('❌ NPC has no dialogue');
                 }
-                return; // Only interact with one NPC at a time
+                return;
             }
         }
 
-        console.log('❌ No NPC in range for interaction');
-    }, [npcs, playerPos]);
+        console.log('❌ No NPC in range');
+    }, [npcs, playerPos, dialogueState]);
 
     // Keyboard handlers
     useEffect(() => {
@@ -397,10 +446,14 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
             if (e.key === 'Escape') {
                 setIsPaused((p: boolean) => !p);
             }
-            // E key for NPC interaction
+            // E key for NPC interaction / dialogue advancement
             if (e.key === 'e' || e.key === 'E') {
                 handleNPCInteraction();
             }
+            // Number keys for dialogue choices
+            if (e.key === '1') handleNPCInteraction(0);
+            if (e.key === '2') handleNPCInteraction(1);
+            if (e.key === '3') handleNPCInteraction(2);
         };
 
         const handleKeyUp = (e: KeyboardEvent) => {
@@ -753,33 +806,57 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
             ctx.textAlign = 'left';
         }
 
-        // Draw dialogue box if interacting with NPC
-        if (interactionMessage) {
-            const boxWidth = 400;
-            const boxHeight = 80;
+        // Draw dialogue box if in dialogue
+        if (dialogueState) {
+            const currentLine = dialogueState.script.lines[dialogueState.currentLineIndex];
+            const hasChoices = currentLine.choices && currentLine.choices.length > 0;
+
+            // Calculate box size based on content
+            const boxWidth = 450;
+            const boxHeight = hasChoices ? 120 : 90;
             const boxX = (canvas.width - boxWidth) / 2;
-            const boxY = canvas.height - boxHeight - 40;
+            const boxY = canvas.height - boxHeight - 30;
 
             // Box background
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.95)';
             ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
             ctx.strokeStyle = '#8b5cf6';
             ctx.lineWidth = 2;
             ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
 
+            // Speaker name
+            const speaker = currentLine.speaker || 'NPC';
+            ctx.fillStyle = '#a78bfa'; // Purple for speaker
+            ctx.font = 'bold 14px sans-serif';
+            ctx.textAlign = 'left';
+            ctx.fillText(speaker, boxX + 15, boxY + 22);
+
             // Dialogue text
             ctx.fillStyle = '#fff';
             ctx.font = '14px sans-serif';
-            ctx.textAlign = 'left';
-            ctx.fillText(interactionMessage, boxX + 15, boxY + 30);
+            ctx.fillText(currentLine.text, boxX + 15, boxY + 45);
 
-            // Close hint
-            ctx.fillStyle = '#9ca3af';
-            ctx.font = '12px sans-serif';
-            ctx.fillText('Press [E] to close', boxX + 15, boxY + 60);
+            if (hasChoices) {
+                // Draw choices
+                ctx.fillStyle = '#9ca3af';
+                ctx.font = '12px sans-serif';
+                currentLine.choices!.forEach((choice: { text: string }, i: number) => {
+                    const choiceY = boxY + 68 + i * 18;
+                    ctx.fillStyle = '#22c55e'; // Green for key
+                    ctx.fillText(`[${i + 1}]`, boxX + 15, choiceY);
+                    ctx.fillStyle = '#fff';
+                    ctx.fillText(choice.text, boxX + 40, choiceY);
+                });
+            } else {
+                // Show continue hint
+                ctx.fillStyle = '#9ca3af';
+                ctx.font = '12px sans-serif';
+                const isLastLine = dialogueState.currentLineIndex >= dialogueState.script.lines.length - 1;
+                ctx.fillText(isLastLine ? '[E] Close' : '[E] Continue', boxX + 15, boxY + 70);
+            }
         }
 
-    }, [mapData, camera, playerPos, playerDirection, currentFrame, isMoving, tileImages, objectImages, characterImage, spriteSheet, isPaused, selectedCharacter, zoom, moveSpeed, showCollisionDebug, showCharacterHitbox, npcs, interactionMessage]);
+    }, [mapData, camera, playerPos, playerDirection, currentFrame, isMoving, tileImages, objectImages, characterImage, spriteSheet, isPaused, selectedCharacter, zoom, moveSpeed, showCollisionDebug, showCharacterHitbox, npcs, dialogueState]);
 
     if (isMapLoading) {
         return <div className="flex items-center justify-center h-screen">Loading map...</div>;

@@ -5,12 +5,13 @@
  * Shows how NPCs are just "modules + initial state".
  */
 
-import { NPC, NPCConfig } from '../types/npc';
+import { NPC, NPCConfig, DialogueScript } from '../types/npc';
 import { createNPC } from './npcController';
 import {
     createStaticMovement,
     createPatrolMovement,
     createDialogueInteraction,
+    createScriptedDialogue,
     createShopInteraction,
     createNoCombat,
     createBasicCombat,
@@ -19,20 +20,37 @@ import {
 } from './npcModules';
 
 // =============================================================================
+// Test Dialogue Script
+// =============================================================================
+
+const OLD_MAN_DIALOGUE: DialogueScript = {
+    lines: [
+        { speaker: 'Old Man', text: 'Greetings, traveler.' },
+        { speaker: 'Old Man', text: 'The road ahead is dangerous...' },
+        {
+            speaker: 'Old Man',
+            text: 'Would you like some advice?',
+            choices: [
+                { text: 'Yes, please', nextLineIndex: 3 },
+                { text: 'No thanks', nextLineIndex: 5 }
+            ]
+        },
+        { speaker: 'Old Man', text: 'Beware the stone path! It blocks your way.' },
+        { speaker: 'Old Man', text: 'Good luck on your journey, friend.' },
+        { speaker: 'Old Man', text: 'Very well. Safe travels.' }
+    ]
+};
+
+// =============================================================================
 // Proof of Concept NPC - "Old Man"
 // =============================================================================
 
 /**
  * Create the test "Old Man" NPC.
  * - Static movement (stays in place)
- * - Dialogue interaction ("Hello, traveler!")
+ * - Scripted dialogue with choices
  * - No combat
  * - No authority
- * 
- * This proves:
- * - Modules attach correctly
- * - State changes work (idle → interacting → idle)
- * - Interaction routing works
  */
 export function createOldManNPC(
     x: number,
@@ -45,7 +63,10 @@ export function createOldManNPC(
         initialState: 'idle',
         modules: [
             createStaticMovement(),
-            createDialogueInteraction(customDialogue || 'Hello, traveler! The road ahead is dangerous.'),
+            // Use scripted dialogue if no custom text, otherwise simple text
+            customDialogue
+                ? createDialogueInteraction(customDialogue)
+                : createScriptedDialogue(OLD_MAN_DIALOGUE),
             createNoCombat(),
             createNoAuthority(),
         ],

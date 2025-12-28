@@ -119,6 +119,35 @@ export interface FleeMovementModule extends MovementModule {
 }
 
 // =============================================================================
+// Dialogue System Types
+// =============================================================================
+
+/** A single choice in a dialogue */
+export interface DialogueChoice {
+    text: string;           // Choice button text (e.g., "Yes, please")
+    nextLineIndex?: number; // Jump to specific line (for branching)
+}
+
+/** A single line of dialogue */
+export interface DialogueLine {
+    speaker?: string;           // Speaker name (defaults to NPC name if not set)
+    text: string;               // The dialogue text
+    choices?: DialogueChoice[]; // Optional choices at this line
+}
+
+/** A complete dialogue script with multiple lines */
+export interface DialogueScript {
+    lines: DialogueLine[];
+}
+
+/** Active dialogue state during interaction */
+export interface DialogueState {
+    npcId: string;
+    script: DialogueScript;
+    currentLineIndex: number;
+}
+
+// =============================================================================
 // Interaction Modules
 // =============================================================================
 
@@ -129,7 +158,8 @@ export interface InteractionModule extends NPCModuleInstance {
 
 export interface DialogueInteractionModule extends InteractionModule {
     type: 'dialogue';
-    dialogueText: string; // Simple placeholder, no trees yet
+    dialogueText?: string;       // Simple single-line dialogue (legacy)
+    dialogueScript?: DialogueScript; // Multi-line dialogue script
 }
 
 export interface ShopInteractionModule extends InteractionModule {

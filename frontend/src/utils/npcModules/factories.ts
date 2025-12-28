@@ -8,6 +8,7 @@
 import {
     NPCState,
     TilePosition,
+    DialogueScript,
     // Movement modules
     StaticMovementModule,
     PatrolMovementModule,
@@ -81,7 +82,7 @@ export function createFleeMovement(
 // Interaction Module Factories
 // =============================================================================
 
-/** Create a dialogue interaction module */
+/** Create a dialogue interaction module with simple text */
 export function createDialogueInteraction(
     dialogueText: string = 'Hello, traveler!'
 ): DialogueInteractionModule {
@@ -90,6 +91,18 @@ export function createDialogueInteraction(
         type: 'dialogue',
         handlesStates: ['idle', 'interacting'] as NPCState[],
         dialogueText,
+    };
+}
+
+/** Create a dialogue interaction module with a multi-line script */
+export function createScriptedDialogue(
+    script: DialogueScript
+): DialogueInteractionModule {
+    return {
+        category: 'interaction',
+        type: 'dialogue',
+        handlesStates: ['idle', 'interacting'] as NPCState[],
+        dialogueScript: script,
     };
 }
 

@@ -12,6 +12,7 @@ export {
     createFleeMovement,
     // Interaction
     createDialogueInteraction,
+    createScriptedDialogue,
     createShopInteraction,
     createCraftingInteraction,
     // Combat
