@@ -29,8 +29,16 @@ export interface MapData {
     'tile_instances': Array<TileInstance>,
     'object_instances': Array<ObjectInstance>,
     'spawn_points': Array<SpawnPoint>,
+    'npc_instances': [] | [Array<NpcInstance>],
     'created_at': bigint,
     'updated_at': bigint,
+}
+export interface NpcInstance {
+    'id': string,
+    'preset_id': string,
+    'name': string,
+    'x': bigint,
+    'y': bigint,
 }
 export interface ObjectInstance {
     'object_id': string,
