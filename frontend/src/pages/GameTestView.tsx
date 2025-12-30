@@ -207,8 +207,15 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
             const allNpcs: NPC[] = [];
 
             // Spawn NPCs from map data (editor-placed NPCs)
-            if (mapData.npc_instances && Array.isArray(mapData.npc_instances)) {
-                for (const npcInstance of mapData.npc_instances) {
+            // Handle optional Candid format: [] = null, [array] = Some(array)
+            const npcList = Array.isArray(mapData.npc_instances)
+                ? (mapData.npc_instances.length > 0 && Array.isArray(mapData.npc_instances[0])
+                    ? mapData.npc_instances[0]  // Unwrap from optional format
+                    : mapData.npc_instances)
+                : [];
+
+            if (npcList.length > 0) {
+                for (const npcInstance of npcList) {
                     const x = Number(npcInstance.x ?? npcInstance.position?.x ?? 0);
                     const y = Number(npcInstance.y ?? npcInstance.position?.y ?? 0);
                     const presetId = npcInstance.preset_id || npcInstance.presetId;

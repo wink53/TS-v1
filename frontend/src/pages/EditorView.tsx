@@ -830,13 +830,14 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
                 x: BigInt(s.x),
                 y: BigInt(s.y)
             })),
-            npc_instances: (Array.isArray(localMapData.npc_instances) ? localMapData.npc_instances : []).map((n: any) => ({
+            // Wrap in optional format for Candid ([] = null, [value] = Some(value))
+            npc_instances: [(Array.isArray(localMapData.npc_instances) ? localMapData.npc_instances : []).map((n: any) => ({
                 id: n.id,
                 preset_id: n.presetId,
                 name: n.name,
                 x: BigInt(n.x),
                 y: BigInt(n.y)
-            }))
+            }))]
         };
 
         updateMap.mutate({ id: mapId, mapData: mapDataForBackend });

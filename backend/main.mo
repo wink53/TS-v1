@@ -95,7 +95,7 @@ persistent actor Backend {
     tile_instances : [TileInstance];
     object_instances : [ObjectInstance];
     spawn_points : [SpawnPoint];
-    npc_instances : [NpcInstance];
+    npc_instances : ?[NpcInstance];
     created_at : Int;
     updated_at : Int;
   };
@@ -725,7 +725,7 @@ persistent actor Backend {
         y = 4;
         character_id = "char-hero-1";
       }];
-      npc_instances = [];
+      npc_instances = ?[];
       created_at = now;
       updated_at = now;
     };
