@@ -51,6 +51,7 @@ export function MapsView({ onOpenEditor, onOpenGameTest }: MapsViewProps) {
       tile_instances: [],
       object_instances: [],
       spawn_points: [],
+      npc_instances: [],
       created_at: BigInt(Date.now()),
       updated_at: BigInt(Date.now()),
     };
