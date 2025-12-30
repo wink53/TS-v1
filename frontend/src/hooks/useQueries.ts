@@ -272,7 +272,12 @@ export function useGetMap(id: string) {
     queryFn: async (): Promise<MapData | null> => {
       if (!actor) return null;
       const result = await actor.getMap(id);
-      return unwrap<MapData>(result);
+      console.log('🗺️ DEBUG getMap raw result:', result);
+      console.log('🗺️ DEBUG getMap raw result keys:', result && result[0] ? Object.keys(result[0]) : 'no result');
+      const unwrapped = unwrap<MapData>(result);
+      console.log('🗺️ DEBUG getMap unwrapped:', unwrapped);
+      console.log('🗺️ DEBUG unwrapped.npc_instances:', unwrapped?.npc_instances);
+      return unwrapped;
     },
     enabled: !!actor && !isFetching && !!id,
   });
