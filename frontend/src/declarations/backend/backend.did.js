@@ -80,6 +80,13 @@ export const idlFactory = ({ IDL }) => {
         'x': IDL.Nat,
         'y': IDL.Nat,
     });
+    const NpcInstance = IDL.Record({
+        'id': IDL.Text,
+        'preset_id': IDL.Text,
+        'name': IDL.Text,
+        'x': IDL.Int,
+        'y': IDL.Int,
+    });
     const MapData = IDL.Record({
         'id': IDL.Text,
         'name': IDL.Text,
@@ -89,6 +96,7 @@ export const idlFactory = ({ IDL }) => {
         'tile_instances': IDL.Vec(TileInstance),
         'object_instances': IDL.Vec(ObjectInstance),
         'spawn_points': IDL.Vec(SpawnPoint),
+        'npc_instances': IDL.Opt(IDL.Vec(NpcInstance)),
         'created_at': IDL.Int,
         'updated_at': IDL.Int,
     });
