@@ -91,7 +91,18 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
             const result = await (actor as any).getMap(mapId);
             if (Array.isArray(result) && result.length > 0) {
                 const map = result[0];
+                console.log('🗺️ DEBUG raw map from canister:', map);
+                console.log('🗺️ DEBUG raw npc_instances:', map.npc_instances);
                 // Transform to local format
+                // Handle npc_instances: optional format [] = null, [array] = Some(array)
+                const rawNpcInstances = map.npc_instances;
+                const npcList = Array.isArray(rawNpcInstances)
+                    ? (rawNpcInstances.length > 0 && Array.isArray(rawNpcInstances[0])
+                        ? rawNpcInstances[0]  // Unwrap from Candid optional format
+                        : rawNpcInstances)
+                    : [];
+                console.log('🗺️ DEBUG transformed npcList:', npcList);
+
                 return {
                     ...map,
                     width: Number(map.width),
@@ -111,6 +122,13 @@ export function GameTestView({ mapId, characterId, onBack }: GameTestViewProps) 
                         characterId: s.character_id,
                         x: Number(s.position?.x || s.x || 0),
                         y: Number(s.position?.y || s.y || 0)
+                    })),
+                    npc_instances: npcList.map((n: any) => ({
+                        id: n.id,
+                        presetId: n.preset_id,
+                        name: n.name,
+                        x: Number(n.x),
+                        y: Number(n.y)
                     }))
                 };
             }
