@@ -831,13 +831,15 @@ export function EditorView({ mapId, onBack }: EditorViewProps) {
                 y: BigInt(s.y)
             })),
             // Wrap in optional format for Candid ([] = null, [value] = Some(value))
-            npc_instances: [(Array.isArray(localMapData.npc_instances) ? localMapData.npc_instances : []).map((n: any) => ({
-                id: n.id,
-                preset_id: n.presetId,
-                name: n.name,
-                x: BigInt(n.x),
-                y: BigInt(n.y)
-            }))]
+            npc_instances: [(Array.isArray(localMapData.npc_instances) ? localMapData.npc_instances : [])
+                .filter((n: any) => n && typeof n.x !== 'undefined' && typeof n.y !== 'undefined')
+                .map((n: any) => ({
+                    id: n.id || crypto.randomUUID(),
+                    preset_id: n.presetId || n.preset_id || 'villager',
+                    name: n.name || 'NPC',
+                    x: BigInt(Number(n.x) || 0),
+                    y: BigInt(Number(n.y) || 0)
+                }))]
         };
 
         updateMap.mutate({ id: mapId, mapData: mapDataForBackend });
